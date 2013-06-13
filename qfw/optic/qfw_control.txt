@@ -1,0 +1,122 @@
+example read register (all 32 reg.):
+read_slave 0 0 200000 1f
+
+example write register:
+write_slave 0 0 200004 8 
+
+Address: 0x200000  Data: 0x1 	DAQ Reset
+Address: 0x200004  Data: 0x3	QFW Setting 
+Address: 0x200008  Data: 0x0    Program QFW Setting
+Address: 0x20000c  Data: 0x0  	reset QFW '1' and back to '0'
+Address: 0x200010  Data: 0x1	reset QFW to init state '0' and back to '1'
+Address: 0x200014  Data: 0x1   	number of TS of loop 1
+Address: 0x200018  Data: 0x1	number of TS of loop 2
+Address: 0x20001c  Data: 0x1	number of TS of loop 3
+Address: 0x200020  Data: 0x1f40	time for one slice loop1
+Address: 0x200024  Data: 0x64	time for one slice loop2
+Address: 0x200028  Data: 0x64	time for one slice loop3	
+Address: 0x20002c  Data: 0x2	DAC MODE x"1"=  /x"2"= /x"3"=
+Address: 0x200030  Data: 0x0	program dac '1' and back to '0'
+Address: 0x200034  Data: 0xf	offset value in calibration mode
+Address: 0x200038  Data: 0x3e8  calibration time
+Address: 0x20003c  Data: 0xffff set dac to xxxx
+Address: 0x200040  Data: 0xffff set dac to xxxx
+Address: 0x200044  Data: 0xffff set dac to xxxx
+Address: 0x200048  Data: 0xffff set dac to xxxx
+Address: 0x20004c  Data: 0x0	reset all scaler values
+Address: 0x200050  Data: 0x1    internal trigger on = '1' / off = '0' (1s internal)
+Address: 0x200054  Data: 0x3	hpla
+Address: 0x200058  Data: 0x0	NC
+Address: 0x20005c  Data: 0x0	NC
+Address: 0x200060  Data: 0x0	NC
+Address: 0x200064  Data: 0x0	NC
+Address: 0x200068  Data: 0x0	NC
+Address: 0x20006c  Data: 0x0	NC
+Address: 0x200070  Data: 0x0	NC
+Address: 0x200074  Data: 0x0	NC
+Address: 0x200078  Data: 0x0	NC
+
+Nach "Power on"
+ /nfs/mbsusr/mbsdaq/mbsrun/x86_pex_trix/x86_qfw_lu1
+
+RESET QFW INI State
+ LYPC-1 mbsdaq > write_slave 0 0 200010 0
+ LYPC-1 mbsdaq > write_slave 0 0 200010 1
+
+program QFW Setting
+ LYPC-1 mbsdaq > write_slave 0 0 200008 1
+ LYPC-1 mbsdaq > write_slave 0 0 200008 0
+
+program DAC in "CALI-MODE"
+ LYPC-1 mbsdaq > write_slave 0 0 200030 1
+ LYPC-1 mbsdaq > write_slave 0 0 200030 0
+
+MBS Start
+ mbs
+ mbs> @startup
+
+auf mbsdaq@sdpc095:/data$   start RFIO Server
+ rawDispRFIO64
+
+in MBS
+ mbs> con rfio lyserv -disk 
+ mbs> op fi /data/test_run1_ si=10 fi=1 -auto  -rfio
+ mbs> clo fi 
+ mbs> disco rfio  
+
+CNT. C auf mbsdaq@sdpc095:/data$ stopt RFIO
+
+ohne RFIO !! Daten Rat3e niedrig....!!!
+ mbs> op fi ./run1_ -disk 
+ mbs> clo fi 
+
+
+
+mbs> -LYPC-1 :transport  :
+-LYPC-1 :transport  :Event=    118263 Type=   10     1 Words=   452 Trigger=  1
+-LYPC-1 :transport  :  id=    1 con= 9 t/s=   10     1 words=   444 crate= 0
+-LYPC-1 :transport  :      0: add01b00 add01b01 add01b02 add01b03 add01b04
+-LYPC-1 :transport  :      5: add01b05 add01b06 add01b07 add01b08 add01b09
+-LYPC-1 :transport  :     10: add01b0a add01b0b add01b0c add01b0d add01b0e
+-LYPC-1 :transport  :     15: add01b0f add01b10 add01b11 add01b12 add01b13
+-LYPC-1 :transport  :     20: add01b14 add01b15 add01b16 add01b17 add01b18
+-LYPC-1 :transport  :     25: add01b19 add01b1a 00000134 00000300 00000001
+-LYPC-1 :transport  :     30: 00000003 00000000 00000000 00000001 00000001
+-LYPC-1 :transport  :     35: 00000001 00000001 00001f40 00000064 00000064
+-LYPC-1 :transport  :     40: 00000003 00000000 0000000f 000003e8 0000ffff
+-LYPC-1 :transport  :     45: 0000ffff 0000ffff 0000ffff 00000000 00000000
+-LYPC-1 :transport  :     50: 00000003 00000000 00000000 00000000 00000000
+-LYPC-1 :transport  :     55: 00000000 00000000 00000000 00000000 00000000
+-LYPC-1 :transport  :     60: 00000000 00000000 00000001 00000002 00000003
+-LYPC-1 :transport  :     65: 00000004 00000005 00000006 00000007 00000008
+-LYPC-1 :transport  :     70: 00000009 0000000a 0000000b 0000000c 0000000d
+-LYPC-1 :transport  :     75: 0000000e 0000000f 00000010 00000011 00000012
+-LYPC-1 :transport  :     80: 00000013 00000014 00000015 00000016 00000017
+-LYPC-1 :transport  :     85: 00000018 00000019 0000001a 0000001b 0000001c
+-LYPC-1 :transport  :     90: 0000001d 0000001e 0000001f 00000000 00000001
+-LYPC-1 :transport  :     95: 00000002 00000003 00000004 00000005 00000006
+-LYPC-1 :transport  :    100: 00000007 00000008 00000009 0000000a 0000000b
+-LYPC-1 :transport  :    105: 0000000c 0000000d 0000000e 0000000f 00000010
+-LYPC-1 :transport  :    110: 00000011 00000012 00000013 00000014 00000015
+-LYPC-1 :transport  :    115: 00000016 00000017 00000018 00000019 0000001a
+-LYPC-1 :transport  :    120: 0000001b 0000001c 0000001d 0000001e 0000001f
+-LYPC-1 :transport  :    125: 00000000 00000001 00000002 00000003 00000004
+-LYPC-1 :transport  :    130: 00000005 00000006 00000007 00000008 00000009
+-LYPC-1 :transport  :    135: 0000000a 0000000b 0000000c 0000000d 0000000e
+-LYPC-1 :transport  :    140: 0000000f 00000010 00000011 00000012 00000013
+-LYPC-1 :transport  :    145: 00000014 00000015 00000016 00000017 00000018
+-LYPC-1 :transport  :    150: 00000019 0000001a 0000001b 0000001c 0000001d
+-LYPC-1 :transport  :    155: 0000001e 0000001f 00001111 00000001 00000002
+-LYPC-1 :transport  :    160: 00000003 00000004 00000005 00000006 00000007
+-LYPC-1 :transport  :    165: 00000000 abababab 0000000a 0000000b 0000000c
+-LYPC-1 :transport  :    170: 0000000d 0000000e 0000000f 000000aa 000000bb
+-LYPC-1 :transport  :    175: 0000000e 0000000f 000000aa 000000bb 000000cc
+-LYPC-1 :transport  :    180: 000000dd 000000ee 000000ff 00000aa1 00000bb2
+-LYPC-1 :transport  :    185: 00000cc3 00000dd4 00000ee5 0000cdf5 00001111
+-LYPC-1 :transport  :    190: 00000001 00000002 00000003 00000004 00000005
+-LYPC-1 :transport  :    195: 00000006 00000007 00000000 abababab 0000000a
+-LYPC-1 :transport  :    200: 0000000b 0000000c 0000000d 0000000e 0000000f
+-LYPC-1 :transport  :    205: 000000aa 000000bb 0000000e 0000000f 000000aa
+-LYPC-1 :transport  :    210: 000000bb 000000cc 000000dd 000000ee 000000ff
+-LYPC-1 :transport  :    215: 00000aa1 00000bb2 00000cc3 00000dd4 00000ee5
+-LYPC-1 :transport  :    220: 0000cdf5
