@@ -226,6 +226,7 @@ Bool_t TOpticQFWProc::BuildEvent(TGo4EventElement* target)
 {
 	// called by framework from TOpticQFWEvent to fill it
 	TOpticQFWEvent* OpticQFWEvent = (TOpticQFWEvent*) target;
+        OpticQFWEvent->SetValid(kFALSE); // not store
 
 	TGo4MbsEvent* source = (TGo4MbsEvent*) GetInputEvent();
 	if (source == 0)
@@ -236,7 +237,7 @@ Bool_t TOpticQFWProc::BuildEvent(TGo4EventElement* target)
 	if (source->GetTrigger() > 11)
 	{
 		cout << "**** TOpticQFWProc: Skip trigger event" << endl;
-		OpticQFWEvent->SetValid(kFALSE); // not store
+		
 		return kFALSE;
 	}
 	// first we fill the TOpticQFWEvent with data from MBS source
@@ -257,18 +258,27 @@ Bool_t TOpticQFWProc::BuildEvent(TGo4EventElement* target)
 		Int_t dma_padd = (*pdata & 0xff00) >> 8;
 		Int_t cnt(0);
 		while (cnt < dma_padd) {
-		   if ((*pdata & 0xffff0000) != 0xadd00000)
-		      GO4_STOP_ANALYSIS_MESSAGE("Wrong padding format - missing add0");
-         if (((*pdata & 0xff00) >> 8) != dma_padd)
-            GO4_STOP_ANALYSIS_MESSAGE("Wrong padding format - 8-15 bits are not the same");
-         if ((*pdata & 0xff) != cnt)
-            GO4_STOP_ANALYSIS_MESSAGE("Wrong padding format - 0-7 bits not as expected");
-         pdata++;
-         cnt++;
-		}
+		   if ((*pdata & 0xffff0000) != 0xadd00000) {
+		      TGo4Log::Error("Wrong padding format - missing add0");
+		      return kFALSE;
+		   }      
+                if (((*pdata & 0xff00) >> 8) != dma_padd) {
+                   TGo4Log::Error("Wrong padding format - 8-15 bits are not the same");
+                   return kFALSE;
+                   }
+                if ((*pdata & 0xff) != cnt) {
+                   TGo4Log::Error("Wrong padding format - 0-7 bits not as expected");
+                   return kFALSE;
+                }
+                pdata++;
+                cnt++;
+        }
 
-		if ((*pdata & 0xff) != 0x34)
-		   GO4_STOP_ANALYSIS_MESSAGE("Wrong optic format - 0x34 are expected0-7 bits not as expected");
+		if ((*pdata & 0xff) != 0x34) {
+		   TGo4Log::Error("Wrong optic format - 0x34 are expected0-7 bits not as expected");
+		   return kFALSE;
+		 }
+		   
 
 		// unsigned trig_type   = (*pdata & 0xf00) >> 8;
 		// unsigned sfp_id      = (*pdata & 0xf000) >> 12;
@@ -277,8 +287,10 @@ Bool_t TOpticQFWProc::BuildEvent(TGo4EventElement* target)
       pdata++;
 
       Int_t opticlen = *pdata++;
-      if (opticlen > lwords*4)
-         GO4_STOP_ANALYSIS_MESSAGE("Mismatch with subevent len %d and optic len %d", lwords*4, opticlen);
+      if (opticlen > lwords*4) {
+         TGo4Log::Error("Mismatch with subevent len %d and optic len %d", lwords*4, opticlen);
+         return kFALSE;
+         }
 
       // TODO - later board id should be calculated from SFP and other ids
 		int brd = 0;
@@ -290,10 +302,11 @@ Bool_t TOpticQFWProc::BuildEvent(TGo4EventElement* target)
 		   OpticQFWEvent->fQfwLoopSize[brd][loop] = *pdata++; // new: dynamic time slice number
 
 		   // printf("Loop %d = size %d\n", loop, OpticQFWEvent->fQfwLoopSize[brd][loop]);
-		   if (OpticQFWEvent->fQfwLoopSize[brd][loop]>=OPTIC_QFWSLICES)
-		      GO4_STOP_ANALYSIS_MESSAGE(
-		            "**** TOpticQFWProc: found very large slice size %d max %d -  Please check set up!",
+		   if (OpticQFWEvent->fQfwLoopSize[brd][loop]>=OPTIC_QFWSLICES) {
+		      TGo4Log::Error("TOpticQFWProc: found very large slice size %d max %d -  Please check set up!",
 		            OpticQFWEvent->fQfwLoopSize[brd][loop], OPTIC_QFWSLICES);
+		        return kFALSE;
+		      }
 		}
 
 		for (int loop=0; loop<OPTIC_QFWLOOPS; loop++) {
@@ -331,7 +344,7 @@ Bool_t TOpticQFWProc::BuildEvent(TGo4EventElement* target)
 
 		if (pdata > psubevt->GetDataField() + lwords) {
 		   TGo4Log::Error("QFW event from board %d is too long", brd);
-		   continue; // leave subevent loop if no more data available
+		   return kFALSE; // leave subevent loop if no more data available
 		}
 		//GO4_STOP_ANALYSIS_MESSAGE(
 		//					"**** TOpticQFWProc: found wordcount=%d lwords=%d ",
