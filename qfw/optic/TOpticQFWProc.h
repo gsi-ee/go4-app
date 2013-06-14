@@ -24,10 +24,15 @@ class TOpticQFWProc : public TGo4EventProcessor
        * Number of bins is equal to 32 chanel x 200 slices */
       TH1* hOpticQFW[OPTIC_QFWBOARDS][OPTIC_QFWLOOPS];
 
+      /** Two dimensional, includes all loops */
+      TH2* hOpticQFW2D[OPTIC_QFWBOARDS];
+
       /* Display qfw scaler trace channels (from current event) in one histo per board/loop
        * Number of bins is equal to 32 chanel x 200 slices */
       TH1* hOpticQFWTrace[OPTIC_QFWBOARDS][OPTIC_QFWLOOPS];
 
+      /** Two dimensional, includes all loops */
+      TH2* hOpticQFW2DTrace[OPTIC_QFWBOARDS];
 
       /** Accumulated histogram of errors per QFW */
       TH1* hOpticQFWErr[OPTIC_QFWBOARDS];
