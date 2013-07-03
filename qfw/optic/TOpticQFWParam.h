@@ -12,6 +12,7 @@ class TOpticQFWParam : public TGo4Parameter {
       virtual Bool_t UpdateFrom(TGo4Parameter *);
 
 
+      Bool_t   fSimpleCompensation; // if true, simple compensation with average per channel/series value will be done
 
       Bool_t   fMeasureBackground;  // switches background measurement on/off
       Bool_t   fCorrectBackground;  // apply background correction to qfw on/off
@@ -23,7 +24,7 @@ class TOpticQFWParam : public TGo4Parameter {
 
       UInt_t fMeasurementCounts[OPTIC_QFWBOARDS][OPTIC_QFWNUM][OPTIC_QFWCHANS][OPTIC_QFWSLICES]; // number of measurements for (qfw,chan,tslice)
 
-	UInt_t fSlowMotionStart; // event number in file to begin slow control mode (0=off)
+	   UInt_t fSlowMotionStart; // event number in file to begin slow control mode (0=off)
 
       /* add new measured offset counts for next event. The QFWOffsets for specified coordinate
        * will be evaluated from this as an average of all calls of this method. */

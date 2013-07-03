@@ -36,7 +36,9 @@ TOpticQFWProc::TOpticQFWProc(const char* name) :
    SetMakeWithAutosave(kTRUE);
    //// init user analysis objects:
 
-   fPar = dynamic_cast<TOpticQFWParam*>(MakeParameter("QFWSetup", "TOpticQFWParam"));
+   fPar = dynamic_cast<TOpticQFWParam*>(MakeParameter("QFWSetup", "TOpticQFWParam", "set_QfwPar.C"));
+
+   if (fPar->fSimpleCompensation) TGo4Log::Info("Apply simple compensation - at least 5 values required");
 
    // fPar->PrintParameter();
    // MapGrids();
@@ -330,11 +332,35 @@ Bool_t TOpticQFWProc::BuildEvent(TGo4EventElement* target)
 
                // printf("loop %d slice %d ch %d = %d\n", loop, sl ,ch ,value);
 
-               hOpticQFWTrace[brd][loop]->SetBinContent(ch + 1 + sl*OPTIC_QFWCHANS, value);
-               hOpticQFW2DTrace[brd]->Fill(loop * OPTIC_QFWSLICES + sl, ch, value);
+               if (!fPar->fSimpleCompensation) {
+                  hOpticQFWTrace[brd][loop]->SetBinContent(ch + 1 + sl*OPTIC_QFWCHANS, value);
+                  hOpticQFW2DTrace[brd]->Fill(loop * OPTIC_QFWSLICES + sl, ch, value);
 
-               hOpticQFW[brd][loop]->AddBinContent(ch + 1 + sl*OPTIC_QFWCHANS, value);
-               hOpticQFW2D[brd]->Fill(loop * OPTIC_QFWSLICES + sl, ch, value);
+                  hOpticQFW[brd][loop]->AddBinContent(ch + 1 + sl*OPTIC_QFWCHANS, value);
+                  hOpticQFW2D[brd]->Fill(loop * OPTIC_QFWSLICES + sl, ch, value);
+               }
+            }
+
+
+         if (fPar->fSimpleCompensation)
+            for (int ch = 0; ch < OPTIC_QFWCHANS; ++ch) {
+
+               if (OpticQFWEvent->fQfwLoopSize[brd][loop]<5) continue;
+
+               Double_t sum = 0;
+               for (int sl = 0; sl < OpticQFWEvent->fQfwLoopSize[brd][loop]; ++sl)
+                  sum += OpticQFWEvent->fQfw[brd][loop][sl][ch];
+               sum = sum / OpticQFWEvent->fQfwLoopSize[brd][loop];
+
+               for (int sl = 0; sl < OpticQFWEvent->fQfwLoopSize[brd][loop]; ++sl) {
+                  Double_t value = OpticQFWEvent->fQfw[brd][loop][sl][ch] - sum;
+
+                  hOpticQFWTrace[brd][loop]->SetBinContent(ch + 1 + sl*OPTIC_QFWCHANS, value);
+                  hOpticQFW2DTrace[brd]->Fill(loop * OPTIC_QFWSLICES + sl, ch, value);
+
+                  hOpticQFW[brd][loop]->AddBinContent(ch + 1 + sl*OPTIC_QFWCHANS, value);
+                  hOpticQFW2D[brd]->Fill(loop * OPTIC_QFWSLICES + sl, ch, value);
+               }
             }
       }
 

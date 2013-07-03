@@ -15,11 +15,12 @@
 #include "Riostream.h"
 
 TOpticQFWParam::TOpticQFWParam(const char* name) :
-   TGo4Parameter(name), fMeasureBackground(kFALSE),fCorrectBackground(kTRUE)
+   TGo4Parameter(name),
+   fSimpleCompensation(kFALSE),
+   fMeasureBackground(kFALSE),
+   fCorrectBackground(kTRUE)
 {
 	ResetOffsetMeasurement();
-
-
 }
 
 
