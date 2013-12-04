@@ -140,7 +140,7 @@ class TQFWBoard : public TGo4CompositeEvent {
 class TQFWRawEvent : public TGo4CompositeEvent {
    public:
       TQFWRawEvent();
-      TQFWRawEvent(const char* name, Short_t id);
+      TQFWRawEvent(const char* name, Short_t id=0);
       virtual ~TQFWRawEvent();
 
       /* access to board subevent by unique id*/

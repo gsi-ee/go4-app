@@ -52,14 +52,15 @@ TQFWAnalysis::TQFWAnalysis(int argc, char** argv) :
    TGo4StepFactory* factory2 = new TGo4StepFactory("Factory2");
    factory2->DefEventProcessor("QFWProfileProc","TQFWProfileProc");// object name, class name
    factory2->DefOutputEvent("QFWProfileEvent","TQFWProfileEvent"); // object name, class name
+   factory2->DefInputEvent("QFWRawEvent","TQFWRawEvent"); // object name, class name
 
 
      TGo4AnalysisStep* step2 = new TGo4AnalysisStep("Profile", factory2, 0, 0);
 
-     step->SetSourceEnabled(kFALSE);
-     step->SetStoreEnabled(kFALSE);
-     step->SetProcessEnabled(kTRUE);
-     step->SetErrorStopEnabled(kTRUE);
+     step2->SetSourceEnabled(kFALSE);
+     step2->SetStoreEnabled(kFALSE);
+     step2->SetProcessEnabled(kTRUE);
+     step2->SetErrorStopEnabled(kTRUE);
 
      AddAnalysisStep(step2);
 

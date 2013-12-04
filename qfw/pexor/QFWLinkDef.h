@@ -33,8 +33,9 @@
 
 #pragma link C++ class TQFWProfileEvent+;
 #pragma link C++ class TQFWProfileProc+;
+#pragma link C++ class TQFWProfileParam+;
 
-
+#pragma link C++ class TQFWAnalysis+;
 
 
 #endif

@@ -37,6 +37,8 @@ public:
   TQFWProfileProc(const char* name);
   virtual ~TQFWProfileProc();
 
+
+
   Bool_t BuildEvent(TGo4EventElement* target);    // event processing function
 
 protected:
@@ -48,7 +50,7 @@ protected:
 
 
   /* here the geometry of the grids is set*/
-  void MapGrids();
+ // void MapGrids();
 
   /* use raw qfw data to fill the xy display histograms*/
 //  void FillGrids(TQFWRawEvent* out);
@@ -61,50 +63,6 @@ protected:
 
 private:
 
-//  TGo4Picture *pPexorQfws[OPTIC_QFWBOARDS];
-//  TGo4Picture *pPexorQfwsTrace[OPTIC_QFWBOARDS];
-
-  /* xy projections of scalers mapped to grid*/
-//  TH1* hBeamX[OPTIC_QFWBOARDS];
-//  TH1* hBeamY[OPTIC_QFWBOARDS];
-//  TH2* hBeamXSlice[OPTIC_QFWBOARDS];
-//  TH2* hBeamYSlice[OPTIC_QFWBOARDS];
-//
-//  /* helper histogram showing current offset*/
-//  TH2* hBeamXSliceOffs[OPTIC_QFWBOARDS];
-//  TH2* hBeamYSliceOffs[OPTIC_QFWBOARDS];
-//
-//  TH1* hBeamAccX[OPTIC_QFWBOARDS];
-//  TH1* hBeamAccY[OPTIC_QFWBOARDS];
-//  TH2* hBeamAccXSlice[OPTIC_QFWBOARDS];
-//  TH2* hBeamAccYSlice[OPTIC_QFWBOARDS];
-//
-//  TGo4Picture *pBeamProfiles[OPTIC_QFWBOARDS];
-//
-//  TH2* hBeamMeanXY[OPTIC_QFWGRIDS];
-//  TH1* hBeamRMSX[OPTIC_QFWGRIDS];
-//  TH1* hBeamRMSY[OPTIC_QFWGRIDS];
-//
-//  TGo4Picture *pBeamRMS[OPTIC_QFWGRIDS];
-//
-//  TGo4WinCond* cBeamXSliceCond[OPTIC_QFWGRIDS];
-//  TGo4WinCond* cBeamYSliceCond[OPTIC_QFWGRIDS];
-//  TH1* hBeamMeanCountsX[OPTIC_QFWGRIDS];
-//  TH1* hBeamMeanCountsY[OPTIC_QFWGRIDS];
-//  TH1* hBeamRMSCountsX[OPTIC_QFWGRIDS];
-//  TH1* hBeamRMSCountsY[OPTIC_QFWGRIDS];
-//
-//  /* bin mapping for beam profile x coordinate*/
-//  int gBeamX[OPTIC_QFWGRIDS][OPTIC_QFWBOARDS][OPTIC_QFWNUM][OPTIC_QFWCHANS];
-//
-//  /* bin mapping for beam profile y coordinate*/
-//  int gBeamY[OPTIC_QFWGRIDS][OPTIC_QFWBOARDS][OPTIC_QFWNUM][OPTIC_QFWCHANS];
-//
-//  /* number of wires in x direction for grid of index*/
-//  int gBeamWiresX[OPTIC_QFWGRIDS];
-//
-//  /* number of wires in y direction for grid of index*/
-//  int gBeamWiresY[OPTIC_QFWGRIDS];
 
   ClassDef(TQFWProfileProc,1)
 };

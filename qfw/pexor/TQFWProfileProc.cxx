@@ -16,120 +16,220 @@
 #include "TQFWRawEvent.h"
 #include "TQFWRawParam.h"
 
-
-
-
-
-
-
-
-
-
-
 //***********************************************************
 TQFWProfileProc::TQFWProfileProc() :
-   TGo4EventProcessor()
+    TGo4EventProcessor()
 {
 }
 
 //***********************************************************
 // this one is used in standard factory
 TQFWProfileProc::TQFWProfileProc(const char* name) :
-   TGo4EventProcessor(name)
+    TGo4EventProcessor(name)
 {
-   TGo4Log::Info("TQFWProfileProc: Create instance %s", name);
+  TGo4Log::Info("TQFWProfileProc: Create instance %s", name);
 
-   SetMakeWithAutosave(kTRUE);
-   //// init user analysis objects:
+  SetMakeWithAutosave(kTRUE);
+  //// init user analysis objects:
 
-   fParam = dynamic_cast<TQFWProfileParam*>(MakeParameter("QFWProfileParam", "TQFWProfileParam", "set_QfwProfilePar.C"));
+  fParam = dynamic_cast<TQFWProfileParam*>(MakeParameter("QFWProfileParam", "TQFWProfileParam", "set_QfwProfilePar.C"));
+  if (fParam)
+    fParam->SetEventConfig();
 
+  // setup grid displays from config:
+  for (int i = 0; i < fParam->fNumGrids; ++i)
+  {
+    UInt_t uniqueid = fParam->fGridDeviceID[i];
+    fGrids.push_back(new TQFWGridDisplay(uniqueid));
+  }
 
-   // setup grid displays from config:
-   for (int i = 0; i < fParam->fNumGrids; ++i)
-     {
-       UInt_t uniqueid = fParam->fGridDeviceID[i];
-       fGrids.push_back(new TQFWGridDisplay(uniqueid));
-     }
+  // setup grid displays from config:
+  for (int i = 0; i < fParam->fNumCups; ++i)
+  {
+    UInt_t uniqueid = fParam->fCupDeviceID[i];
+    fCups.push_back(new TQFWCupDisplay(uniqueid));
+  }
 
-   // setup grid displays from config:
-      for (int i = 0; i < fParam->fNumCups; ++i)
-        {
-          UInt_t uniqueid = fParam->fCupDeviceID[i];
-          fCups.push_back(new TQFWCupDisplay(uniqueid));
-        }
-
-
-
-   //InitDisplay(PEXOR_QFWSLICES);
+  //InitDisplay(PEXOR_QFWSLICES);
 }
 
 //***********************************************************
 TQFWProfileProc::~TQFWProfileProc()
 {
-   TGo4Log::Info("TQFWProfileProc: Delete instance");
-   for (unsigned i = 0; i < fGrids.size(); ++i)
-   {
-     delete fGrids[i];
-   }
-   for (unsigned i = 0; i < fCups.size(); ++i)
-     {
-       delete fCups[i];
-     }
+  TGo4Log::Info("TQFWProfileProc: Delete instance");
+  for (unsigned i = 0; i < fGrids.size(); ++i)
+  {
+    delete fGrids[i];
+  }
+  for (unsigned i = 0; i < fCups.size(); ++i)
+  {
+    delete fCups[i];
+  }
 
 }
-
-
-
 
 void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
 {
-   cout << "**** TQFWProfileProc: Init Display for "<<timeslices <<" time slices. "<< endl;
-   if(replace) //TGo4Analysis::Instance()->
-         SetMakeWithAutosave(kFALSE);
+  cout << "**** TQFWProfileProc: Init Display for " << timeslices << " time slices. " << endl;
+  if (replace)    //TGo4Analysis::Instance()->
+    SetMakeWithAutosave(kFALSE);
 
-   for (unsigned i = 0; i < fGrids.size(); ++i)
-      {
-        fGrids[i]->SetGridEvent(fOutput);
-        fGrids[i]->InitDisplay(timeslices);
-      }
-   for (unsigned i = 0; i < fCups.size(); ++i)
-        {
-          fCups[i]->SetCupEvent(fOutput);
-          fCups[i]->InitDisplay(timeslices);
-        }
+  for (unsigned i = 0; i < fGrids.size(); ++i)
+  {
+    fGrids[i]->SetGridEvent(fOutput);
+    fGrids[i]->InitDisplay(timeslices);
+  }
+  for (unsigned i = 0; i < fCups.size(); ++i)
+  {
+    fCups[i]->SetCupEvent(fOutput);
+    fCups[i]->InitDisplay(timeslices);
+  }
 
 }
-
 
 //-----------------------------------------------------------
 // event function
 Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 {
-   // called by framework from TQFWRawEvent to fill it
+  // called by framework from TQFWRawEvent to fill it
 
-   if(fOutput==0)
-     {
-       fOutput= (TQFWProfileEvent*) target;
-       InitDisplay(PEXOR_QFWSLICES,kTRUE); // recreate histograms with true wire numbers from output event
-     }
+  if (fOutput == 0)
+  {
+    fOutput = (TQFWProfileEvent*) target;
+    InitDisplay(PEXOR_QFWSLICES, kTRUE);    // recreate histograms with true wire numbers from output event
+  }
 
-   TQFWRawEvent* QFWRawEvent = (TQFWRawEvent*) GetInputEvent();
-   fOutput->SetValid(kFALSE); // not store
+  TQFWRawEvent* QFWRawEvent = (TQFWRawEvent*) GetInputEvent();
+  fOutput->SetValid(kFALSE);    // not store
 
+  // FillGrids(QFWRawEvent);
 
+  QFWRawEvent->SetValid(kTRUE);    // to store
 
-   // FillGrids(QFWRawEvent);
+  // first loop over grids:
 
-   QFWRawEvent->SetValid(kTRUE); // to store
+  for (unsigned g = 0; g < fGrids.size(); ++g)
+  {
+    TQFWGridDisplay* gridDisplay = fGrids[g];
+    Int_t gridid = gridDisplay->GetDevId();
+    TQFWGrid* gridData = fOutput->GetGrid(gridid);
 
+    for (unsigned l = 0; l < gridDisplay->GetNumLoops(); ++l)
+    {
+      TQFWGridLoopDisplay* loopDisplay = gridDisplay->GetLoopDisplay(l);
 
-   //if(fPar->fSlowMotionStart>0)
-   // if(evnum>fPar->fSlowMotionStart)
-   //   GO4_STOP_ANALYSIS_MESSAGE("Stopped for slow motion mode at event %d",evnum);
+      Int_t oldboardid = -1;
+      TQFWBoard* boardData = 0;
+      for (unsigned x = 0; x < gridData->GetNumXWires(); ++x)
+      {
+        TQFWChannelMap xmap = gridData->GetXChannelMap(x);
+        if (oldboardid != xmap.fBoardID)
+        {
+          boardData = QFWRawEvent->GetBoard(xmap.fBoardID);
+          oldboardid = xmap.fBoardID;
+          if (boardData == 0)
+          {
+            TGo4Log::Error("Configuration error: Board id %d does not exist as subevent!", xmap.fBoardID);
+            return kFALSE;
+          }
+          gridDisplay->AdjustDisplay(boardData);    // TODO: h
 
+        }
+        TQFWLoop* loopData = boardData->GetLoop(l);
+        if (loopData == 0)
+        {
+          TGo4Log::Error("Configuration error: Board id %d does not contain loopdata %d as subevent!", xmap.fBoardID,
+              l);
+          return kFALSE;
+        }
+        loopDisplay->AdjustDisplay(loopData);
 
-   return kTRUE;
+        Int_t xchan = xmap.fQFWChannel;
+        std::vector<Int_t> & trace = loopData->fQfwTrace[xchan];
+        UInt_t sum = 0;
+        for (unsigned t = 0; t < trace.size(); ++t)
+        {
+          // TODO: offset accumulation/correction also store in output event
+          //                        // JAM: newly added correction and display of background offset:
+          //                        if(fPar->fMeasureBackground)
+          //                           {
+          //                              fPar->AddOffsetMeasurement(brd,q,ch,sl,out->fQfw[brd][q][ch][sl]);
+          //                           }
+          //                        hBeamXSliceOffs[grid]->SetBinContent(1 + xpos, 1+sl, fPar->fQFWOffsets[brd][q][ch][sl]); // show current averaged offset
+          /////////////////////
+          sum += trace[t];
+          loopDisplay->hBeamXSlice->SetBinContent(1 + x, 1 + t, trace[t]);
+          UInt_t prev = loopDisplay->hBeamAccXSlice->GetBinContent(1 + x, 1 + t);
+          loopDisplay->hBeamAccXSlice->SetBinContent(1 + x, 1 + t, prev + trace[t]);
+          //                     }
+          //
+          gridDisplay->hBeamX->SetBinContent(1 + x, sum);
+          gridDisplay->hBeamAccX->AddBinContent(1 + x, sum);
+
+        }    // trace t
+
+      }    // x wires
+
+      oldboardid = -1;
+      boardData = 0;
+      for (unsigned y = 0; y < gridData->GetNumYWires(); ++y)
+      {
+        TQFWChannelMap ymap = gridData->GetYChannelMap(y);
+        if (oldboardid != ymap.fBoardID)
+        {
+          boardData = QFWRawEvent->GetBoard(ymap.fBoardID);
+          oldboardid = ymap.fBoardID;
+          if (boardData == 0)
+          {
+            TGo4Log::Error("Configuration error: Board id %d does not exist as subevent!", ymap.fBoardID);
+            return kFALSE;
+          }
+          gridDisplay->AdjustDisplay(boardData);    // TODO: h
+
+        }
+
+        TQFWLoop* loopData = boardData->GetLoop(l);
+        if (loopData == 0)
+        {
+          TGo4Log::Error("Configuration error: Board id %d does not contain loopdata %d as subevent!", ymap.fBoardID,
+              l);
+          return kFALSE;
+        }
+        Int_t ychan = ymap.fQFWChannel;
+        std::vector<Int_t> & trace = loopData->fQfwTrace[ychan];
+        UInt_t sum = 0;
+        for (unsigned t = 0; t < trace.size(); ++t)
+        {
+          // TODO: offset accumulation/correction also store in output event
+          //                        // JAM: newly added correction and display of background offset:
+          //                        if(fPar->fMeasureBackground)
+          //                           {
+          //                              fPar->AddOffsetMeasurement(brd,q,ch,sl,out->fQfw[brd][q][ch][sl]);
+          //                           }
+          //                        hBeamXSliceOffs[grid]->SetBinContent(1 + xpos, 1+sl, fPar->fQFWOffsets[brd][q][ch][sl]); // show current averaged offset
+          /////////////////////
+          sum += trace[t];
+          loopDisplay->hBeamYSlice->SetBinContent(1 + y, 1 + t, trace[t]);
+          UInt_t prev = loopDisplay->hBeamAccYSlice->GetBinContent(1 + y, 1 + t);
+          loopDisplay->hBeamAccYSlice->SetBinContent(1 + y, 1 + t, prev + trace[t]);
+          //                     }
+          //
+          gridDisplay->hBeamY->SetBinContent(1 + y, sum);
+          gridDisplay->hBeamAccY->AddBinContent(1 + y, sum);
+
+        }    // trace t
+
+      }    // y wires
+
+    }    // loops
+
+  }    // grids
+
+  //if(fPar->fSlowMotionStart>0)
+  // if(evnum>fPar->fSlowMotionStart)
+  //   GO4_STOP_ANALYSIS_MESSAGE("Stopped for slow motion mode at event %d",evnum);
+
+  return kTRUE;
 }
 
 //void TQFWProfileProc::FillGrids(TQFWRawEvent* out)
@@ -350,9 +450,8 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 //
 //}
 
-
-void TQFWProfileProc::MapGrids()
-{
+//void TQFWProfileProc::MapGrids()
+//{
 
 //   cout << "**** TQFWProfileProc: Setting up beam coordinate mapping:" << endl;
 //   // map both for scalers and prescalers
@@ -423,4 +522,4 @@ void TQFWProfileProc::MapGrids()
 //         gBeamY[gb][gb][7][3] = 0;
 //
 //            } // gb
-}
+//}

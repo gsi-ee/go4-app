@@ -33,7 +33,9 @@ TGo4Log::Info("TQFWRawProc: Create instance %s", name);
 SetMakeWithAutosave (kTRUE);
 //// init user analysis objects:
 
-fPar = dynamic_cast<TQFWRawParam*>(MakeParameter("QFWSetup", "TQFWRawParam", "set_QfwPar.C"));
+fPar = dynamic_cast<TQFWRawParam*>(MakeParameter("QFWRawParam", "TQFWRawParam", "set_QfwPar.C"));
+if (fPar)
+      fPar->SetConfigBoards();
 
 if (fPar->fSimpleCompensation)
   TGo4Log::Info("Apply simple compensation - at least 5 values required");
@@ -182,6 +184,7 @@ while ((psubevt = source->NextSubEvent()) != 0)
         }
     // TODO: are here some useful fields
     pdata += 5;
+    Bool_t rebinned=kFALSE;
     for (int loop = 0; loop < theBoard->getNElements(); loop++)
     {
       TQFWLoop* theLoop=theBoard->GetLoop(loop);
@@ -211,11 +214,14 @@ while ((psubevt = source->NextSubEvent()) != 0)
       if(loopDisplay->GetTimeSlices()!=theLoop->fQfwLoopSize)
       {
         loopDisplay->InitDisplay(theLoop->fQfwLoopSize,kTRUE);
+        rebinned=kTRUE;
       }
 
 
     } // first loop loop
 
+    if(rebinned)
+      boardDisplay->InitDisplay(-1,kTRUE); // rebin overview histograms with true timeslices of subloops
 
     for (int loop = 0; loop < theBoard->getNElements(); loop++)
        {
@@ -237,6 +243,7 @@ while ((psubevt = source->NextSubEvent()) != 0)
             TQFWBoardLoopDisplay* loopDisplay=boardDisplay->GetLoopDisplay(loop);
             loopDisplay->hQFWRawTrace->Reset("");
 
+      int loopoffset=0;
       for (int sl = 0; sl < loopData->fQfwLoopSize; ++sl)
         for (int ch = 0; ch < PEXOR_QFWCHANS; ++ch)
         {
@@ -248,11 +255,12 @@ while ((psubevt = source->NextSubEvent()) != 0)
           if (!fPar->fSimpleCompensation)
           {
             loopDisplay->hQFWRawTrace->SetBinContent(ch + 1 + sl * PEXOR_QFWCHANS, value);
-            boardDisplay->hQFWRaw2DTrace->Fill(loop * PEXOR_QFWSLICES + sl, ch, value);
+            boardDisplay->hQFWRaw2DTrace->Fill(loopoffset + sl, ch, value);
 
             loopDisplay->hQFWRaw->AddBinContent(ch + 1 + sl * PEXOR_QFWCHANS, value);
-            boardDisplay->hQFWRaw2D->Fill(loop * PEXOR_QFWSLICES + sl, ch, value);
+            boardDisplay->hQFWRaw2D->Fill(loopoffset + sl, ch, value);
           }
+
         }
 
       if (fPar->fSimpleCompensation)
@@ -267,17 +275,19 @@ while ((psubevt = source->NextSubEvent()) != 0)
             sum += loopData->fQfwTrace[sl].at(ch);
           sum = sum / loopData->fQfwLoopSize;
 
+
           for (int sl = 0; sl < loopData->fQfwLoopSize; ++sl)
           {
             Double_t value = loopData->fQfwTrace[sl].at(ch) - sum;
 
             loopDisplay->hQFWRawTrace->SetBinContent(ch + 1 + sl * PEXOR_QFWCHANS, value);
-            boardDisplay->hQFWRaw2DTrace->Fill(loop * PEXOR_QFWSLICES + sl, ch, value);
+            boardDisplay->hQFWRaw2DTrace->Fill(loopoffset + sl, ch, value);
 
             loopDisplay->hQFWRaw->AddBinContent(ch + 1 + sl * PEXOR_QFWCHANS, value);
-            boardDisplay->hQFWRaw2D->Fill(loop * PEXOR_QFWSLICES + sl, ch, value);
+            boardDisplay->hQFWRaw2D->Fill(loopoffset + sl, ch, value);
           } // sl
         }//ch
+      loopoffset+=loopData->fQfwLoopSize;
     }//loop
 
     boardDisplay->hQFWRawErrTr->Reset("");

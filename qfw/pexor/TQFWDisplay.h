@@ -209,6 +209,9 @@ public:
   /* recreate histograms using the given number of time slice*/
   virtual void InitDisplay(Int_t timeslices, Bool_t replace=kFALSE);
 
+  /* TODO: put some information into histogram headers*/
+   void AdjustDisplay(TQFWLoop* data);
+
   /* create link between this display and the event structure for same unique id*/
    void SetGridEvent(TQFWProfileEvent* out);
 
@@ -264,11 +267,21 @@ public:
   TQFWGridDisplay(Int_t grid);
   virtual ~TQFWGridDisplay();
 
+
+  /* access to histogram set for current loop id*/
+    TQFWGridLoopDisplay* GetLoopDisplay(Int_t index);
+
   /* recreate histograms using the given number of time slice*/
   virtual void InitDisplay(Int_t timeslices, Bool_t replace=kFALSE);
 
+
+  /* TODO: put some information into histgram headers*/
+  void AdjustDisplay(TQFWBoard* data);
+
   /* create link between this display and the event structure for same unique id*/
   void SetGridEvent(TQFWProfileEvent* out);
+
+
 
 //  /* number of wires in x direction for grid */
 //      Int_t gBeamWiresX;

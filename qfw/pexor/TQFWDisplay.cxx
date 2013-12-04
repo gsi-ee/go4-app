@@ -65,12 +65,13 @@ TQFWBoardLoopDisplay::TQFWBoardLoopDisplay(Int_t boardid, Int_t loopid) :
     TQFWLoopDisplay(boardid, loopid)
 {
   //TString loopname.Form("Board%02d/Loop%02d_", boardid, loopid);
-  InitDisplay(PEXOR_QFWSLICES);
+  //InitDisplay(PEXOR_QFWSLICES);
 
 }
 
 void TQFWBoardLoopDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
 {
+  TQFWLoopDisplay::InitDisplay(timeslices,replace);
   if (replace)
     SetMakeWithAutosave(kFALSE);
   TGo4Log::Info("TQFWBoardLoopDisplay: Initializing histograms with %d timeslices for Board %d Loop %d", timeslices,
@@ -84,12 +85,12 @@ void TQFWBoardLoopDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
   Int_t brd = fDisplayId;
   Int_t loop = fLoopId;
 
-  obname.Form("Board%d/Brd%d-Loop%d-Sum", brd, brd, loop);
+  obname.Form("Board%d/Loop%d/Brd%d-Loop%d-Sum", brd,loop, brd, loop);
   obtitle.Form("QFW Board %d Loop %d Accumulated", brd, loop);
   int qbins = timeslices * PEXOR_QFWCHANS;
   hQFWRaw = MakeTH1('I', obname.Data(), obtitle.Data(), qbins, 0, qbins, "QFW scaler sums");
 
-  obname.Form("Board%d/Brd%d-Loop%d-Trace", brd, brd, loop);
+  obname.Form("Board%d/Loop%d/Brd%d-Loop%d-Trace", brd,loop, brd, loop);
   obtitle.Form("QFW Board %d Loop %d Trace", brd, loop);
   hQFWRawTrace = MakeTH1('I', obname.Data(), obtitle.Data(), qbins, 0, qbins, "QFW scalers");
 
@@ -113,7 +114,7 @@ TQFWBoardDisplay::TQFWBoardDisplay(Int_t boardid) :
   {
     AddLoopDisplay(new TQFWBoardLoopDisplay(boardid, i));
   }
-
+  InitDisplay(PEXOR_QFWSLICES);
 }
 
 TQFWBoardDisplay::~TQFWBoardDisplay()
@@ -129,19 +130,34 @@ TQFWBoardLoopDisplay* TQFWBoardDisplay::GetLoopDisplay(Int_t index)
 
 void TQFWBoardDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
 {
-  TQFWDisplay::InitDisplay(timeslices, replace);    // handle initialization of subloops
+  if(timeslices>0)
+    TQFWDisplay::InitDisplay(timeslices, replace);    // handle initialization of subloops
+  else
+    timeslices=0; // otherwise do not specify timeslice of subloops, but take values from them (see below)!
   TString obname;
   TString obtitle;
 
   if (replace)
     SetMakeWithAutosave(kFALSE);
   Int_t brd = GetDevId();
+  unsigned numloops=GetNumLoops();
+  Int_t subtimes[numloops];
+  for(unsigned subix=0; subix<numloops; ++subix)
+  {
+    subtimes[subix]=GetSubDisplay(subix)->GetTimeSlices();
+    timeslices+=subtimes[subix];
+  }
 
+// TODO: handle different timeslices for subloops!
   hQFWRaw2D = MakeTH2('I', Form("Board%d/Brd%d-2D-Sum", brd, brd), Form("QFW Board %d accumulated for all loops", brd),
-      PEXOR_QFWLOOPS * timeslices, 0, PEXOR_QFWLOOPS * timeslices, PEXOR_QFWCHANS, 0, PEXOR_QFWCHANS, "loop", "ch");
+      numloops * timeslices, 0, numloops * timeslices, PEXOR_QFWCHANS, 0, PEXOR_QFWCHANS, "loop", "ch");
 
   hQFWRaw2DTrace = MakeTH2('I', Form("Board%d/Brd%d-2D-Trace", brd, brd), Form("QFW Board %d trace for all loops", brd),
-      PEXOR_QFWLOOPS * timeslices, 0, PEXOR_QFWLOOPS * timeslices, PEXOR_QFWCHANS, 0, PEXOR_QFWCHANS, "loop", "ch");
+      numloops * timeslices, 0, numloops * timeslices, PEXOR_QFWCHANS, 0, PEXOR_QFWCHANS, "loop", "ch");
+
+
+
+//
 
   hQFWRawErr = MakeTH1('I', Form("Board%d/Brd%dErr", brd, brd), Form("QFW errors in board %d", brd), PEXOR_QFWNUM, 0,
       PEXOR_QFWNUM);
@@ -197,7 +213,7 @@ void TQFWBoardDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
 TQFWGridLoopDisplay::TQFWGridLoopDisplay(Int_t gridid, Int_t loopid) :
   TQFWLoopDisplay(gridid, loopid),fGridData(0)
 {
-InitDisplay(PEXOR_QFWSLICES);
+
 }
 
 //***********************************************************
@@ -219,6 +235,7 @@ TString obname;
 TString obtitle;
 if (replace)    //TGo4Analysis::Instance()->
   SetMakeWithAutosave(kFALSE);
+TQFWLoopDisplay::InitDisplay(timeslices,replace);
 
 Int_t grid = GetDevId();
 Int_t loop = GetLoopId();
@@ -235,50 +252,154 @@ if(fGridData)
 obname.Form("Beam/GridAccu");
 obtitle.Form("Beam grid current accumulate");
 
-hBeamXSlice = MakeTH2('I', Form("Beam/Grid%2d/Profile_X_Time_G%d_L%d", grid, grid, loop),
+hBeamXSlice = MakeTH2('I', Form("Beam/Grid%2d/Loop%2d/Profile_X_Time_G%d_L%d", grid ,loop, grid, loop),
     Form("X Profile vs Time slices Grid%2d Loop%2d", grid, loop), wiresX, 0, wiresX, timeslices, 0,
     timeslices, "Wire", "Time Slice");
-hBeamYSlice = MakeTH2('I', Form("Beam/Grid%2d/Profile_Y_Time_G%d_L%d", grid, grid, loop),
+hBeamYSlice = MakeTH2('I', Form("Beam/Grid%2d/Loop%2d/Profile_Y_Time_G%d_L%d", grid, loop,grid, loop),
     Form("Y Profile vs Time slices Grid%2d Loop%2d", grid, loop), wiresY, 0, wiresY, timeslices, 0,
     timeslices, "Wire", "Time Slice");
 
-hBeamXSliceOffs = MakeTH2('I', Form("Beam/Grid%2d/Profile_X_Time_Offset_G%d_L%d", grid, grid, loop),
+hBeamXSliceOffs = MakeTH2('I', Form("Beam/Grid%2d/Loop%2d/Profile_X_Time_Offset_G%d_L%d", grid,loop, grid, loop),
     Form("X Profile vs Time slices average offset Grid%2d Loop%2d", grid, loop), wiresX, 0, wiresX,
     timeslices, 0, timeslices, "Wire", "Time Slice");
-hBeamYSliceOffs = MakeTH2('I', Form("Beam/Grid%2d/Profile_Y_Time_Offset_G%d_L%d", grid, grid, loop),
+hBeamYSliceOffs = MakeTH2('I', Form("Beam/Grid%2d/Loop%2d/Profile_Y_Time_Offset_G%d_L%d", grid,loop, grid, loop),
     Form("Y Profile vs Time slices average offset Grid%2d Loop%2d", grid, loop), wiresY, 0, wiresY,
     timeslices, 0, timeslices, "Wire", "Time Slice");
 
-hBeamAccXSlice = MakeTH2('I', Form("Beam/Grid%2d/ProfileSum_X_Time_G%d_L%d", grid, grid, loop),
+hBeamAccXSlice = MakeTH2('I', Form("Beam/Grid%2d/Loop%2d/ProfileSum_X_Time_G%d_L%d", grid,loop, grid, loop),
     Form("X Profile vs Time slices accum Grid%2d Loop%2d", grid, loop), wiresX, 0, wiresX, timeslices, 0,
     timeslices, "Wire", "Time Slice");
-hBeamAccYSlice = MakeTH2('I', Form("Beam/Grid%2d/ProfileSum_Y_Time_G%d_L%d", grid, grid, loop),
+hBeamAccYSlice = MakeTH2('I', Form("Beam/Grid%2d/Loop%2d/ProfileSum_Y_Time_G%d_L%d", grid,loop, grid, loop),
     Form("Y Profile vs Time slices accum Grid%2d Loop%2d", grid, loop), wiresY, 0, wiresY, timeslices, 0,
     timeslices, "Wire", "Time Slice");
 
 /* mean count of beam profile part: */
 
-cBeamXSliceCond = MakeWinCond(Form("Beam/Grid%2d/XSliceCond_G%d_L%d", grid, grid,loop), 0, wiresX, 0, timeslices,
+cBeamXSliceCond = MakeWinCond(Form("Beam/Grid%2d/Loop%2d/XSliceCond_G%d_L%d", grid,loop, grid,loop), 0, wiresX, 0, timeslices,
     hBeamXSlice->GetName());
-cBeamYSliceCond = MakeWinCond(Form("Beam/Grid%2d/YSliceCond_G%d_L%d", grid, grid,loop), 0, wiresY, 0, timeslices,
+cBeamYSliceCond = MakeWinCond(Form("Beam/Grid%2d/Loop%2d/YSliceCond_G%d_L%d", grid,loop, grid,loop), 0, wiresY, 0, timeslices,
     hBeamYSlice->GetName());
 
-hBeamMeanCountsX = MakeTH1('I', Form("Beam/Grid%2d/Mean_Counts_X_G%d_L%d", grid, grid,loop), Form("X Counts Mean Grid%2d Loop%2d", grid,loop),
+hBeamMeanCountsX = MakeTH1('I', Form("Beam/Grid%2d/Loop%2d/Mean_Counts_X_G%d_L%d", grid,loop, grid,loop), Form("X Counts Mean Grid%2d Loop%2d", grid,loop),
     1000, 0, 100, "Mean counts");
 
-hBeamMeanCountsY = MakeTH1('I', Form("Beam/Grid%2d/Mean_Counts_Y_G%d_L%d", grid, grid,loop), Form("Y Counts Mean Grid%2d Loop%2d", grid,loop),
+hBeamMeanCountsY = MakeTH1('I', Form("Beam/Grid%2d/Loop%2d/Mean_Counts_Y_G%d_L%d", grid,loop, grid,loop), Form("Y Counts Mean Grid%2d Loop%2d", grid,loop),
     1000, 0, 100, "Mean counts");
 
-hBeamRMSCountsX = MakeTH1('I', Form("Beam/Grid%2d/RMS_Counts_X_G%d_L%d", grid, grid,loop), Form("X Counts RMS Grid%2d Loop%2d", grid,loop),
+hBeamRMSCountsX = MakeTH1('I', Form("Beam/Grid%2d/Loop%2d/RMS_Counts_X_G%d_L%d", grid,loop, grid,loop), Form("X Counts RMS Grid%2d Loop%2d", grid,loop),
     1000, 0, 100, "RMS counts");
 
-hBeamRMSCountsY = MakeTH1('I', Form("Beam/Grid%2d/RMS_Counts_Y_G%d_L%d", grid, grid,loop), Form("Y Counts RMS Grid%2d Loop%2d", grid,loop),
+hBeamRMSCountsY = MakeTH1('I', Form("Beam/Grid%2d/Loop%2d/RMS_Counts_Y_G%d_L%d", grid,loop, grid,loop), Form("Y Counts RMS Grid%2d Loop%2d", grid,loop),
     1000, 0, 100, "RMS counts");
 
 
 
 
 }
+
+void TQFWGridLoopDisplay::AdjustDisplay(TQFWLoop* loopdata)
+{
+
+  // check if we have different timeslices:
+
+  if(loopdata->fQfwLoopSize != GetTimeSlices())
+  {
+    InitDisplay(loopdata->fQfwLoopSize,kTRUE);
+  }
+
+
+
+// change histogram titels according setup:
+
+
+   Double_t mtime=loopdata->fQfwLoopTime * 20 / 1000; // measurement time in us
+   Double_t premtime = 0; // measurement time in us
+
+   /* evaluate measurement setup*/
+   TString setup;
+ //  switch(loopdata->fQfwSetup) // TODO evaluate setup from data
+   switch(1000)
+   {
+      case 0:
+         setup.Form("(-) [ 2.5pF & 0.25pC]");
+      break;
+
+      case 1:
+         setup.Form("(-) [25.0pF & 2.50pC]");
+      break;
+
+      case 2:
+         setup.Form("(+) [ 2.5pF & 0.25pC]");
+      break;
+
+      case 3:
+         setup.Form("(+) [25.0pF & 2.50pC]");
+      break;
+
+      case 0x10:
+         setup.Form("1000uA (-) [ 2.5pF & 0.25pC]");
+      break;
+
+      case 0x11:
+         setup.Form("1000uA (-) [25.0pF & 2.50pC]");
+      break;
+
+      case 0x12:
+         setup.Form("1000uA (+) [ 2.5pF & 0.25pC]");
+      break;
+
+      case 0x13:
+         setup.Form("1000uA (+) [25.0pF & 2.50pC]");
+         break;
+
+      default:
+         //setup.Form("unknown setup %d", out->fQfwSetup);
+        setup.Form(" - ");
+        break;
+
+
+
+   };
+
+
+
+
+
+// APPEND TIME RANGES:
+   TString mtitle;
+   mtitle.Form("%s dt=%.2E us", setup.Data(), mtime);
+
+
+// clear trace histograms:
+//      hBeamX->Reset("");
+//      hBeamY->Reset("");
+      hBeamXSlice->Reset("");
+      hBeamYSlice->Reset("");
+      hBeamXSliceOffs->Reset("");
+      hBeamYSliceOffs->Reset("");
+//      hBeamX->SetTitle(mtitle.Data());
+//      hBeamY->SetTitle(mtitle.Data());
+      hBeamXSlice->SetTitle(mtitle.Data());
+      hBeamYSlice->SetTitle(mtitle.Data());
+
+
+
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
 
 ///*********************************************
 
@@ -290,7 +411,7 @@ for (int i = 0; i < PEXOR_QFWLOOPS; ++i)
 {
   AddLoopDisplay(new TQFWGridLoopDisplay(gridid, i));
 }
-
+InitDisplay(PEXOR_QFWSLICES);
 }
 
 //***********************************************************
@@ -298,6 +419,13 @@ TQFWGridDisplay::~TQFWGridDisplay()
 {
 
 }
+
+TQFWGridLoopDisplay* TQFWGridDisplay::GetLoopDisplay(Int_t index)
+{
+  return (TQFWGridLoopDisplay*) GetSubDisplay(index);
+}
+
+
 
 void TQFWGridDisplay::SetGridEvent(TQFWProfileEvent* out)
 {
@@ -394,6 +522,85 @@ if (pBeamRMS == 0)
 }
 
 
+void TQFWGridDisplay::AdjustDisplay(TQFWBoard*)
+//void TQFWProfileProc::FillGrids(TQFWRawEvent* out)
+{
+
+//   Bool_t dostop=kFALSE;
+//   Double_t mtime=loopdata->fQfwLoopTime * 20 / 1000; // measurement time in us
+//   Double_t premtime = 0; // measurement time in us
+//
+//   /* evaluate measurement setup*/
+//   TString setup;
+// //  switch(loopdata->fQfwSetup) // TODO evaluate setup from data
+//   switch(1000)
+//   {
+//      case 0:
+//         setup.Form("(-) [ 2.5pF & 0.25pC]");
+//      break;
+//
+//      case 1:
+//         setup.Form("(-) [25.0pF & 2.50pC]");
+//      break;
+//
+//      case 2:
+//         setup.Form("(+) [ 2.5pF & 0.25pC]");
+//      break;
+//
+//      case 3:
+//         setup.Form("(+) [25.0pF & 2.50pC]");
+//      break;
+//
+//      case 0x10:
+//         setup.Form("1000uA (-) [ 2.5pF & 0.25pC]");
+//      break;
+//
+//      case 0x11:
+//         setup.Form("1000uA (-) [25.0pF & 2.50pC]");
+//      break;
+//
+//      case 0x12:
+//         setup.Form("1000uA (+) [ 2.5pF & 0.25pC]");
+//      break;
+//
+//      case 0x13:
+//         setup.Form("1000uA (+) [25.0pF & 2.50pC]");
+//         break;
+//
+//      default:
+//         //setup.Form("unknown setup %d", out->fQfwSetup);
+//        setup.Form(" - ");
+//        break;
+//
+//
+//
+//   };
+//
+//
+//
+//
+//
+//// APPEND TIME RANGES:
+//   TString mtitle;
+//   mtitle.Form("%s dt=%.2E us", setup.Data(), mtime);
+
+      hBeamX->Reset("");
+      hBeamY->Reset("");
+//      hBeamXSlice]->Reset("");
+//      hBeamYSlice->Reset("");
+//      hBeamXSliceOffs->Reset("");
+//      hBeamYSliceOffs->Reset("");
+//      hBeamX->SetTitle(mtitle.Data());
+//      hBeamY->SetTitle(mtitle.Data());
+//      hBeamXSlice->SetTitle(mtitle.Data());
+//      hBeamYSlice->SetTitle(mtitle.Data());
+
+
+//      mtitle.Form("%s dt=%.2E us", setup.Data(),premtime);
+
+
+
+      }
 
 
 

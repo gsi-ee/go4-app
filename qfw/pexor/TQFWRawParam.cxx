@@ -22,6 +22,7 @@ TQFWRawParam::TQFWRawParam(const char* name) :
    fCorrectBackground(kTRUE)
 {
 	//ResetOffsetMeasurement();
+  InitBoardMapping();
 }
 
 
@@ -120,7 +121,7 @@ Bool_t TQFWRawParam::UpdateFrom(TGo4Parameter *pp)
       cout << "Wrong parameter object: " << pp->ClassName() << endl;
       return kFALSE;
    }
-
+   if(!TGo4Parameter::UpdateFrom(pp)) return kFALSE; // will automatically copy 2d arrays
    cout << "**** TQFWRawParam::UpdateFrom ... " << endl;
    // automatic reset if we newly start the offset calibration:
    if(!fMeasureBackground && from->fMeasureBackground)
@@ -132,6 +133,8 @@ Bool_t TQFWRawParam::UpdateFrom(TGo4Parameter *pp)
    fCorrectBackground=from->fCorrectBackground;
    fSlowMotionStart=from->fSlowMotionStart;
 
+
+   SetConfigBoards();
    return kTRUE;
 
 }

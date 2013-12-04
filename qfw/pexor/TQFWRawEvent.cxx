@@ -68,6 +68,10 @@ void TQFWBoard::Clear(Option_t *t)
 }
 
 //***********************************************************
+
+std::vector<UInt_t> TQFWRawEvent::fgConfigQFWBoards;
+
+
 TQFWRawEvent::TQFWRawEvent() :
     TGo4CompositeEvent()
 {

@@ -72,6 +72,15 @@ public:
          {
              return fYChannels.size();
          }
+     TQFWChannelMap& GetXChannelMap(Int_t index)
+     {
+       return fXChannels[index];
+     }
+
+     TQFWChannelMap& GetYChannelMap(Int_t index)
+          {
+            return fYChannels[index];
+          }
 
 
      /* set up map for X wires of this grid.
@@ -189,7 +198,7 @@ class TQFWProfileEvent : public TGo4CompositeEvent
 {
    public:
       TQFWProfileEvent();
-      TQFWProfileEvent(const char* name, Short_t id);
+      TQFWProfileEvent(const char* name, Short_t id=0);
       virtual ~TQFWProfileEvent();
 
 
