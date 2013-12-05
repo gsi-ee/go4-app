@@ -95,6 +95,8 @@ void TQFWBoardLoopDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
   obtitle.Form("QFW Board %d Loop %d Trace", brd, loop);
   hQFWRawTrace = MakeTH1('I', obname.Data(), obtitle.Data(), qbins, 0, qbins, "QFW scalers");
 
+if(replace)
+{   // avoid problems when taking it from autosave with different binning
   for (int sl = 0; sl < timeslices; ++sl)
   {
     for (int ch = 0; ch < PEXOR_QFWCHANS; ++ch)
@@ -105,6 +107,7 @@ void TQFWBoardLoopDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
       hQFWRawTrace->GetXaxis()->SetBinLabel(1 + sl * PEXOR_QFWCHANS + ch, binlabel.Data());
     }
   }
+}
 }
 
 //***********************************************************
@@ -176,11 +179,14 @@ void TQFWBoardDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
   hQFWRaw2DTrace = MakeTH2('I', Form("Board%d/Brd%d-2D-Trace", brd, brd), Form("QFW Board %d trace for all loops", brd),
       numloops * timeslices, 0, numloops * timeslices, PEXOR_QFWCHANS, 0, PEXOR_QFWCHANS, "loop", "ch");
 
+
+if(replace)
+  {   // avoid problems when taking it from autosave with different binning
   // set axis description:
   numloops=GetNumLoops();
   int loopoffset=0;
   TString binlabel;
-  for (int loop = 0; loop < numloops; ++loop)
+  for (unsigned loop = 0; loop < numloops; ++loop)
     {
       for (int t = 0; t < subtimes[loop]; ++t)
       {
@@ -192,7 +198,7 @@ void TQFWBoardDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
       }
       loopoffset+=subtimes[loop];
     }
-
+  }
 
 
 
@@ -562,66 +568,64 @@ if (pBeamRMS == 0)
 
 
 void TQFWGridDisplay::AdjustDisplay(TQFWBoard* boarddata)
-//void TQFWProfileProc::FillGrids(TQFWRawEvent* out)
 {
 
 //   Bool_t dostop=kFALSE;
-//   Double_t mtime=boarddata->fQfwLoopTime * 20 / 1000; // measurement time in us
-//   Double_t premtime = 0; // measurement time in us
-// 
-//   /* evaluate measurement setup*/
-//   TString setup;
-//   switch(boarddata->fQfwSetup) // TODO evaluate setup from data
-//   switch(1000)
-//   {
-//      case 0:
-//         setup.Form("(-) [ 2.5pF & 0.25pC]");
-//      break;
-// 
-//      case 1:
-//         setup.Form("(-) [25.0pF & 2.50pC]");
-//      break;
-// 
-//      case 2:
-//         setup.Form("(+) [ 2.5pF & 0.25pC]");
-//      break;
-// 
-//      case 3:
-//         setup.Form("(+) [25.0pF & 2.50pC]");
-//      break;
-// 
-//      case 0x10:
-//         setup.Form("1000uA (-) [ 2.5pF & 0.25pC]");
-//      break;
-// 
-//      case 0x11:
-//         setup.Form("1000uA (-) [25.0pF & 2.50pC]");
-//      break;
-// 
-//      case 0x12:
-//         setup.Form("1000uA (+) [ 2.5pF & 0.25pC]");
-//      break;
-// 
-//      case 0x13:
-//         setup.Form("1000uA (+) [25.0pF & 2.50pC]");
-//         break;
-// 
-//      default:
-//         //setup.Form("unknown setup %d", out->fQfwSetup);
-//        setup.Form(" - ");
-//        break;
-// 
-// 
-// 
-//   };
-// 
-// 
-// 
-// 
-// 
-// // APPEND TIME RANGES:
-//   TString mtitle;
-//   mtitle.Form("%s dt=%.2E us", setup.Data(), mtime);
+   //Double_t mtime=boarddata->fQfwLoopTime * 20 / 1000; // measurement time in us
+  // Double_t premtime = 0; // measurement time in us
+
+   /* evaluate measurement setup*/
+   TString setup;
+   switch(boarddata->fQfwSetup) // TODO evaluate setup from data
+   {
+      case 0:
+         setup.Form("(-) [ 2.5pF & 0.25pC]");
+      break;
+
+      case 1:
+         setup.Form("(-) [25.0pF & 2.50pC]");
+      break;
+
+      case 2:
+         setup.Form("(+) [ 2.5pF & 0.25pC]");
+      break;
+
+      case 3:
+         setup.Form("(+) [25.0pF & 2.50pC]");
+      break;
+
+      case 0x10:
+         setup.Form("1000uA (-) [ 2.5pF & 0.25pC]");
+      break;
+
+      case 0x11:
+         setup.Form("1000uA (-) [25.0pF & 2.50pC]");
+      break;
+
+      case 0x12:
+         setup.Form("1000uA (+) [ 2.5pF & 0.25pC]");
+      break;
+
+      case 0x13:
+         setup.Form("1000uA (+) [25.0pF & 2.50pC]");
+         break;
+
+      default:
+         //setup.Form("unknown setup %d", out->fQfwSetup);
+        setup.Form(" - ");
+        break;
+
+
+
+   };
+
+
+
+
+
+ // APPEND TIME RANGES:
+   TString mtitle;
+   mtitle.Form("%s", setup.Data());
 
       hBeamX->Reset("");
       hBeamY->Reset("");
@@ -629,8 +633,8 @@ void TQFWGridDisplay::AdjustDisplay(TQFWBoard* boarddata)
 //      hBeamYSlice->Reset("");
 //      hBeamXSliceOffs->Reset("");
 //      hBeamYSliceOffs->Reset("");
-//      hBeamX->SetTitle(mtitle.Data());
-//      hBeamY->SetTitle(mtitle.Data());
+      hBeamX->SetTitle(mtitle.Data());
+      hBeamY->SetTitle(mtitle.Data());
 //      hBeamXSlice->SetTitle(mtitle.Data());
 //      hBeamYSlice->SetTitle(mtitle.Data());
 

@@ -64,7 +64,7 @@ TQFWAnalysis::TQFWAnalysis(int argc, char** argv) :
 
      AddAnalysisStep(step2);
 
-
+     SetAutoSave(kFALSE);
    // uncomment following line to define custom passwords for analysis server
    // DefineServerPasswords("VupromQFWadmin", "VupromQFWctrl", "VupromQFWview");
 

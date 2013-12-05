@@ -18,14 +18,14 @@
 
 //***********************************************************
 TQFWProfileProc::TQFWProfileProc() :
-    TGo4EventProcessor()
+    TGo4EventProcessor(), fOutput(0)
 {
 }
 
 //***********************************************************
 // this one is used in standard factory
 TQFWProfileProc::TQFWProfileProc(const char* name) :
-    TGo4EventProcessor(name)
+    TGo4EventProcessor(name), fOutput(0)
 {
   TGo4Log::Info("TQFWProfileProc: Create instance %s", name);
 
@@ -194,7 +194,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
             TGo4Log::Error("Configuration error: Board id %d does not exist as subevent!", ymap.fBoardID);
             return kFALSE;
           }
-          gridDisplay->AdjustDisplay(boardData);    // TODO: h
+         // gridDisplay->AdjustDisplay(boardData);    // TODO: h
 
         }
 
