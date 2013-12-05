@@ -167,7 +167,8 @@ Bool_t  TQFWProfileParam::AddXOffsetMeasurement(Int_t grid, Int_t loop , Int_t w
         }
   fMeasurementCountsX[grid][loop][wire]++;
   fQFWOffsetXSums[grid][loop][wire]+=value;
-  fQFWOffsetsX[grid][loop][wire]=fQFWOffsetXSums[grid][loop][wire]/fMeasurementCountsX[grid][loop][wire];
+  if(fMeasurementCountsX[grid][loop][wire])
+    fQFWOffsetsX[grid][loop][wire]=(Double_t) fQFWOffsetXSums[grid][loop][wire]/(Double_t) fMeasurementCountsX[grid][loop][wire];
 
 return kTRUE;
 }
@@ -182,7 +183,8 @@ Bool_t TQFWProfileParam::AddYOffsetMeasurement(Int_t grid, Int_t loop, Int_t wir
   }
   fMeasurementCountsY[grid][loop][wire]++;
   fQFWOffsetYSums[grid][loop][wire] += value;
-  fQFWOffsetsY[grid][loop][wire] = fQFWOffsetYSums[grid][loop][wire] / fMeasurementCountsY[grid][loop][wire];
+  if(fMeasurementCountsY[grid][loop][wire])
+    fQFWOffsetsY[grid][loop][wire] = (Double_t) fQFWOffsetYSums[grid][loop][wire] / (Double_t)fMeasurementCountsY[grid][loop][wire];
 
   return kTRUE;
 }
@@ -219,7 +221,7 @@ Double_t TQFWProfileParam::GetCorrectedXValue(Int_t grid, Int_t loop, Int_t wire
             cout << "**** TQFWProfileParam::GetCorrectedXValue has illegal indices - ("<<grid<<","<<loop<<","<<wire<<")" << endl;
             return count;
         }
- return (count - fQFWOffsetsX[grid][loop][wire]);
+ return ((Double_t) count - fQFWOffsetsX[grid][loop][wire]);
 
 
 }
@@ -233,7 +235,7 @@ Double_t TQFWProfileParam::GetCorrectedYValue(Int_t grid, Int_t loop, Int_t wire
              cout << "**** TQFWProfileParam::GetCorrectedYValue has illegal indices - ("<<grid<<","<<loop<<","<<wire<<")" << endl;
              return count;
          }
-  return (count - fQFWOffsetsY[grid][loop][wire]);
+  return ((Double_t)count - fQFWOffsetsY[grid][loop][wire]);
 }
 
 

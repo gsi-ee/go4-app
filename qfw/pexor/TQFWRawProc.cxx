@@ -133,18 +133,21 @@ while ((psubevt = source->NextSubEvent()) != 0)
     {
       if ((*pdata & 0xffff0000) != 0xadd00000)
       {
-        TGo4Log::Error("Wrong padding format - missing add0");
-        return kFALSE;
+        //TGo4Log::Error("Wrong padding format - missing add0");
+        GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: Wrong padding format - missing add0"); // avoid that we run second step on invalid raw event!
+        //return kFALSE;
       }
       if (((*pdata & 0xff00) >> 8) != dma_padd)
       {
-        TGo4Log::Error("Wrong padding format - 8-15 bits are not the same");
-        return kFALSE;
+        //TGo4Log::Error("Wrong padding format - 8-15 bits are not the same");
+        GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: Wrong padding format - 8-15 bits are not the same"); // avoid that we run second step on invalid raw event!
+        //return kFALSE;
       }
       if ((*pdata & 0xff) != cnt)
       {
-        TGo4Log::Error("Wrong padding format - 0-7 bits not as expected");
-        return kFALSE;
+        //TGo4Log::Error("Wrong padding format - 0-7 bits not as expected");
+        GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: Wrong padding format - 0-7 bits not as expected"); // avoid that we run second step on invalid raw event!
+        //return kFALSE;
       }
       pdata++;
       cnt++;
@@ -155,8 +158,9 @@ while ((psubevt = source->NextSubEvent()) != 0)
     if ((*pdata & 0xff) != 0x34)
     {
       //GO4_STOP_ANALYSIS_MESSAGE("Wrong optic format - 0x34 are expected0-7 bits not as expected");
-      TGo4Log::Error("Wrong optic format 0x%x - 0x34 are expected0-7 bits not as expected", (*pdata & 0xff));
-      return kFALSE;
+      //TGo4Log::Error("Wrong optic format 0x%x - 0x34 are expected0-7 bits not as expected", (*pdata & 0xff));
+      GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: Wrong optic format 0x%x - 0x34 are expected0-7 bits not as expected", (*pdata & 0xff)); // avoid that we run second step on invalid raw event!
+      //return kFALSE;
     }
 
     // unsigned trig_type   = (*pdata & 0xf00) >> 8;
@@ -168,8 +172,9 @@ while ((psubevt = source->NextSubEvent()) != 0)
     Int_t opticlen = *pdata++;
     if (opticlen > lwords * 4)
     {
-      TGo4Log::Error("Mismatch with subevent len %d and optic len %d", lwords * 4, opticlen);
-      return kFALSE;
+      //TGo4Log::Error("Mismatch with subevent len %d and optic len %d", lwords * 4, opticlen);
+      GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: Mismatch with subevent len %d and optic len %d", lwords * 4, opticlen); // avoid that we run second step on invalid raw event!
+      //return kFALSE;
     }
     int eventcounter=*pdata;
     //TGo4Log::Info("Internal Event number 0x%x", eventcounter);
@@ -178,14 +183,15 @@ while ((psubevt = source->NextSubEvent()) != 0)
     TQFWBoard* theBoard = QFWRawEvent->GetBoard(brdid);
     if (theBoard == 0)
     {
-      TGo4Log::Error("Configuration error: Board id %d does not exist as subevent, sfp:%d device:%d", brdid, sfp_id,
+      GO4_SKIP_EVENT_MESSAGE("Configuration error: Board id %d does not exist as subevent, sfp:%d device:%d", brdid, sfp_id,
           device_id);
+
       return kFALSE;
     }
     TQFWBoardDisplay* boardDisplay=GetBoardDisplay(brdid);
     if (boardDisplay == 0)
         {
-          TGo4Log::Error("Configuration error: Board id %d does not exist as histogram display set!", brdid);
+          GO4_SKIP_EVENT_MESSAGE("Configuration error: Board id %d does not exist as histogram display set!", brdid);
           return kFALSE;
         }
     // TODO: are here some useful fields
