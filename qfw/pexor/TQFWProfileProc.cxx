@@ -115,11 +115,11 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
     TQFWGrid* gridData = fOutput->GetGrid(gridid);
     TQFWBoard* boardData = 0;
     Int_t oldboardid = -1;
-    Bool_t gridfirst=kTRUE;
+    Bool_t gridfirst = kTRUE;
     for (int l = 0; l < gridDisplay->GetNumLoops(); ++l)
     {
       TQFWGridLoopDisplay* loopDisplay = gridDisplay->GetLoopDisplay(l);
-      Bool_t loopfirst=kTRUE;
+      Bool_t loopfirst = kTRUE;
 
       for (int x = 0; x < gridData->GetNumXWires(); ++x)
       {
@@ -134,11 +134,11 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
             TGo4Log::Error("Configuration error: Board id %d does not exist as subevent!", xmap.fBoardID);
             return kFALSE;
           }
-         if(gridfirst)
-           {
-             gridDisplay->AdjustDisplay(boardData);    // TODO: h
-             gridfirst=kFALSE;
-           }
+          if (gridfirst)
+          {
+            gridDisplay->AdjustDisplay(boardData);    // TODO: h
+            gridfirst = kFALSE;
+          }
         }
         TQFWLoop* loopData = boardData->GetLoop(l);
         if (loopData == 0)
@@ -147,37 +147,40 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
               l);
           return kFALSE;
         }
-        if(loopfirst)
+        if (loopfirst)
         {
           loopDisplay->AdjustDisplay(loopData);
-          loopfirst=kFALSE;
+          loopfirst = kFALSE;
         }
         Int_t xchan = xmap.fQFWChannel;
         //printf("ProfileProc: processing board %d channel %d for grid %d X wire %d \n",
-         //   xmap.fBoardID, xchan, gridid, x);
-        if(xchan<0) continue; // skip non configured channels
+        //   xmap.fBoardID, xchan, gridid, x);
+        if (xchan < 0)
+          continue;    // skip non configured channels
         std::vector<Int_t> & trace = loopData->fQfwTrace[xchan];
         UInt_t sum = 0;
         for (unsigned t = 0; t < trace.size(); ++t)
         {
-          // TODO: offset accumulation/correction also store in output event
-          //                        // JAM: newly added correction and display of background offset:
-          //                        if(fPar->fMeasureBackground)
-          //                           {
-          //                              fPar->AddOffsetMeasurement(brd,q,ch,sl,out->fQfw[brd][q][ch][sl]);
-          //                           }
-          //                        hBeamXSliceOffs[grid]->SetBinContent(1 + xpos, 1+sl, fPar->fQFWOffsets[brd][q][ch][sl]); // show current averaged offset
-          /////////////////////
-          sum += trace[t];
-          loopDisplay->hBeamXSlice->SetBinContent(1 + x, 1 + t, trace[t]);
+          if (fParam->fMeasureBackground)
+          {
+            fParam->AddXOffsetMeasurement(g, l, x, trace[t]);
+          }
+          loopDisplay->hBeamXSliceOffs->SetBinContent(1 + x, 1 + t, fParam->fQFWOffsetsX[g][l][x]);    // show current averaged offset
+          UInt_t value = fParam->GetCorrectedXValue(g, l, x, trace[t]);
+          sum += value;
+          loopDisplay->hBeamXSlice->SetBinContent(1 + x, 1 + t, value);
+
           UInt_t prev = loopDisplay->hBeamAccXSlice->GetBinContent(1 + x, 1 + t);
-          loopDisplay->hBeamAccXSlice->SetBinContent(1 + x, 1 + t, prev + trace[t]);
-          //
+          loopDisplay->hBeamAccXSlice->SetBinContent(1 + x, 1 + t, prev + value);
+
+//          sum += trace[t];
+//          loopDisplay->hBeamXSlice->SetBinContent(1 + x, 1 + t, trace[t]);
+//          prev = loopDisplay->hBeamAccXSlice->GetBinContent(1 + x, 1 + t);
+//          loopDisplay->hBeamAccXSlice->SetBinContent(1 + x, 1 + t, prev + trace[t]);
+//          //
         }    // trace t
         gridDisplay->hBeamX->SetBinContent(1 + x, sum);
         gridDisplay->hBeamAccX->AddBinContent(1 + x, sum);
-
-
 
       }    // x wires
 
@@ -194,7 +197,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
             TGo4Log::Error("Configuration error: Board id %d does not exist as subevent!", ymap.fBoardID);
             return kFALSE;
           }
-         // gridDisplay->AdjustDisplay(boardData);    // TODO: h
+          // gridDisplay->AdjustDisplay(boardData);    // DO NOT do this again for y direction, will clear traces!
 
         }
 
@@ -208,7 +211,8 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
         Int_t ychan = ymap.fQFWChannel;
         //printf("ProfileProc: processing board %d channel %d for grid %d Y wire %d \n",
         //           ymap.fBoardID, ychan, gridid, y);
-        if(ychan<0) continue; // skip non configured channels
+        if (ychan < 0)
+          continue;    // skip non configured channels
         std::vector<Int_t> & trace = loopData->fQfwTrace[ychan];
         UInt_t sum = 0;
         for (unsigned t = 0; t < trace.size(); ++t)
@@ -221,110 +225,93 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           //                           }
           //                        hBeamXSliceOffs[grid]->SetBinContent(1 + xpos, 1+sl, fPar->fQFWOffsets[brd][q][ch][sl]); // show current averaged offset
           /////////////////////
-          sum += trace[t];
-          loopDisplay->hBeamYSlice->SetBinContent(1 + y, 1 + t, trace[t]);
-          UInt_t prev = loopDisplay->hBeamAccYSlice->GetBinContent(1 + y, 1 + t);
-          loopDisplay->hBeamAccYSlice->SetBinContent(1 + y, 1 + t, prev + trace[t]);
-          //                     }
-          //
 
+          if (fParam->fMeasureBackground)
+          {
+            fParam->AddYOffsetMeasurement(g, l, y, trace[t]);
+          }
+          loopDisplay->hBeamYSliceOffs->SetBinContent(1 + y, 1 + t, fParam->fQFWOffsetsX[g][l][y]);    // show current averaged offset
+          UInt_t value = fParam->GetCorrectedYValue(g, l, y, trace[t]);
+          sum += value;
+          loopDisplay->hBeamYSlice->SetBinContent(1 + y, 1 + t, value);
+
+          UInt_t prev = loopDisplay->hBeamAccYSlice->GetBinContent(1 + y, 1 + t);
+          loopDisplay->hBeamAccYSlice->SetBinContent(1 + y, 1 + t, prev + value);
 
         }    // trace t
-          gridDisplay->hBeamY->SetBinContent(1 + y, sum);
-          gridDisplay->hBeamAccY->AddBinContent(1 + y, sum);
+        gridDisplay->hBeamY->SetBinContent(1 + y, sum);
+        gridDisplay->hBeamAccY->AddBinContent(1 + y, sum);
 
       }    // y wires
 
     }    // loops
-
     
-   // put here mean value calculations and profiles:
-   
-   
-     gridData->fBeamMeanX=gridDisplay->hBeamX->GetMean();
+    // put here mean value calculations and profiles:
 
-     gridData->fBeamMeanY=gridDisplay->hBeamY->GetMean();
+    gridData->fBeamMeanX = gridDisplay->hBeamX->GetMean();
 
-     gridData->fBeamRMSX=gridDisplay->hBeamX->GetRMS();
+    gridData->fBeamMeanY = gridDisplay->hBeamY->GetMean();
 
-     gridData->fBeamRMSY=gridDisplay->hBeamY->GetRMS();
+    gridData->fBeamRMSX = gridDisplay->hBeamX->GetRMS();
 
-      gridDisplay->hBeamMeanXY->Fill(gridData->fBeamMeanX,gridData->fBeamMeanY);
-      gridDisplay->hBeamRMSX->Fill(gridData->fBeamRMSX);
-      gridDisplay->hBeamRMSY->Fill(gridData->fBeamRMSY);
-      
-      // second loop loop to get mean values of traces:
-      for (int l = 0; l < gridDisplay->GetNumLoops(); ++l)
+    gridData->fBeamRMSY = gridDisplay->hBeamY->GetRMS();
+
+    gridDisplay->hBeamMeanXY->Fill(gridData->fBeamMeanX, gridData->fBeamMeanY);
+    gridDisplay->hBeamRMSX->Fill(gridData->fBeamRMSX);
+    gridDisplay->hBeamRMSY->Fill(gridData->fBeamRMSY);
+
+    // second loop loop to get mean values of traces:
+    for (int l = 0; l < gridDisplay->GetNumLoops(); ++l)
+    {
+      TQFWGridLoopDisplay* loopDisplay = gridDisplay->GetLoopDisplay(l);
+      // evaluate here mean value and sigma of profile counts
+      //first x direction:
+      Int_t cmax = loopDisplay->cBeamXSliceCond->GetCMax(loopDisplay->hBeamXSlice);
+      TH1I haux("temp", "temp", cmax, 0, cmax);    // auxiliary histogram to calculate mean and rms of counts
+      for (int wire = 0; wire < gridData->GetNumXWires(); ++wire)
       {
-	TQFWGridLoopDisplay* loopDisplay=gridDisplay->GetLoopDisplay(l);
-     // evaluate here mean value and sigma of profile counts
-    //first x direction:
-      Int_t cmax=loopDisplay->cBeamXSliceCond->GetCMax(loopDisplay->hBeamXSlice);
-      TH1I haux("temp","temp",cmax,0,cmax); // auxiliary histogram to calculate mean and rms of counts
-     for(int wire=0;wire<gridData->GetNumXWires();++wire)
-     {
-        for(int time=0; time<loopDisplay->GetTimeSlices();++time)
+        for (int time = 0; time < loopDisplay->GetTimeSlices(); ++time)
         {
-           if(loopDisplay->cBeamXSliceCond->Test(wire,time))
-              {
-                 haux.Fill(loopDisplay->hBeamXSlice->GetBinContent(wire+1,time+1));
-              }
+          if (loopDisplay->cBeamXSliceCond->Test(wire, time))
+          {
+            haux.Fill(loopDisplay->hBeamXSlice->GetBinContent(wire + 1, time + 1));
+          }
         }
 
-     }
-     Double_t MeanCountsX=haux.GetMean();
-     Double_t RMSCountsX=haux.GetRMS();
-     mtitle.Form("%s mean=%.2E sigma=%.2E", loopDisplay->hBeamXSlice->GetTitle(), MeanCountsX, RMSCountsX);
-     loopDisplay->hBeamXSlice->SetTitle(mtitle.Data());
+      }
+      Double_t MeanCountsX = haux.GetMean();
+      Double_t RMSCountsX = haux.GetRMS();
+      mtitle.Form("%s mean=%.2E sigma=%.2E", loopDisplay->hBeamXSlice->GetTitle(), MeanCountsX, RMSCountsX);
+      loopDisplay->hBeamXSlice->SetTitle(mtitle.Data());
 //
 //      // y direction:
-     
-     
-     
-      Int_t cmay=loopDisplay->cBeamYSliceCond->GetCMax(loopDisplay->hBeamYSlice);
-      TH1I hauy("temp2","temp2",cmay,0,cmay); // auxiliary histogram to calculate mean and rms of counts
-     for(int wire=0;wire<gridData->GetNumYWires();++wire)
-     {
-        for(int time=0; time<loopDisplay->GetTimeSlices();++time)
+
+      Int_t cmay = loopDisplay->cBeamYSliceCond->GetCMax(loopDisplay->hBeamYSlice);
+      TH1I hauy("temp2", "temp2", cmay, 0, cmay);    // auxiliary histogram to calculate mean and rms of counts
+      for (int wire = 0; wire < gridData->GetNumYWires(); ++wire)
+      {
+        for (int time = 0; time < loopDisplay->GetTimeSlices(); ++time)
         {
-           if(loopDisplay->cBeamYSliceCond->Test(wire,time))
-              {
-                 hauy.Fill(loopDisplay->hBeamYSlice->GetBinContent(wire+1,time+1));
-              }
+          if (loopDisplay->cBeamYSliceCond->Test(wire, time))
+          {
+            hauy.Fill(loopDisplay->hBeamYSlice->GetBinContent(wire + 1, time + 1));
+          }
         }
 
-     }
-     Double_t MeanCountsY=hauy.GetMean();
-     Double_t RMSCountsY=hauy.GetRMS();
-     mtitle.Form("%s mean=%.2E sigma=%.2E", loopDisplay->hBeamYSlice->GetTitle(), MeanCountsY, RMSCountsY);
-     loopDisplay->hBeamYSlice->SetTitle(mtitle.Data());
-     
-     
-     
-     
+      }
+      Double_t MeanCountsY = hauy.GetMean();
+      Double_t RMSCountsY = hauy.GetRMS();
+      mtitle.Form("%s mean=%.2E sigma=%.2E", loopDisplay->hBeamYSlice->GetTitle(), MeanCountsY, RMSCountsY);
+      loopDisplay->hBeamYSlice->SetTitle(mtitle.Data());
 
+      loopDisplay->hBeamMeanCountsX->Fill(MeanCountsX);
+      loopDisplay->hBeamMeanCountsY->Fill(MeanCountsY);
+      loopDisplay->hBeamRMSCountsX->Fill(RMSCountsX);
+      loopDisplay->hBeamRMSCountsY->Fill(RMSCountsY);
 
-     loopDisplay->hBeamMeanCountsX->Fill(MeanCountsX);
-     loopDisplay->hBeamMeanCountsY->Fill(MeanCountsY);
-     loopDisplay->hBeamRMSCountsX->Fill(RMSCountsX);
-     loopDisplay->hBeamRMSCountsY->Fill(RMSCountsY);
-
-      } // loops
-    
-    
-    
-    
-    
+    }    // loops
     
   }    // grids
-
-  
-  
- 
-  
-  
-  
-  
   
   //if(fPar->fSlowMotionStart>0)
   // if(evnum>fPar->fSlowMotionStart)

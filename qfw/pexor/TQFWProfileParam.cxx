@@ -14,10 +14,18 @@
 #include "TQFWProfileParam.h"
 #include "Riostream.h"
 
+TQFWProfileParam::TQFWProfileParam() : TGo4Parameter()
+{
+
+}
+
 TQFWProfileParam::TQFWProfileParam(const char* name) :
     TGo4Parameter(name)
 {
   InitProfileMapping();
+  ResetOffsetMeasurement();
+  fMeasureBackground=kFALSE;
+  fCorrectBackground=kTRUE;
 }
 
 void TQFWProfileParam::InitProfileMapping()
@@ -146,25 +154,104 @@ void TQFWProfileParam::InitProfileMapping()
 Bool_t TQFWProfileParam::SetEventConfig()
 {
   TQFWProfileEvent::fParameter=this;
-
-//  TQFWProfileEvent::fgConfigQFWGrids.clear();
-//  UInt_t boardindex = 0;
-//
-//  for (int grid = 0; grid < PEXOR_QFW_GRIDS; ++grid)
-//   {
-//     Int_t bid=fGridDeviceID[grid];
-//     if(bid<0) continue;
-//     TQFWProfileEvent::fgConfigQFWGrids.push_back(bid);
-//   }
-//
-//  for (int cup = 0; cup < PEXOR_QFW_CUPS; ++cup)
-//    {
-//       Int_t bid=fCupDeviceID[grid];
-//       if(bid<0) continue;
-//       TQFWProfileEvent::fgConfigQFWCups.push_back(bid);
-//     }
   return kTRUE;
 }
+
+
+Bool_t  TQFWProfileParam::AddXOffsetMeasurement(Int_t grid, Int_t loop , Int_t wire, UInt_t value)
+{
+  if(!CheckGridBoundaries(grid,loop,wire))
+        {
+            cout << "**** TQFWProfileParam::GetCorrectedXValue has illegal indices - ("<<grid<<","<<loop<<","<<wire<<")" << endl;
+            return kFALSE;
+        }
+  fMeasurementCountsX[grid][loop][wire]++;
+  fQFWOffsetXSums[grid][loop][wire]+=value;
+  fQFWOffsetsX[grid][loop][wire]=fQFWOffsetXSums[grid][loop][wire]/fMeasurementCountsX[grid][loop][wire];
+
+return kTRUE;
+}
+
+Bool_t TQFWProfileParam::AddYOffsetMeasurement(Int_t grid, Int_t loop, Int_t wire, UInt_t value)
+{
+  if (!CheckGridBoundaries(grid, loop, wire))
+  {
+    cout << "**** TQFWProfileParam::GetCorrectedXValue has illegal indices - (" << grid << "," << loop << "," << wire
+        << ")" << endl;
+    return kFALSE;
+  }
+  fMeasurementCountsY[grid][loop][wire]++;
+  fQFWOffsetYSums[grid][loop][wire] += value;
+  fQFWOffsetsY[grid][loop][wire] = fQFWOffsetYSums[grid][loop][wire] / fMeasurementCountsY[grid][loop][wire];
+
+  return kTRUE;
+}
+
+void TQFWProfileParam::ResetOffsetMeasurement()
+{
+  for (int grid = 0; grid < PEXOR_QFW_GRIDS; ++grid)
+  {
+    for (int loop = 0; loop < PEXOR_QFWLOOPS; ++loop)
+    {
+      for (int wire = 0; wire < PEXOR_QFW_WIRES; ++wire)
+      {
+        fMeasurementCountsX[grid][loop][wire] = 0;
+        fQFWOffsetXSums[grid][loop][wire] = 0;
+        fQFWOffsetsX[grid][loop][wire] = 0;
+        fMeasurementCountsY[grid][loop][wire] = 0;
+        fQFWOffsetYSums[grid][loop][wire] = 0;
+        fQFWOffsetsY[grid][loop][wire] = 0;
+
+      }
+    }
+  }
+}
+
+
+
+
+Double_t TQFWProfileParam::GetCorrectedXValue(Int_t grid, Int_t loop, Int_t wire, UInt_t count)
+{
+  if(!fCorrectBackground) return count;
+  if(fMeasureBackground) return count; // no correction evaluation during measurement
+ if(!CheckGridBoundaries( grid,loop,wire))
+        {
+            cout << "**** TQFWProfileParam::GetCorrectedXValue has illegal indices - ("<<grid<<","<<loop<<","<<wire<<")" << endl;
+            return count;
+        }
+ return (count - fQFWOffsetsX[grid][loop][wire]);
+
+
+}
+
+Double_t TQFWProfileParam::GetCorrectedYValue(Int_t grid, Int_t loop, Int_t wire, UInt_t count)
+{
+  if(!fCorrectBackground) return count;
+   if(fMeasureBackground) return count; // no correction evaluation during measurement
+  if(!CheckGridBoundaries( grid,loop,wire))
+         {
+             cout << "**** TQFWProfileParam::GetCorrectedYValue has illegal indices - ("<<grid<<","<<loop<<","<<wire<<")" << endl;
+             return count;
+         }
+  return (count - fQFWOffsetsY[grid][loop][wire]);
+}
+
+
+
+
+ Bool_t TQFWProfileParam::CheckGridBoundaries(Int_t grid, Int_t loop, Int_t wire)
+{
+  if ((grid < 0) || (loop < 0) || (wire < 0))
+    return kFALSE;
+  if ((grid < PEXOR_QFW_GRIDS) && (loop < PEXOR_QFWLOOPS) && (wire < PEXOR_QFW_WIRES))
+    return kTRUE;
+  return kFALSE;
+}
+
+
+
+
+
 
 
 Bool_t TQFWProfileParam::UpdateFrom(TGo4Parameter *pp)
@@ -175,8 +262,50 @@ Bool_t TQFWProfileParam::UpdateFrom(TGo4Parameter *pp)
     cout << "Wrong parameter object: " << pp->ClassName() << endl;
     return kFALSE;
   }
-  if(!TGo4Parameter::UpdateFrom(pp)) return kFALSE; // will automatically copy 2d arrays
+ // if(!TGo4Parameter::UpdateFrom(pp)) return kFALSE; // will automatically copy 2d arrays
+ // JAM NOTE: we need to implement copy ourselves, since go4 default cannot handle 3d arrays
+
   cout << "**** TQFWProfileParam::UpdateFrom ... " << endl;
-  return SetEventConfig();
+
+  if(!fMeasureBackground && from->fMeasureBackground)
+  {
+      cout << "TQFWRawParam::UpdateFrom is resetting background measurement!!!"<< endl;
+      //ResetOffsetMeasurement();
+  }
+  fMeasureBackground=from->fMeasureBackground;
+  fCorrectBackground=from->fCorrectBackground;
+
+
+      // configuration objects are here
+fNumGrids=from->fNumGrids;
+      for (int grid = 0; grid < PEXOR_QFW_GRIDS; ++grid)
+        {
+          fGridDeviceID[grid]=from->fGridDeviceID[grid];
+          for (int wire = 0; wire < PEXOR_QFW_WIRES; ++wire)
+          {
+
+
+            fGridBoardID_X[grid][wire] = from->fGridBoardID_X[grid][wire];
+            fGridBoardID_Y[grid][wire] = from->fGridBoardID_Y[grid][wire];
+            fGridChannel_X[grid][wire] = from->fGridChannel_X[grid][wire];
+            fGridChannel_Y[grid][wire] = from->fGridChannel_Y[grid][wire];
+
+          }
+        }
+
+        fNumCups=from->fNumCups;
+        for (int cup = 0; cup < PEXOR_QFW_CUPS; ++cup)
+        {
+          fCupDeviceID[cup]=from->fCupDeviceID[cup];
+          for (int seg = 0; seg < PEXOR_QFW_CUPSEGMENTS; ++seg)
+          {
+
+            fCupBoardID[cup][seg]=from->fCupBoardID[cup][seg];
+            fCupChannel[cup][seg]=from->fCupChannel[cup][seg];
+          }
+        }
+// do not copy background correction arrays!
+
+        return SetEventConfig();
 
 }

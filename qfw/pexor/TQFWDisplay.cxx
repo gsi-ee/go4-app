@@ -511,9 +511,9 @@ hBeamX = MakeTH1('I', Form("Beam/Grid%2d/Profile_X_G%d", grid, grid), Form("X Pr
 hBeamY = MakeTH1('I', Form("Beam/Grid%2d/Profile_Y_G%d", grid, grid), Form("Y Profile Grid%2d", grid), wiresY, 0,
     wiresY, "Wire");
 
-hBeamAccX = MakeTH1('I', Form("Beam/Grid%2d/ProfileSum_X_G%d", grid, grid), Form("X Profile accumulated Grid%2d", grid),
+hBeamAccX = MakeTH1('D', Form("Beam/Grid%2d/ProfileSum_X_G%d", grid, grid), Form("X Profile accumulated Grid%2d", grid),
     wiresX, 0, wiresX, "Wire");
-hBeamAccY = MakeTH1('I', Form("Beam/Grid%2d/ProfileSum_Y_G%d", grid, grid), Form("Y Profile accumulated Grid%2d", grid),
+hBeamAccY = MakeTH1('D', Form("Beam/Grid%2d/ProfileSum_Y_G%d", grid, grid), Form("Y Profile accumulated Grid%2d", grid),
     wiresY, 0, wiresY, "Wire");
 
 obname.Form("Beam Display Grid%2d", grid);
