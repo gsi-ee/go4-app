@@ -297,24 +297,24 @@ if(fGridData)
 obname.Form("Beam/GridAccu");
 obtitle.Form("Beam grid current accumulate");
 
-hBeamXSlice = MakeTH2('I', Form("Beam/Grid%2d/Loop%2d/Profile_X_Time_G%d_L%d", grid ,loop, grid, loop),
+hBeamXSlice = MakeTH2('D', Form("Beam/Grid%2d/Loop%2d/Profile_X_Time_G%d_L%d", grid ,loop, grid, loop),
     Form("X Profile vs Time slices Grid%2d Loop%2d", grid, loop), wiresX, 0, wiresX, timeslices, 0,
     timeslices, "Wire", "Time Slice");
-hBeamYSlice = MakeTH2('I', Form("Beam/Grid%2d/Loop%2d/Profile_Y_Time_G%d_L%d", grid, loop,grid, loop),
+hBeamYSlice = MakeTH2('D', Form("Beam/Grid%2d/Loop%2d/Profile_Y_Time_G%d_L%d", grid, loop,grid, loop),
     Form("Y Profile vs Time slices Grid%2d Loop%2d", grid, loop), wiresY, 0, wiresY, timeslices, 0,
     timeslices, "Wire", "Time Slice");
 
-hBeamXSliceOffs = MakeTH2('I', Form("Beam/Grid%2d/Loop%2d/Profile_X_Time_Offset_G%d_L%d", grid,loop, grid, loop),
+hBeamXSliceOffs = MakeTH2('D', Form("Beam/Grid%2d/Loop%2d/Profile_X_Time_Offset_G%d_L%d", grid,loop, grid, loop),
     Form("X Profile vs Time slices average offset Grid%2d Loop%2d", grid, loop), wiresX, 0, wiresX,
     timeslices, 0, timeslices, "Wire", "Time Slice");
-hBeamYSliceOffs = MakeTH2('I', Form("Beam/Grid%2d/Loop%2d/Profile_Y_Time_Offset_G%d_L%d", grid,loop, grid, loop),
+hBeamYSliceOffs = MakeTH2('D', Form("Beam/Grid%2d/Loop%2d/Profile_Y_Time_Offset_G%d_L%d", grid,loop, grid, loop),
     Form("Y Profile vs Time slices average offset Grid%2d Loop%2d", grid, loop), wiresY, 0, wiresY,
     timeslices, 0, timeslices, "Wire", "Time Slice");
 
-hBeamAccXSlice = MakeTH2('I', Form("Beam/Grid%2d/Loop%2d/ProfileSum_X_Time_G%d_L%d", grid,loop, grid, loop),
+hBeamAccXSlice = MakeTH2('D', Form("Beam/Grid%2d/Loop%2d/ProfileSum_X_Time_G%d_L%d", grid,loop, grid, loop),
     Form("X Profile vs Time slices accum Grid%2d Loop%2d", grid, loop), wiresX, 0, wiresX, timeslices, 0,
     timeslices, "Wire", "Time Slice");
-hBeamAccYSlice = MakeTH2('I', Form("Beam/Grid%2d/Loop%2d/ProfileSum_Y_Time_G%d_L%d", grid,loop, grid, loop),
+hBeamAccYSlice = MakeTH2('D', Form("Beam/Grid%2d/Loop%2d/ProfileSum_Y_Time_G%d_L%d", grid,loop, grid, loop),
     Form("Y Profile vs Time slices accum Grid%2d Loop%2d", grid, loop), wiresY, 0, wiresY, timeslices, 0,
     timeslices, "Wire", "Time Slice");
 
@@ -506,9 +506,9 @@ if(fGridData)
 obname.Form("Beam/GridAccu");
 obtitle.Form("Beam grid current accumulate");
 
-hBeamX = MakeTH1('I', Form("Beam/Grid%2d/Profile_X_G%d", grid, grid), Form("X Profile Grid%2d", grid), wiresX, 0,
+hBeamX = MakeTH1('D', Form("Beam/Grid%2d/Profile_X_G%d", grid, grid), Form("X Profile Grid%2d", grid), wiresX, 0,
     wiresX, "Wire");
-hBeamY = MakeTH1('I', Form("Beam/Grid%2d/Profile_Y_G%d", grid, grid), Form("Y Profile Grid%2d", grid), wiresY, 0,
+hBeamY = MakeTH1('D', Form("Beam/Grid%2d/Profile_Y_G%d", grid, grid), Form("Y Profile Grid%2d", grid), wiresY, 0,
     wiresY, "Wire");
 
 hBeamAccX = MakeTH1('D', Form("Beam/Grid%2d/ProfileSum_X_G%d", grid, grid), Form("X Profile accumulated Grid%2d", grid),

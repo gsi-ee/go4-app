@@ -39,11 +39,11 @@ class TQFWProfileParam : public TGo4Parameter {
       Int_t fGridChannel_Y[PEXOR_QFW_GRIDS][PEXOR_QFW_WIRES];  // qfw channel on board for [grid,wireY]
 
 
-      Int_t fQFWOffsetsX[PEXOR_QFW_GRIDS][PEXOR_QFWLOOPS][PEXOR_QFW_WIRES]; // average offset values (grid,loop,wire)
+      Double_t fQFWOffsetsX[PEXOR_QFW_GRIDS][PEXOR_QFWLOOPS][PEXOR_QFW_WIRES]; // average offset values (grid,loop,wire)
       Int_t fQFWOffsetXSums[PEXOR_QFW_GRIDS][PEXOR_QFWLOOPS][PEXOR_QFW_WIRES]; // accumulated offset values (grid,loop,wire)
       Int_t fMeasurementCountsX[PEXOR_QFW_GRIDS][PEXOR_QFWLOOPS][PEXOR_QFW_WIRES]; // counts offset values (grid,wire,loop)
 
-      Int_t fQFWOffsetsY[PEXOR_QFW_GRIDS][PEXOR_QFWLOOPS][PEXOR_QFW_WIRES]; // average offset values (grid,wire,loop)
+      Double_t fQFWOffsetsY[PEXOR_QFW_GRIDS][PEXOR_QFWLOOPS][PEXOR_QFW_WIRES]; // average offset values (grid,wire,loop)
       Int_t fQFWOffsetYSums[PEXOR_QFW_GRIDS][PEXOR_QFWLOOPS][PEXOR_QFW_WIRES]; // accumulated offset values (grid,loop,wire)
       Int_t fMeasurementCountsY[PEXOR_QFW_GRIDS][PEXOR_QFWLOOPS][PEXOR_QFW_WIRES]; // counts offset values (grid,wire,loop)
 

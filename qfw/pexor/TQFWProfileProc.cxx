@@ -166,11 +166,11 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
             fParam->AddXOffsetMeasurement(g, l, x, trace[t]);
           }
           loopDisplay->hBeamXSliceOffs->SetBinContent(1 + x, 1 + t, fParam->fQFWOffsetsX[g][l][x]);    // show current averaged offset
-          UInt_t value = fParam->GetCorrectedXValue(g, l, x, trace[t]);
+          Double_t value = fParam->GetCorrectedXValue(g, l, x, trace[t]);
           sum += value;
           loopDisplay->hBeamXSlice->SetBinContent(1 + x, 1 + t, value);
 
-          UInt_t prev = loopDisplay->hBeamAccXSlice->GetBinContent(1 + x, 1 + t);
+          Double_t prev = loopDisplay->hBeamAccXSlice->GetBinContent(1 + x, 1 + t);
           loopDisplay->hBeamAccXSlice->SetBinContent(1 + x, 1 + t, prev + value);
 
 //          sum += trace[t];
@@ -231,11 +231,11 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
             fParam->AddYOffsetMeasurement(g, l, y, trace[t]);
           }
           loopDisplay->hBeamYSliceOffs->SetBinContent(1 + y, 1 + t, fParam->fQFWOffsetsX[g][l][y]);    // show current averaged offset
-          UInt_t value = fParam->GetCorrectedYValue(g, l, y, trace[t]);
+          Double_t value = fParam->GetCorrectedYValue(g, l, y, trace[t]);
           sum += value;
           loopDisplay->hBeamYSlice->SetBinContent(1 + y, 1 + t, value);
 
-          UInt_t prev = loopDisplay->hBeamAccYSlice->GetBinContent(1 + y, 1 + t);
+          Double_t prev = loopDisplay->hBeamAccYSlice->GetBinContent(1 + y, 1 + t);
           loopDisplay->hBeamAccYSlice->SetBinContent(1 + y, 1 + t, prev + value);
 
         }    // trace t
