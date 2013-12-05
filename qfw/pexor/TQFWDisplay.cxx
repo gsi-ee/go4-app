@@ -88,6 +88,7 @@ void TQFWBoardLoopDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
   obname.Form("Board%d/Loop%d/Brd%d-Loop%d-Sum", brd,loop, brd, loop);
   obtitle.Form("QFW Board %d Loop %d Accumulated", brd, loop);
   int qbins = timeslices * PEXOR_QFWCHANS;
+  //std::cout <<"*****qbins"<<qbins << std::endl;
   hQFWRaw = MakeTH1('I', obname.Data(), obtitle.Data(), qbins, 0, qbins, "QFW scaler sums");
 
   obname.Form("Board%d/Loop%d/Brd%d-Loop%d-Trace", brd,loop, brd, loop);
@@ -95,13 +96,15 @@ void TQFWBoardLoopDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
   hQFWRawTrace = MakeTH1('I', obname.Data(), obtitle.Data(), qbins, 0, qbins, "QFW scalers");
 
   for (int sl = 0; sl < timeslices; ++sl)
+  {
     for (int ch = 0; ch < PEXOR_QFWCHANS; ++ch)
     {
       binlabel.Form("SL%d-%d", sl, ch);
+      //cout <<"binlabel:"<<binlabel.Data() << endl;
       hQFWRaw->GetXaxis()->SetBinLabel(1 + sl * PEXOR_QFWCHANS + ch, binlabel.Data());
       hQFWRawTrace->GetXaxis()->SetBinLabel(1 + sl * PEXOR_QFWCHANS + ch, binlabel.Data());
     }
-
+  }
 }
 
 //***********************************************************
@@ -109,7 +112,7 @@ void TQFWBoardLoopDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
 TQFWBoardDisplay::TQFWBoardDisplay(Int_t boardid) :
     TQFWDisplay(boardid)
 {
-  //TString boardname.Form("Board%02d", boardid);
+  //TString boardname.Form("Board%02d", boardid);"Wrong optic format - 0x34 are expected0-7 bits not as expected"
   for (int i = 0; i < PEXOR_QFWLOOPS; ++i)
   {
     AddLoopDisplay(new TQFWBoardLoopDisplay(boardid, i));
@@ -130,25 +133,36 @@ TQFWBoardLoopDisplay* TQFWBoardDisplay::GetLoopDisplay(Int_t index)
 
 void TQFWBoardDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
 {
+  unsigned numloops=GetNumLoops();
+  
+//   std::cout <<"*************** TQFWBoardDisplay::InitDisplay with timeslices"<<timeslices << std::endl;
+//   std::cout <<"*************** TQFWBoardDisplay::InitDisplay finds numloops="<<numloops << std::endl;
+  
   if(timeslices>0)
     TQFWDisplay::InitDisplay(timeslices, replace);    // handle initialization of subloops
   else
-    timeslices=0; // otherwise do not specify timeslice of subloops, but take values from them (see below)!
+    {
+      timeslices=0; // otherwise do not specify timeslice of subloops, but take values from them (see below)!
+      Int_t subtimes[numloops];
+       for(unsigned subix=0; subix<numloops; ++subix)
+       {
+         subtimes[subix]=GetSubDisplay(subix)->GetTimeSlices();
+         timeslices+=subtimes[subix];
+//          std::cout <<"*************** TQFWBoardDisplay::InitDisplay add "<< subix<<". timeslice"<< subtimes[subix] << std::endl;
+     
+       }
+    numloops=1; // we sum up all timeslices, so need only factor 1 below!   
+//      std::cout <<"*************** TQFWBoardDisplay::InitDisplay uses true sum timeslices"<<timeslices << std::endl;
+    }
+
+
   TString obname;
   TString obtitle;
 
   if (replace)
     SetMakeWithAutosave(kFALSE);
   Int_t brd = GetDevId();
-  unsigned numloops=GetNumLoops();
-  Int_t subtimes[numloops];
-  for(unsigned subix=0; subix<numloops; ++subix)
-  {
-    subtimes[subix]=GetSubDisplay(subix)->GetTimeSlices();
-    timeslices+=subtimes[subix];
-  }
 
-// TODO: handle different timeslices for subloops!
   hQFWRaw2D = MakeTH2('I', Form("Board%d/Brd%d-2D-Sum", brd, brd), Form("QFW Board %d accumulated for all loops", brd),
       numloops * timeslices, 0, numloops * timeslices, PEXOR_QFWCHANS, 0, PEXOR_QFWCHANS, "loop", "ch");
 
@@ -317,8 +331,8 @@ void TQFWGridLoopDisplay::AdjustDisplay(TQFWLoop* loopdata)
 
    /* evaluate measurement setup*/
    TString setup;
- //  switch(loopdata->fQfwSetup) // TODO evaluate setup from data
-   switch(1000)
+   switch(loopdata->fQfwSetup) // TODO evaluate setup from data
+//   switch(1000)
    {
       case 0:
          setup.Form("(-) [ 2.5pF & 0.25pC]");
@@ -353,8 +367,8 @@ void TQFWGridLoopDisplay::AdjustDisplay(TQFWLoop* loopdata)
          break;
 
       default:
-         //setup.Form("unknown setup %d", out->fQfwSetup);
-        setup.Form(" - ");
+        setup.Form("unknown setup %d", loopdata->fQfwSetup);
+        //setup.Form(" - ");
         break;
 
 
@@ -522,65 +536,65 @@ if (pBeamRMS == 0)
 }
 
 
-void TQFWGridDisplay::AdjustDisplay(TQFWBoard*)
+void TQFWGridDisplay::AdjustDisplay(TQFWBoard* boarddata)
 //void TQFWProfileProc::FillGrids(TQFWRawEvent* out)
 {
 
 //   Bool_t dostop=kFALSE;
-//   Double_t mtime=loopdata->fQfwLoopTime * 20 / 1000; // measurement time in us
+//   Double_t mtime=boarddata->fQfwLoopTime * 20 / 1000; // measurement time in us
 //   Double_t premtime = 0; // measurement time in us
-//
+// 
 //   /* evaluate measurement setup*/
 //   TString setup;
-// //  switch(loopdata->fQfwSetup) // TODO evaluate setup from data
+//   switch(boarddata->fQfwSetup) // TODO evaluate setup from data
 //   switch(1000)
 //   {
 //      case 0:
 //         setup.Form("(-) [ 2.5pF & 0.25pC]");
 //      break;
-//
+// 
 //      case 1:
 //         setup.Form("(-) [25.0pF & 2.50pC]");
 //      break;
-//
+// 
 //      case 2:
 //         setup.Form("(+) [ 2.5pF & 0.25pC]");
 //      break;
-//
+// 
 //      case 3:
 //         setup.Form("(+) [25.0pF & 2.50pC]");
 //      break;
-//
+// 
 //      case 0x10:
 //         setup.Form("1000uA (-) [ 2.5pF & 0.25pC]");
 //      break;
-//
+// 
 //      case 0x11:
 //         setup.Form("1000uA (-) [25.0pF & 2.50pC]");
 //      break;
-//
+// 
 //      case 0x12:
 //         setup.Form("1000uA (+) [ 2.5pF & 0.25pC]");
 //      break;
-//
+// 
 //      case 0x13:
 //         setup.Form("1000uA (+) [25.0pF & 2.50pC]");
 //         break;
-//
+// 
 //      default:
 //         //setup.Form("unknown setup %d", out->fQfwSetup);
 //        setup.Form(" - ");
 //        break;
-//
-//
-//
+// 
+// 
+// 
 //   };
-//
-//
-//
-//
-//
-//// APPEND TIME RANGES:
+// 
+// 
+// 
+// 
+// 
+// // APPEND TIME RANGES:
 //   TString mtitle;
 //   mtitle.Form("%s dt=%.2E us", setup.Data(), mtime);
 

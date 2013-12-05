@@ -105,7 +105,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
   // FillGrids(QFWRawEvent);
 
   QFWRawEvent->SetValid(kTRUE);    // to store
-
+  TString mtitle;
   // first loop over grids:
 
   for (unsigned g = 0; g < fGrids.size(); ++g)
@@ -113,18 +113,20 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
     TQFWGridDisplay* gridDisplay = fGrids[g];
     Int_t gridid = gridDisplay->GetDevId();
     TQFWGrid* gridData = fOutput->GetGrid(gridid);
-
+    TQFWBoard* boardData = 0;
+    Int_t oldboardid = -1;
+    Bool_t gridfirst=kTRUE;
     for (unsigned l = 0; l < gridDisplay->GetNumLoops(); ++l)
     {
       TQFWGridLoopDisplay* loopDisplay = gridDisplay->GetLoopDisplay(l);
+      Bool_t loopfirst=kTRUE;
 
-      Int_t oldboardid = -1;
-      TQFWBoard* boardData = 0;
       for (unsigned x = 0; x < gridData->GetNumXWires(); ++x)
       {
         TQFWChannelMap xmap = gridData->GetXChannelMap(x);
         if (oldboardid != xmap.fBoardID)
         {
+          //TGo4Log::Info("Grid %d Retrieving X Board of id %d",gridid, xmap.fBoardID);
           boardData = QFWRawEvent->GetBoard(xmap.fBoardID);
           oldboardid = xmap.fBoardID;
           if (boardData == 0)
@@ -132,8 +134,11 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
             TGo4Log::Error("Configuration error: Board id %d does not exist as subevent!", xmap.fBoardID);
             return kFALSE;
           }
-          gridDisplay->AdjustDisplay(boardData);    // TODO: h
-
+         if(gridfirst)
+           {
+             gridDisplay->AdjustDisplay(boardData);    // TODO: h
+             gridfirst=kFALSE;
+           }
         }
         TQFWLoop* loopData = boardData->GetLoop(l);
         if (loopData == 0)
@@ -142,8 +147,11 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
               l);
           return kFALSE;
         }
-        loopDisplay->AdjustDisplay(loopData);
-
+        if(loopfirst)
+        {
+          loopDisplay->AdjustDisplay(loopData);
+          loopfirst=kFALSE;
+        }
         Int_t xchan = xmap.fQFWChannel;
         std::vector<Int_t> & trace = loopData->fQfwTrace[xchan];
         UInt_t sum = 0;
@@ -170,13 +178,12 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 
       }    // x wires
 
-      oldboardid = -1;
-      boardData = 0;
       for (unsigned y = 0; y < gridData->GetNumYWires(); ++y)
       {
         TQFWChannelMap ymap = gridData->GetYChannelMap(y);
         if (oldboardid != ymap.fBoardID)
         {
+          //TGo4Log::Info("Grid %d Retrieving Y Board of id %d", gridid, ymap.fBoardID);
           boardData = QFWRawEvent->GetBoard(ymap.fBoardID);
           oldboardid = ymap.fBoardID;
           if (boardData == 0)
@@ -223,8 +230,95 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 
     }    // loops
 
+    
+   // put here mean value calculations and profiles:
+   
+   
+     gridData->fBeamMeanX=gridDisplay->hBeamX->GetMean();
+
+     gridData->fBeamMeanY=gridDisplay->hBeamY->GetMean();
+
+     gridData->fBeamRMSX=gridDisplay->hBeamX->GetRMS();
+
+     gridData->fBeamRMSY=gridDisplay->hBeamY->GetRMS();
+
+      gridDisplay->hBeamMeanXY->Fill(gridData->fBeamMeanX,gridData->fBeamMeanY);
+      gridDisplay->hBeamRMSX->Fill(gridData->fBeamRMSX);
+      gridDisplay->hBeamRMSY->Fill(gridData->fBeamRMSY);
+      
+      // second loop loop to get mean values of traces:
+      for (unsigned l = 0; l < gridDisplay->GetNumLoops(); ++l)
+      {
+	TQFWGridLoopDisplay* loopDisplay=gridDisplay->GetLoopDisplay(l);
+     // evaluate here mean value and sigma of profile counts
+    //first x direction:
+      Int_t cmax=loopDisplay->cBeamXSliceCond->GetCMax(loopDisplay->hBeamXSlice);
+      TH1I haux("temp","temp",cmax,0,cmax); // auxiliary histogram to calculate mean and rms of counts
+     for(int wire=0;wire<gridData->GetNumXWires();++wire)
+     {
+        for(int time=0; time<loopDisplay->GetTimeSlices();++time)
+        {
+           if(loopDisplay->cBeamXSliceCond->Test(wire,time))
+              {
+                 haux.Fill(loopDisplay->hBeamXSlice->GetBinContent(wire+1,time+1));
+              }
+        }
+
+     }
+     Double_t MeanCountsX=haux.GetMean();
+     Double_t RMSCountsX=haux.GetRMS();
+     mtitle.Form("%s mean=%.2E sigma=%.2E", loopDisplay->hBeamXSlice->GetTitle(), MeanCountsX, RMSCountsX);
+     loopDisplay->hBeamXSlice->SetTitle(mtitle.Data());
+//
+//      // y direction:
+     
+     
+     
+      Int_t cmay=loopDisplay->cBeamYSliceCond->GetCMax(loopDisplay->hBeamYSlice);
+      TH1I hauy("temp2","temp2",cmay,0,cmay); // auxiliary histogram to calculate mean and rms of counts
+     for(int wire=0;wire<gridData->GetNumYWires();++wire)
+     {
+        for(int time=0; time<loopDisplay->GetTimeSlices();++time)
+        {
+           if(loopDisplay->cBeamYSliceCond->Test(wire,time))
+              {
+                 hauy.Fill(loopDisplay->hBeamYSlice->GetBinContent(wire+1,time+1));
+              }
+        }
+
+     }
+     Double_t MeanCountsY=hauy.GetMean();
+     Double_t RMSCountsY=hauy.GetRMS();
+     mtitle.Form("%s mean=%.2E sigma=%.2E", loopDisplay->hBeamYSlice->GetTitle(), MeanCountsY, RMSCountsY);
+     loopDisplay->hBeamYSlice->SetTitle(mtitle.Data());
+     
+     
+     
+     
+
+
+     loopDisplay->hBeamMeanCountsX->Fill(MeanCountsX);
+     loopDisplay->hBeamMeanCountsY->Fill(MeanCountsY);
+     loopDisplay->hBeamRMSCountsX->Fill(RMSCountsX);
+     loopDisplay->hBeamRMSCountsY->Fill(RMSCountsY);
+
+      } // loops
+    
+    
+    
+    
+    
+    
   }    // grids
 
+  
+  
+ 
+  
+  
+  
+  
+  
   //if(fPar->fSlowMotionStart>0)
   // if(evnum>fPar->fSlowMotionStart)
   //   GO4_STOP_ANALYSIS_MESSAGE("Stopped for slow motion mode at event %d",evnum);

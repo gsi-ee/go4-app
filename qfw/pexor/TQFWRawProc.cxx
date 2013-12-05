@@ -16,6 +16,8 @@
 #include "TQFWRawEvent.h"
 #include "TQFWRawParam.h"
 
+#include "TGo4UserException.h"
+
 
 //***********************************************************
 TQFWRawProc::TQFWRawProc() :
@@ -148,9 +150,12 @@ while ((psubevt = source->NextSubEvent()) != 0)
       cnt++;
     }
 
+    //int traceheader=*pdata; // remember header, must match trailer
+
     if ((*pdata & 0xff) != 0x34)
     {
-      TGo4Log::Error("Wrong optic format - 0x34 are expected0-7 bits not as expected");
+      //GO4_STOP_ANALYSIS_MESSAGE("Wrong optic format - 0x34 are expected0-7 bits not as expected");
+      TGo4Log::Error("Wrong optic format 0x%x - 0x34 are expected0-7 bits not as expected", (*pdata & 0xff));
       return kFALSE;
     }
 
@@ -166,7 +171,8 @@ while ((psubevt = source->NextSubEvent()) != 0)
       TGo4Log::Error("Mismatch with subevent len %d and optic len %d", lwords * 4, opticlen);
       return kFALSE;
     }
-
+    int eventcounter=*pdata;
+    //TGo4Log::Info("Internal Event number 0x%x", eventcounter);
     // board id calculated from SFP and device id:
     UInt_t brdid = fPar->fBoardID[sfp_id][device_id];
     TQFWBoard* theBoard = QFWRawEvent->GetBoard(brdid);
@@ -183,7 +189,11 @@ while ((psubevt = source->NextSubEvent()) != 0)
           return kFALSE;
         }
     // TODO: are here some useful fields
-    pdata += 5;
+
+    pdata+=1;
+    theBoard->fQfwSetup=*pdata;
+    //TGo4Log::Info("QFW SEtup %d", theBoard->fQfwSetup);
+    pdata += 4;
     Bool_t rebinned=kFALSE;
     for (int loop = 0; loop < theBoard->getNElements(); loop++)
     {
@@ -193,6 +203,8 @@ while ((psubevt = source->NextSubEvent()) != 0)
            TGo4Log::Error("Configuration error: Loop index %d  emtpy subevent for boardid:%d", loop, brdid);
            continue;
          }
+         
+       theLoop->fQfwSetup= theBoard->fQfwSetup; // propagate setup id to subevent 
       TQFWBoardLoopDisplay* loopDisplay=boardDisplay->GetLoopDisplay(loop);
       if(loopDisplay==0)
               {
@@ -201,15 +213,13 @@ while ((psubevt = source->NextSubEvent()) != 0)
                }
 
       theLoop->fQfwLoopSize = *pdata++;
-      //QFWRawEvent->fQfwLoopSize[brd][loop] = *pdata++;    // new: dynamic time slice number
 
-      // printf("Loop %d = size %d\n", loop, QFWRawEvent->fQfwLoopSize[brd][loop]);
-      if (theLoop->fQfwLoopSize >= PEXOR_QFWSLICES)
-      {
-        TGo4Log::Error("TQFWRawProc: found very large slice size %d max %d -  Please check set up!",
-            theLoop->fQfwLoopSize, PEXOR_QFWSLICES);
-        return kFALSE;
-      }
+//      if (theLoop->fQfwLoopSize >= PEXOR_QFWSLICES)
+//      {
+//        TGo4Log::Error("TQFWRawProc: found very large slice size %d max %d -  Please check set up!",
+//            theLoop->fQfwLoopSize, PEXOR_QFWSLICES);
+//	 return kFALSE;
+//      }
       // optionally rescale histograms of this loop:
       if(loopDisplay->GetTimeSlices()!=theLoop->fQfwLoopSize)
       {
@@ -301,6 +311,66 @@ while ((psubevt = source->NextSubEvent()) != 0)
       boardDisplay->hQFWRawErrTr->AddBinContent(1 + qfw, theBoard->GetErrorScaler(qfw));
     }
 
+    // TODO: here comes some trailing words
+
+
+        while(*pdata!=eventcounter)
+        {
+          pdata++;
+          //printf ("trailer : 0x%x\n",pdata);
+          if ((*pdata & 0xFFFF0000)  == 0xadd00000) {
+                           TGo4Log::Error("already found padding word 0x%x before trailer!",pdata);
+                           return kFALSE; // leave subevent loop if no more data available
+                        }
+
+
+          if (pdata > psubevt->GetDataField() + lwords) {
+                  TGo4Log::Error("Could not find trailing word 0x%x until end of subevent!",eventcounter);
+                  return kFALSE; // leave subevent loop if no more data available
+               }
+
+
+        }// while
+
+    //TGo4Log::Info("!!!!!!!!!!! found  trailer 0x%x",*pdata);
+    pdata++;
+    //printf("event counter 0x%x\n ",eventcounter);
+    QFWRawEvent->fSequenceNumber=eventcounter;
+//    while(pdata < psubevt->GetDataField() + opticlen/4)
+//    {
+//      //printf("skipping word 0x%x\n ",*pdata);
+//      pdata++; // skip rest of payload, try next device data
+//
+//    }
+//
+//    return kTRUE; // TODO: need to test with more than one datasets per event
+    
+    //printf("trailer 0x%x\n ",*pdata);
+    //pdata++; // skip trailer
+
+//    while(*pdata!=eventcounter)
+//    {
+//      pdata++;
+//      //printf ("trailer : 0x%x\n",pdata);
+//      if (pdata > psubevt->GetDataField() + lwords) {
+//              TGo4Log::Error("Could not find trailing word 0x%x until end of subevent!",eventcounter);
+//              return kFALSE; // leave subevent loop if no more data available
+//           }
+//
+//
+//    }
+//    TGo4Log::Info("!!!!!!!!!!! found  trailer 0x%x",*pdata);
+
+
+    // check for trace trailer
+//    if ( ((*pdata++ & 0xff000000) >> 24) != 0xbb)
+//    {
+//      TGo4Log::Error("Wrong trace trailer 0x%x - 0xbb is expected", (*pdata++ & 0xff000000) >> 24));
+//      return kFALSE;
+//      }
+
+
+
   }    // while pdata - psubevt->GetDataField() <lwords
 
 //      if (pdata > psubevt->GetDataField() + lwords) {
@@ -310,6 +380,8 @@ while ((psubevt = source->NextSubEvent()) != 0)
   //GO4_STOP_ANALYSIS_MESSAGE(
   //               "**** TQFWRawProc: found wordcount=%d lwords=%d ",
   //               wordcount, lwords);
+
+
 }    // while subevents
 
 // FillGrids(QFWRawEvent);

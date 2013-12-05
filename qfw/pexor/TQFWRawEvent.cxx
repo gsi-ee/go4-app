@@ -30,6 +30,7 @@ void TQFWLoop::Clear(Option_t *t)
 {
   fQfwLoopSize=0;
   fQfwLoopTime=0;
+
   for (int ch = 0; ch > PEXOR_QFWCHANS; ++ch)
   {
     fQfwTrace[ch].clear();
@@ -63,8 +64,13 @@ TQFWBoard::~TQFWBoard()
 
 void TQFWBoard::Clear(Option_t *t)
 {
+  TGo4CompositeEvent::Clear();
+  fQfwSetup=0;
 
-
+  for (int q = 0; q > PEXOR_QFWNUM; ++q)
+   {
+      fQfwErr[q]=0;
+   }
 }
 
 //***********************************************************
@@ -73,12 +79,12 @@ std::vector<UInt_t> TQFWRawEvent::fgConfigQFWBoards;
 
 
 TQFWRawEvent::TQFWRawEvent() :
-    TGo4CompositeEvent()
+    TGo4CompositeEvent(), fSequenceNumber(-1)
 {
 }
 //***********************************************************
 TQFWRawEvent::TQFWRawEvent(const char* name, Short_t id) :
-    TGo4CompositeEvent(name, name, id)
+    TGo4CompositeEvent(name, name, id),fSequenceNumber(-1)
 {
   TGo4Log::Info("TQFWRawEvent: Create instance %s with composite id %d", name, id);
   TString modname;
@@ -111,5 +117,8 @@ TQFWBoard* TQFWRawEvent::GetBoard(UInt_t id)
   return 0;
 }
 
-
-
+void TQFWRawEvent::Clear(Option_t *t)
+{
+    TGo4CompositeEvent::Clear();
+    fSequenceNumber=-1;
+}

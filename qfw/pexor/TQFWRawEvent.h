@@ -33,7 +33,7 @@
 #define PEXOR_QFWLOOPS  3
 
 // maximum number of slices in loop
-#define PEXOR_QFWSLICES 200
+#define PEXOR_QFWSLICES 20
 
 // number of channels in one board
 #define PEXOR_QFWCHANS  32
@@ -73,7 +73,8 @@ class TQFWLoop : public TGo4EventElement {
      /* the actual time of each loop */
      Int_t fQfwLoopTime;
 
-
+      /* setup number (only one byte used!)*/
+        UChar_t fQfwSetup;
 
       ClassDef(TQFWLoop,1)
 };
@@ -117,6 +118,10 @@ class TQFWBoard : public TGo4CompositeEvent {
       /** Method called by the framework to clear the event element. */
       void Clear(Option_t *t="");
 
+      /* setup number (only one byte used!)*/
+        UChar_t fQfwSetup;
+
+
    private:
 
       /* unique hardware id of the board. THis should be independent of position in readout chain*/
@@ -124,6 +129,8 @@ class TQFWBoard : public TGo4CompositeEvent {
 
       /* error scaler for each qfw on the board*/
       UInt_t fQfwErr[PEXOR_QFWNUM];
+
+
 
 
       ClassDef(TQFWBoard,1)
@@ -142,14 +149,19 @@ class TQFWRawEvent : public TGo4CompositeEvent {
       TQFWRawEvent();
       TQFWRawEvent(const char* name, Short_t id=0);
       virtual ~TQFWRawEvent();
-
+      
+      void Clear(Option_t *t="");
+      
       /* access to board subevent by unique id*/
       TQFWBoard* GetBoard(UInt_t uniqueid);
 
 
       /* This array keeps the unique id numbers of configured qfw boards*/
        static std::vector<UInt_t> fgConfigQFWBoards;
+       
+       Int_t fSequenceNumber;
 
+       
 
 	   ClassDef(TQFWRawEvent,1)
 };

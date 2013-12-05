@@ -53,44 +53,82 @@ void TQFWProfileParam::InitProfileMapping()
 
 // here manually type in the actual mapping. this could be reset by setup.C macro later:
 
-  fNumGrids=1;
+  fNumGrids=2;
   // [grid index] = unique grid id
-  fGridDeviceID[0]=42;
+  //fGridDeviceID[0]=42;
+
+    // grid index 0 is our segmented xy grid
+    // we assume 1:1 mapping of qfwboard channels to grid wires
+    int grid=0;
+    fGridDeviceID[grid]=42;
+    for (int wire = 0; wire < PEXOR_QFWCHANS; ++wire)
+    {
+
+
+      fGridBoardID_X[grid][wire] = 10;
+      fGridBoardID_Y[grid][wire] = 11;
+      fGridChannel_X[grid][wire] = wire;
+      fGridChannel_Y[grid][wire] = wire;
+
+    }
+  
+  
+   // grid index 1 is mapped cup scalers, x direction only
+   // todo: use several cup scaler objects instead (not read yet)
+    grid=1;
+    fGridDeviceID[grid]=55;
+    for (int wire = 0; wire < PEXOR_QFWCHANS; ++wire)
+    {
+
+
+      fGridBoardID_X[grid][wire] = 12;
+      fGridBoardID_Y[grid][wire] = 12;
+      fGridChannel_X[grid][wire] = wire;
+      fGridChannel_Y[grid][wire] = -1;
+
+    }
+  
+  
   //         [grid index][wire] = board  ;  [grid index][wire] = channel
-  fGridBoardID_X[0][0]=1; fGridChannel_X[0][0]=0;
-  fGridBoardID_X[0][1]=1; fGridChannel_X[0][1]=1;
-  fGridBoardID_X[0][2]=1; fGridChannel_X[0][2]=2;
-  fGridBoardID_X[0][3]=1; fGridChannel_X[0][3]=3;
-  fGridBoardID_X[0][4]=1; fGridChannel_X[0][4]=4;
-  fGridBoardID_X[0][5]=1; fGridChannel_X[0][5]=5;
-  fGridBoardID_X[0][6]=1; fGridChannel_X[0][6]=6;
-  fGridBoardID_X[0][7]=1; fGridChannel_X[0][7]=7;
-  fGridBoardID_X[0][8]=1; fGridChannel_X[0][8]=8;
-     fGridBoardID_X[0][9]=1; fGridChannel_X[0][9]=9;
-     fGridBoardID_X[0][10]=1; fGridChannel_X[0][10]=10;
-     fGridBoardID_X[0][11]=1; fGridChannel_X[0][11]=11;
-     fGridBoardID_X[0][12]=1; fGridChannel_X[0][12]=12;
-      fGridBoardID_X[0][13]=1; fGridChannel_X[0][13]=13;
-      fGridBoardID_X[0][14]=1; fGridChannel_X[0][14]=14;
-      fGridBoardID_X[0][15]=1; fGridChannel_X[0][15]=15;
-
-
-      fGridBoardID_Y[0][0]=1; fGridChannel_Y[0][0]=16;
-       fGridBoardID_Y[0][1]=1; fGridChannel_Y[0][1]=17;
-       fGridBoardID_Y[0][2]=1; fGridChannel_Y[0][2]=18;
-       fGridBoardID_Y[0][3]=1; fGridChannel_Y[0][3]=19;
-       fGridBoardID_Y[0][4]=1; fGridChannel_Y[0][4]=20;
-        fGridBoardID_Y[0][5]=1; fGridChannel_Y[0][5]=21;
-        fGridBoardID_Y[0][6]=1; fGridChannel_Y[0][6]=22;
-        fGridBoardID_Y[0][7]=1; fGridChannel_Y[0][7]=23;
-        fGridBoardID_Y[0][8]=1; fGridChannel_Y[0][8]=24;
-          fGridBoardID_Y[0][9]=1; fGridChannel_Y[0][9]=25;
-          fGridBoardID_Y[0][10]=1; fGridChannel_Y[0][10]=26;
-          fGridBoardID_Y[0][11]=1; fGridChannel_Y[0][11]=27;
-          fGridBoardID_Y[0][12]=1; fGridChannel_Y[0][12]=28;
-           fGridBoardID_Y[0][13]=1; fGridChannel_Y[0][13]=29;
-           fGridBoardID_Y[0][14]=1; fGridChannel_Y[0][14]=30;
-           fGridBoardID_Y[0][15]=1; fGridChannel_Y[0][15]=31;
+//   fGridBoardID_X[0][0]=1; fGridChannel_X[0][0]=0;
+//   fGridBoardID_X[0][1]=1; fGridChannel_X[0][1]=1;
+//   fGridBoardID_X[0][2]=1; fGridChannel_X[0][2]=2;
+//   fGridBoardID_X[0][3]=1; fGridChannel_X[0][3]=3;
+//   fGridBoardID_X[0][4]=1; fGridChannel_X[0][4]=4;
+//   fGridBoardID_X[0][5]=1; fGridChannel_X[0][5]=5;
+//   fGridBoardID_X[0][6]=1; fGridChannel_X[0][6]=6;
+//   fGridBoardID_X[0][7]=1; fGridChannel_X[0][7]=7;
+//   fGridBoardID_X[0][8]=1; fGridChannel_X[0][8]=8;
+//      fGridBoardID_X[0][9]=1; fGridChannel_X[0][9]=9;
+//      fGridBoardID_X[0][10]=1; fGridChannel_X[0][10]=10;
+//      fGridBoardID_X[0][11]=1; fGridChannel_X[0][11]=11;
+//      fGridBoardID_X[0][12]=1; fGridChannel_X[0][12]=12;
+//       fGridBoardID_X[0][13]=1; fGridChannel_X[0][13]=13;
+//       fGridBoardID_X[0][14]=1; fGridChannel_X[0][14]=14;
+//       fGridBoardID_X[0][15]=1; fGridChannel_X[0][15]=15;
+//       
+//       
+//       
+//       
+//       
+// 
+// 
+//       fGridBoardID_Y[0][0]=1; fGridChannel_Y[0][0]=16;
+//        fGridBoardID_Y[0][1]=1; fGridChannel_Y[0][1]=17;
+//        fGridBoardID_Y[0][2]=1; fGridChannel_Y[0][2]=18;
+//        fGridBoardID_Y[0][3]=1; fGridChannel_Y[0][3]=19;
+//        fGridBoardID_Y[0][4]=1; fGridChannel_Y[0][4]=20;
+//         fGridBoardID_Y[0][5]=1; fGridChannel_Y[0][5]=21;
+//         fGridBoardID_Y[0][6]=1; fGridChannel_Y[0][6]=22;
+//         fGridBoardID_Y[0][7]=1; fGridChannel_Y[0][7]=23;
+//         fGridBoardID_Y[0][8]=1; fGridChannel_Y[0][8]=24;
+//           fGridBoardID_Y[0][9]=1; fGridChannel_Y[0][9]=25;
+//           fGridBoardID_Y[0][10]=1; fGridChannel_Y[0][10]=26;
+//           fGridBoardID_Y[0][11]=1; fGridChannel_Y[0][11]=27;
+//           fGridBoardID_Y[0][12]=1; fGridChannel_Y[0][12]=28;
+//            fGridBoardID_Y[0][13]=1; fGridChannel_Y[0][13]=29;
+//            fGridBoardID_Y[0][14]=1; fGridChannel_Y[0][14]=30;
+//            fGridBoardID_Y[0][15]=1; fGridChannel_Y[0][15]=31;
 
 
 
