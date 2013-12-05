@@ -258,7 +258,7 @@ while ((psubevt = source->NextSubEvent()) != 0)
         for (int ch = 0; ch < PEXOR_QFWCHANS; ++ch)
         {
           Int_t value = *pdata++;
-          loopData->fQfwTrace[sl].push_back(value);
+          loopData->fQfwTrace[ch].push_back(value);
 
           //printf("loop %d slice %d ch %d = %d\n", loop, sl ,ch ,value);
 
@@ -284,13 +284,13 @@ while ((psubevt = source->NextSubEvent()) != 0)
 
           Double_t sum = 0;
           for (int sl = 0; sl < loopData->fQfwLoopSize; ++sl)
-            sum += loopData->fQfwTrace[sl].at(ch);
+            sum += loopData->fQfwTrace[ch].at(ch);
           sum = sum / loopData->fQfwLoopSize;
 
 
           for (int sl = 0; sl < loopData->fQfwLoopSize; ++sl)
           {
-            Double_t value = loopData->fQfwTrace[sl].at(ch) - sum;
+            Double_t value = loopData->fQfwTrace[ch].at(ch) - sum;
 
             loopDisplay->hQFWRawTrace->SetBinContent(ch + 1 + sl * PEXOR_QFWCHANS, value);
             boardDisplay->hQFWRaw2DTrace->Fill(loopoffset + sl, ch, value);

@@ -153,6 +153,9 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           loopfirst=kFALSE;
         }
         Int_t xchan = xmap.fQFWChannel;
+        //printf("ProfileProc: processing board %d channel %d for grid %d X wire %d \n",
+         //   xmap.fBoardID, xchan, gridid, x);
+        if(xchan<0) continue; // skip non configured channels
         std::vector<Int_t> & trace = loopData->fQfwTrace[xchan];
         UInt_t sum = 0;
         for (unsigned t = 0; t < trace.size(); ++t)
@@ -203,6 +206,9 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           return kFALSE;
         }
         Int_t ychan = ymap.fQFWChannel;
+        //printf("ProfileProc: processing board %d channel %d for grid %d Y wire %d \n",
+        //           ymap.fBoardID, ychan, gridid, y);
+        if(ychan<0) continue; // skip non configured channels
         std::vector<Int_t> & trace = loopData->fQfwTrace[ychan];
         UInt_t sum = 0;
         for (unsigned t = 0; t < trace.size(); ++t)
