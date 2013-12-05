@@ -138,12 +138,19 @@ void TQFWBoardDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
 //   std::cout <<"*************** TQFWBoardDisplay::InitDisplay with timeslices"<<timeslices << std::endl;
 //   std::cout <<"*************** TQFWBoardDisplay::InitDisplay finds numloops="<<numloops << std::endl;
   
+  Int_t subtimes[numloops];
   if(timeslices>0)
-    TQFWDisplay::InitDisplay(timeslices, replace);    // handle initialization of subloops
-  else
+    {
+      TQFWDisplay::InitDisplay(timeslices, replace);    // handle initialization of subloops
+      for(unsigned subix=0; subix<numloops; ++subix)
+             {
+              subtimes[subix]=timeslices;
+             }
+    }
+    else
     {
       timeslices=0; // otherwise do not specify timeslice of subloops, but take values from them (see below)!
-      Int_t subtimes[numloops];
+
        for(unsigned subix=0; subix<numloops; ++subix)
        {
          subtimes[subix]=GetSubDisplay(subix)->GetTimeSlices();
@@ -168,6 +175,24 @@ void TQFWBoardDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
 
   hQFWRaw2DTrace = MakeTH2('I', Form("Board%d/Brd%d-2D-Trace", brd, brd), Form("QFW Board %d trace for all loops", brd),
       numloops * timeslices, 0, numloops * timeslices, PEXOR_QFWCHANS, 0, PEXOR_QFWCHANS, "loop", "ch");
+
+  // set axis description:
+  numloops=GetNumLoops();
+  int loopoffset=0;
+  TString binlabel;
+  for (int loop = 0; loop < numloops; ++loop)
+    {
+      for (int t = 0; t < subtimes[loop]; ++t)
+      {
+
+        binlabel.Form("L%d-T%d", loop, t);
+        //cout <<"binlabel:"<<binlabel.Data() << endl;
+        hQFWRaw2D->GetXaxis()->SetBinLabel(1 + loopoffset + t, binlabel.Data());
+        hQFWRaw2DTrace->GetXaxis()->SetBinLabel(1 + loopoffset +t , binlabel.Data());
+      }
+      loopoffset+=subtimes[loop];
+    }
+
 
 
 
@@ -327,7 +352,7 @@ void TQFWGridLoopDisplay::AdjustDisplay(TQFWLoop* loopdata)
 
 
    Double_t mtime=loopdata->fQfwLoopTime * 20 / 1000; // measurement time in us
-   Double_t premtime = 0; // measurement time in us
+   //Double_t premtime = 0; // measurement time in us
 
    /* evaluate measurement setup*/
    TString setup;

@@ -116,15 +116,15 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
     TQFWBoard* boardData = 0;
     Int_t oldboardid = -1;
     Bool_t gridfirst=kTRUE;
-    for (unsigned l = 0; l < gridDisplay->GetNumLoops(); ++l)
+    for (int l = 0; l < gridDisplay->GetNumLoops(); ++l)
     {
       TQFWGridLoopDisplay* loopDisplay = gridDisplay->GetLoopDisplay(l);
       Bool_t loopfirst=kTRUE;
 
-      for (unsigned x = 0; x < gridData->GetNumXWires(); ++x)
+      for (int x = 0; x < gridData->GetNumXWires(); ++x)
       {
         TQFWChannelMap xmap = gridData->GetXChannelMap(x);
-        if (oldboardid != xmap.fBoardID)
+        if (oldboardid != (Int_t) xmap.fBoardID)
         {
           //TGo4Log::Info("Grid %d Retrieving X Board of id %d",gridid, xmap.fBoardID);
           boardData = QFWRawEvent->GetBoard(xmap.fBoardID);
@@ -169,19 +169,19 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           loopDisplay->hBeamXSlice->SetBinContent(1 + x, 1 + t, trace[t]);
           UInt_t prev = loopDisplay->hBeamAccXSlice->GetBinContent(1 + x, 1 + t);
           loopDisplay->hBeamAccXSlice->SetBinContent(1 + x, 1 + t, prev + trace[t]);
-          //                     }
           //
-          gridDisplay->hBeamX->SetBinContent(1 + x, sum);
-          gridDisplay->hBeamAccX->AddBinContent(1 + x, sum);
-
         }    // trace t
+        gridDisplay->hBeamX->SetBinContent(1 + x, sum);
+        gridDisplay->hBeamAccX->AddBinContent(1 + x, sum);
+
+
 
       }    // x wires
 
-      for (unsigned y = 0; y < gridData->GetNumYWires(); ++y)
+      for (int y = 0; y < gridData->GetNumYWires(); ++y)
       {
         TQFWChannelMap ymap = gridData->GetYChannelMap(y);
-        if (oldboardid != ymap.fBoardID)
+        if (oldboardid != (Int_t) ymap.fBoardID)
         {
           //TGo4Log::Info("Grid %d Retrieving Y Board of id %d", gridid, ymap.fBoardID);
           boardData = QFWRawEvent->GetBoard(ymap.fBoardID);
@@ -221,10 +221,11 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           loopDisplay->hBeamAccYSlice->SetBinContent(1 + y, 1 + t, prev + trace[t]);
           //                     }
           //
-          gridDisplay->hBeamY->SetBinContent(1 + y, sum);
-          gridDisplay->hBeamAccY->AddBinContent(1 + y, sum);
+
 
         }    // trace t
+          gridDisplay->hBeamY->SetBinContent(1 + y, sum);
+          gridDisplay->hBeamAccY->AddBinContent(1 + y, sum);
 
       }    // y wires
 
@@ -247,7 +248,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
       gridDisplay->hBeamRMSY->Fill(gridData->fBeamRMSY);
       
       // second loop loop to get mean values of traces:
-      for (unsigned l = 0; l < gridDisplay->GetNumLoops(); ++l)
+      for (int l = 0; l < gridDisplay->GetNumLoops(); ++l)
       {
 	TQFWGridLoopDisplay* loopDisplay=gridDisplay->GetLoopDisplay(l);
      // evaluate here mean value and sigma of profile counts

@@ -245,7 +245,7 @@ while ((psubevt = source->NextSubEvent()) != 0)
     pdata += 21;
 
     boardDisplay->hQFWRaw2DTrace->Reset("");
-
+    int loopoffset=0;
     /** All loops X slices/loop X channels */
     for (int loop = 0; loop < theBoard->getNElements(); loop++)
           {
@@ -253,14 +253,14 @@ while ((psubevt = source->NextSubEvent()) != 0)
             TQFWBoardLoopDisplay* loopDisplay=boardDisplay->GetLoopDisplay(loop);
             loopDisplay->hQFWRawTrace->Reset("");
 
-      int loopoffset=0;
+
       for (int sl = 0; sl < loopData->fQfwLoopSize; ++sl)
         for (int ch = 0; ch < PEXOR_QFWCHANS; ++ch)
         {
           Int_t value = *pdata++;
           loopData->fQfwTrace[sl].push_back(value);
 
-          // printf("loop %d slice %d ch %d = %d\n", loop, sl ,ch ,value);
+          //printf("loop %d slice %d ch %d = %d\n", loop, sl ,ch ,value);
 
           if (!fPar->fSimpleCompensation)
           {
@@ -269,11 +269,13 @@ while ((psubevt = source->NextSubEvent()) != 0)
 
             loopDisplay->hQFWRaw->AddBinContent(ch + 1 + sl * PEXOR_QFWCHANS, value);
             boardDisplay->hQFWRaw2D->Fill(loopoffset + sl, ch, value);
+            //printf("      loopoffset= %d\n", loopoffset);
           }
 
         }
 
       if (fPar->fSimpleCompensation)
+      {
         for (int ch = 0; ch < PEXOR_QFWCHANS; ++ch)
         {
 
@@ -297,6 +299,7 @@ while ((psubevt = source->NextSubEvent()) != 0)
             boardDisplay->hQFWRaw2D->Fill(loopoffset + sl, ch, value);
           } // sl
         }//ch
+      }
       loopoffset+=loopData->fQfwLoopSize;
     }//loop
 
