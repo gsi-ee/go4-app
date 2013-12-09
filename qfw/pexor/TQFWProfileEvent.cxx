@@ -26,15 +26,13 @@ void TQFWGrid::Clear(Option_t *t)
   fBeamMeanY = 0;
   fBeamRMSX = 0;
   fBeamRMSY = 0;
-  for (unsigned i = 0; i < fXCurrent.size(); ++i)
-  {
-    fXCurrent[i] = 0.0;
-  }
-  for (unsigned i = 0; i < fYCurrent.size(); ++i)
-  {
-    fYCurrent[i] = 0.0;
-  }
+#ifdef QFW_STORECURRENTS
+  fXCurrent.clear();
+  fYCurrent.clear();
+#endif
 }
+
+
 
 void TQFWGrid::AddXMapping(UInt_t board, Int_t channel)
 {
@@ -69,11 +67,9 @@ TQFWCup::~TQFWCup()
 
 void TQFWCup::Clear(Option_t *t)
 {
-  for (unsigned i = 0; i < fCurrent.size(); ++i)
-  {
-    fCurrent[i] = 0.0;
-  }
-
+#ifdef QFW_STORECURRENTS
+  fCurrent.clear();
+#endif
 }
 
 void TQFWCup::AddMapping(UInt_t board, Int_t channel)
@@ -187,14 +183,6 @@ TQFWProfileEvent::~TQFWProfileEvent()
 //-----------------------------------------------------------
 void TQFWProfileEvent::Clear(Option_t *t)
 {
-
-//  for (int grid = 0; grid < PEXOR_QFWGRIDS; ++grid)
-//  {
-//    fBeamMeanX[grid] = 0.;
-//    fBeamMeanY[grid] = 0.;
-//    fBeamRMSX[grid] = 0.;
-//    fBeamRMSY[grid] = 0.;
-//  }    // grid
 
 }
 

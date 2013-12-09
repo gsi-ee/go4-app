@@ -172,7 +172,9 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 
           Double_t prev = loopDisplay->hBeamAccXSlice->GetBinContent(1 + x, 1 + t);
           loopDisplay->hBeamAccXSlice->SetBinContent(1 + x, 1 + t, prev + value);
-
+#ifdef QFW_STORECURRENTS
+          gridData->fXCurrent.push_back(value);
+#endif
 //          sum += trace[t];
 //          loopDisplay->hBeamXSlice->SetBinContent(1 + x, 1 + t, trace[t]);
 //          prev = loopDisplay->hBeamAccXSlice->GetBinContent(1 + x, 1 + t);
@@ -234,7 +236,9 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           Double_t value = fParam->GetCorrectedYValue(g, l, y, trace[t]);
           sum += value;
           loopDisplay->hBeamYSlice->SetBinContent(1 + y, 1 + t, value);
-
+#ifdef QFW_STORECURRENTS
+          gridData->fYCurrent.push_back(value);
+#endif
           Double_t prev = loopDisplay->hBeamAccYSlice->GetBinContent(1 + y, 1 + t);
           loopDisplay->hBeamAccYSlice->SetBinContent(1 + y, 1 + t, prev + value);
 

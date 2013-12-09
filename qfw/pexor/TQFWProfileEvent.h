@@ -13,12 +13,17 @@
 #define PEXOR_QFW_CUPSEGMENTS 1
 
 
+/* this enables storing the background corrected wire currents to ROOT tree
+ * will decrease performance!*/
+//#define QFW_STORECURRENTS 1
+
+
 /*
- * Raw event structures for readout of QFW beam diagnostic board
+ * Advanced event structures for readout of QFW beam diagnostic board
  * via PEXOR family optical receiver.
  * Jörn Adamczewski-Musch, GSI-CSEE
  *
- * v0.1 29 November 2013
+ * v0.2 9 December 2013
  *
  */
 
