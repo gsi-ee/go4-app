@@ -20,7 +20,7 @@ TQFWProfileParam::TQFWProfileParam() : TGo4Parameter()
 }
 
 TQFWProfileParam::TQFWProfileParam(const char* name) :
-    TGo4Parameter(name)
+    TGo4Parameter(name), fSlowMotionStart(0)
 {
   InitProfileMapping();
   ResetOffsetMeasurement();
@@ -79,7 +79,9 @@ void TQFWProfileParam::InitProfileMapping()
       fGridChannel_Y[grid][wire] = wire;
 
     }
-  
+    // only 31 wire grid at HIT beamtime, disable last channel:
+    fGridChannel_X[grid][31]=-1;
+    fGridChannel_Y[grid][31]=-1;
   
    // grid index 1 is mapped cup scalers, x direction only
    // todo: use several cup scaler objects instead (not read yet)
@@ -276,6 +278,7 @@ Bool_t TQFWProfileParam::UpdateFrom(TGo4Parameter *pp)
   }
   fMeasureBackground=from->fMeasureBackground;
   fCorrectBackground=from->fCorrectBackground;
+  fSlowMotionStart=from->fSlowMotionStart;
 
 
       // configuration objects are here

@@ -34,6 +34,9 @@ public:
 
 protected:
 
+  /* Fill all display histograms here*/
+  Bool_t FillDisplays();
+
   /* access to histogram set for current board id*/
   TQFWBoardDisplay* GetBoardDisplay(Int_t uniqueid);
 
@@ -42,6 +45,9 @@ protected:
 
   /* parameter for runtime settings*/
   TQFWRawParam* fPar;
+
+  /* reference to output data*/
+  TQFWRawEvent* QFWRawEvent;  //!
 
 private:
 

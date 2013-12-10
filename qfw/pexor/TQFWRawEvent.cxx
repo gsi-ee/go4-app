@@ -31,9 +31,10 @@ void TQFWLoop::Clear(Option_t *t)
   fQfwLoopSize=0;
   fQfwLoopTime=0;
 
-  for (int ch = 0; ch > PEXOR_QFWCHANS; ++ch)
+  for (int ch = 0; ch < PEXOR_QFWCHANS; ++ch)
   {
     fQfwTrace[ch].clear();
+    //TGo4Log::Info("TQFWLoop: Clear for ch: %d", ch);
   }
 }
 
@@ -64,6 +65,7 @@ TQFWBoard::~TQFWBoard()
 
 void TQFWBoard::Clear(Option_t *t)
 {
+  //TGo4Log::Info("TQFWBoard: Clear ");
   TGo4CompositeEvent::Clear();
   fQfwSetup=0;
 
@@ -119,6 +121,7 @@ TQFWBoard* TQFWRawEvent::GetBoard(UInt_t id)
 
 void TQFWRawEvent::Clear(Option_t *t)
 {
+  //TGo4Log::Info("TQFWRawEvent: Clear ");
     TGo4CompositeEvent::Clear();
     fSequenceNumber=-1;
 }

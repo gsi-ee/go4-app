@@ -104,7 +104,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 
   // FillGrids(QFWRawEvent);
 
-  QFWRawEvent->SetValid(kTRUE);    // to store
+
   TString mtitle;
   // first loop over grids:
 
@@ -317,9 +317,14 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
     
   }    // grids
   
-  //if(fPar->fSlowMotionStart>0)
-  // if(evnum>fPar->fSlowMotionStart)
-  //   GO4_STOP_ANALYSIS_MESSAGE("Stopped for slow motion mode at event %d",evnum);
+  fOutput->SetValid(kTRUE);    // to store
+
+  if(fParam->fSlowMotionStart>0)
+   if(QFWRawEvent->fSequenceNumber > fParam->fSlowMotionStart)
+     GO4_STOP_ANALYSIS_MESSAGE("Stopped for slow motion mode at event of sequence number %d",QFWRawEvent->fSequenceNumber);
+
+
+
 
   return kTRUE;
 }

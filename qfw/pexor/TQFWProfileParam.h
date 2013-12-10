@@ -21,6 +21,8 @@ class TQFWProfileParam : public TGo4Parameter {
 
       virtual Bool_t UpdateFrom(TGo4Parameter *);
 
+      UInt_t fSlowMotionStart; // event number in file to begin slow control mode (0=off)
+
       Bool_t   fMeasureBackground;  // switches background measurement on/off
       Bool_t   fCorrectBackground;  // apply background correction to qfw on/off
 

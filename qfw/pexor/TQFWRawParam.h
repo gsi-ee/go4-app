@@ -15,8 +15,14 @@ class TQFWRawParam : public TGo4Parameter {
 
       Bool_t   fSimpleCompensation; // if true, simple compensation with average per channel/series value will be done
 
+      Bool_t fSelectTriggerEvents; // switch triggering of good and background events for free running daq
+      Int_t fTriggerHighThreshold; // selects good event if integral of trigger channel counts is above
+      Int_t fTriggerLowThreshold; // selects background events if integral of trigger channel counts is below
+      Int_t fTriggerBoardID; // id of board that contains trigger channels
+      Int_t fTriggerFirstChannel; // lower boundary of trigger channel region
+      Int_t fTriggerLastChannel; // upper boundary of trigger channel region
 
-	   UInt_t fSlowMotionStart; // event number in file to begin slow control mode (0=off)
+
 
 
       /* initial mapping of board id to sfp/ gosip device cabling*/

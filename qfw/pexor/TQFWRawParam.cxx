@@ -39,6 +39,15 @@ void TQFWRawParam::InitBoardMapping()
    fBoardID[0][0]=10; // test case: one qfw board at sfp0
    fBoardID[1][0]=11; // test case: one qfw board at sfp1
    fBoardID[2][0]=12; // test case: one qfw board at sfp2
+
+   fSelectTriggerEvents=kTRUE;
+   fTriggerHighThreshold=5000000; // selects measurement event if integral of trigger channel counts is above
+   fTriggerLowThreshold=4000000; // selects background events if integral of trigger channel counts is below
+   fTriggerBoardID=12;
+   fTriggerFirstChannel=0; // lower boundary of trigger channel region
+   fTriggerLastChannel=1;
+
+
 }
 
 Bool_t TQFWRawParam::SetConfigBoards()
@@ -74,7 +83,13 @@ Bool_t TQFWRawParam::UpdateFrom(TGo4Parameter *pp)
    cout << "**** TQFWRawParam::UpdateFrom ... " << endl;
    // automatic reset if we newly start the offset calibration:
 
-   fSlowMotionStart=from->fSlowMotionStart;
+
+   fSelectTriggerEvents=from->fSelectTriggerEvents;
+   fTriggerHighThreshold=from->fTriggerHighThreshold;
+   fTriggerLowThreshold=from->fTriggerLowThreshold;
+   fTriggerBoardID=from->fTriggerBoardID;
+   fTriggerFirstChannel=from->fTriggerFirstChannel;
+   fTriggerLastChannel=from->fTriggerLastChannel;
 
 
    SetConfigBoards();
