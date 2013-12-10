@@ -92,7 +92,7 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
 // called by framework from TQFWRawEvent to fill it
   QFWRawEvent = (TQFWRawEvent*) target;
   QFWRawEvent->SetValid(kFALSE);    // not store
-  UInt_t triggersum = 0;    // sums up all "software trigger" channels (for free running acquired data)
+  Int_t triggersum = 0;    // sums up all "software trigger" channels (for free running acquired data)
   TGo4MbsEvent* source = (TGo4MbsEvent*) GetInputEvent();
   if (source == 0)
   {
@@ -244,7 +244,7 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
             Int_t value = *pdata++;
             loopData->fQfwTrace[ch].push_back(value);
 
-            if (fPar->fSelectTriggerEvents && fPar->fTriggerBoardID == brdid)
+            if (fPar->fSelectTriggerEvents && ((UInt_t) fPar->fTriggerBoardID == brdid))
             {
               /////////// software trigger section
               // begin selecting good, bad and ugly events for free running data
@@ -301,7 +301,7 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
 
   if (fPar->fSelectTriggerEvents)
          {
-            TGo4Log::Info("Triggersum of event %d is %d", QFWRawEvent->fSequenceNumber, triggersum);
+            //TGo4Log::Info("Triggersum of event %d is %d", QFWRawEvent->fSequenceNumber, triggersum);
             if((triggersum<fPar->fTriggerHighThreshold) && (triggersum> fPar->fTriggerLowThreshold))
             {
               GO4_SKIP_EVENT_MESSAGE("Skip event of seqnr %d with triggersum %d!", QFWRawEvent->fSequenceNumber, triggersum); // debug
@@ -316,7 +316,7 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
 
 Bool_t TQFWRawProc::FillDisplays()
 {
-  for (int i = 0; i < TQFWRawEvent::fgConfigQFWBoards.size(); ++i)
+  for (unsigned i = 0; i < TQFWRawEvent::fgConfigQFWBoards.size(); ++i)
   {
     UInt_t brdid = TQFWRawEvent::fgConfigQFWBoards[i];
     TQFWBoard* theBoard = QFWRawEvent->GetBoard(brdid);
@@ -417,6 +417,6 @@ Bool_t TQFWRawProc::FillDisplays()
     }
 
   }    // i board
-
+  return kTRUE;
 }
 
