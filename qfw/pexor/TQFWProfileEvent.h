@@ -10,7 +10,7 @@
 #define PEXOR_QFW_WIRES 32
 
 /* default number of wires for first init:*/
-#define PEXOR_QFW_CUPSEGMENTS 1
+#define PEXOR_QFW_CUPSEGMENTS 2
 
 
 /* this enables storing the background corrected wire currents to ROOT tree
@@ -23,7 +23,7 @@
  * via PEXOR family optical receiver.
  * Jörn Adamczewski-Musch, GSI-CSEE
  *
- * v0.2 9 December 2013
+ * v0.3 11 December 2013
  *
  */
 
@@ -169,7 +169,10 @@ public:
                {
                  return fChannels.size();
                }
-
+     TQFWChannelMap& GetChannelMap(Int_t index)
+        {
+          return fChannels[index];
+        }
 
      /* references to qfw board and channels for cup segments*/
      std::vector<TQFWChannelMap> fChannels; //! do not put this into tree

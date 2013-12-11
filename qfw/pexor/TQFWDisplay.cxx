@@ -42,6 +42,55 @@ void TQFWDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
   }
 }
 
+
+TString TQFWDisplay::GetSetupString(UChar_t qfwsetup)
+{
+  /* evaluate measurement setup*/
+   TString setup;
+   switch(qfwsetup)
+   {
+      case 0:
+         setup.Form("(-) [ 2.5pF & 0.25pC]");
+      break;
+
+      case 1:
+         setup.Form("(-) [25.0pF & 2.50pC]");
+      break;
+
+      case 2:
+         setup.Form("(+) [ 2.5pF & 0.25pC]");
+      break;
+
+      case 3:
+         setup.Form("(+) [25.0pF & 2.50pC]");
+      break;
+
+      case 0x10:
+         setup.Form("1000uA (-) [ 2.5pF & 0.25pC]");
+      break;
+
+      case 0x11:
+         setup.Form("1000uA (-) [25.0pF & 2.50pC]");
+      break;
+
+      case 0x12:
+         setup.Form("1000uA (+) [ 2.5pF & 0.25pC]");
+      break;
+
+      case 0x13:
+         setup.Form("1000uA (+) [25.0pF & 2.50pC]");
+         break;
+
+      default:
+        setup.Form("unknown setup %d", qfwsetup);
+        break;
+   };
+
+
+return setup;
+}
+
+
 ////////////////////////////////////////////////
 
 TQFWLoopDisplay::TQFWLoopDisplay(Int_t deviceid, Int_t loopid) :
@@ -59,10 +108,19 @@ void TQFWLoopDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
   fTimeSlices = timeslices;
 }
 
+
+
+
+
+
+
+
+
+
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 TQFWBoardLoopDisplay::TQFWBoardLoopDisplay(Int_t boardid, Int_t loopid) :
-    TQFWLoopDisplay(boardid, loopid)
+    TQFWLoopDisplay(boardid, loopid), hQFWRaw(0),hQFWRawTrace(0)
 {
   //TString loopname.Form("Board%02d/Loop%02d_", boardid, loopid);
   //InitDisplay(PEXOR_QFWSLICES);
@@ -113,7 +171,8 @@ if(replace)
 //***********************************************************
 
 TQFWBoardDisplay::TQFWBoardDisplay(Int_t boardid) :
-    TQFWDisplay(boardid)
+    TQFWDisplay(boardid) , hQFWRaw2D(0), hQFWRaw2DTrace(0),
+    hQFWRawErr(0),hQFWRawErrTr(0), pPexorQfws(0), pPexorQfwsTrace(0)
 {
   //TString boardname.Form("Board%02d", boardid);"Wrong optic format - 0x34 are expected0-7 bits not as expected"
   for (int i = 0; i < PEXOR_QFWLOOPS; ++i)
@@ -256,7 +315,10 @@ if(replace)
 //***********************************************************
 
 TQFWGridLoopDisplay::TQFWGridLoopDisplay(Int_t gridid, Int_t loopid) :
-  TQFWLoopDisplay(gridid, loopid),fGridData(0)
+  TQFWLoopDisplay(gridid, loopid),hBeamXSlice(0), hBeamYSlice(0),
+  hBeamXSliceOffs(0), hBeamYSliceOffs(0), hBeamAccXSlice(0), hBeamAccYSlice(0), hBeamMeanCountsX(0),
+  hBeamMeanCountsY(0), hBeamRMSCountsX(0), hBeamRMSCountsY(0),
+  cBeamXSliceCond(0), cBeamYSliceCond(0), fGridData(0)
 {
 
 }
@@ -344,95 +406,28 @@ hBeamRMSCountsY = MakeTH1('I', Form("Beam/Grid%2d/Loop%2d/RMS_Counts_Y_G%d_L%d",
 
 void TQFWGridLoopDisplay::AdjustDisplay(TQFWLoop* loopdata)
 {
-
   // check if we have different timeslices:
-
   if(loopdata->fQfwLoopSize != GetTimeSlices())
   {
     InitDisplay(loopdata->fQfwLoopSize,kTRUE);
   }
-
-
-
 // change histogram titels according setup:
-
-
    Double_t mtime=loopdata->fQfwLoopTime * 20 / 1000; // measurement time in us
-   //Double_t premtime = 0; // measurement time in us
 
    /* evaluate measurement setup*/
-   TString setup;
-   switch(loopdata->fQfwSetup) // TODO evaluate setup from data
-//   switch(1000)
-   {
-      case 0:
-         setup.Form("(-) [ 2.5pF & 0.25pC]");
-      break;
-
-      case 1:
-         setup.Form("(-) [25.0pF & 2.50pC]");
-      break;
-
-      case 2:
-         setup.Form("(+) [ 2.5pF & 0.25pC]");
-      break;
-
-      case 3:
-         setup.Form("(+) [25.0pF & 2.50pC]");
-      break;
-
-      case 0x10:
-         setup.Form("1000uA (-) [ 2.5pF & 0.25pC]");
-      break;
-
-      case 0x11:
-         setup.Form("1000uA (-) [25.0pF & 2.50pC]");
-      break;
-
-      case 0x12:
-         setup.Form("1000uA (+) [ 2.5pF & 0.25pC]");
-      break;
-
-      case 0x13:
-         setup.Form("1000uA (+) [25.0pF & 2.50pC]");
-         break;
-
-      default:
-        setup.Form("unknown setup %d", loopdata->fQfwSetup);
-        //setup.Form(" - ");
-        break;
-
-
-
-   };
-
-
-
-
+   TString setup=GetSetupString(loopdata->fQfwSetup);
 
 // APPEND TIME RANGES:
    TString mtitle;
    mtitle.Form("%s dt=%.2E us", setup.Data(), mtime);
 
-
 // clear trace histograms:
-//      hBeamX->Reset("");
-//      hBeamY->Reset("");
       hBeamXSlice->Reset("");
       hBeamYSlice->Reset("");
       hBeamXSliceOffs->Reset("");
       hBeamYSliceOffs->Reset("");
-//      hBeamX->SetTitle(mtitle.Data());
-//      hBeamY->SetTitle(mtitle.Data());
       hBeamXSlice->SetTitle(mtitle.Data());
       hBeamYSlice->SetTitle(mtitle.Data());
-
-
-
-
-
-
-
 }
 
 
@@ -449,7 +444,9 @@ void TQFWGridLoopDisplay::AdjustDisplay(TQFWLoop* loopdata)
 ///*********************************************
 
 TQFWGridDisplay::TQFWGridDisplay(Int_t gridid) :
-  TQFWDisplay(gridid),fGridData(0)
+  TQFWDisplay(gridid),
+  hBeamX(0),hBeamY(0), hBeamAccX(0), hBeamAccY(0), pBeamProfiles(0), hBeamMeanXY(0), hBeamRMSX(0), hBeamRMSY(0),
+  pBeamRMS(0),fGridData(0)
 {
 
 for (int i = 0; i < PEXOR_QFWLOOPS; ++i)
@@ -572,83 +569,29 @@ void TQFWGridDisplay::AdjustDisplay(TQFWBoard* boarddata)
 
 //   Bool_t dostop=kFALSE;
    //Double_t mtime=boarddata->fQfwLoopTime * 20 / 1000; // measurement time in us
-  // Double_t premtime = 0; // measurement time in us
 
    /* evaluate measurement setup*/
-   TString setup;
-   switch(boarddata->fQfwSetup) // TODO evaluate setup from data
-   {
-      case 0:
-         setup.Form("(-) [ 2.5pF & 0.25pC]");
-      break;
-
-      case 1:
-         setup.Form("(-) [25.0pF & 2.50pC]");
-      break;
-
-      case 2:
-         setup.Form("(+) [ 2.5pF & 0.25pC]");
-      break;
-
-      case 3:
-         setup.Form("(+) [25.0pF & 2.50pC]");
-      break;
-
-      case 0x10:
-         setup.Form("1000uA (-) [ 2.5pF & 0.25pC]");
-      break;
-
-      case 0x11:
-         setup.Form("1000uA (-) [25.0pF & 2.50pC]");
-      break;
-
-      case 0x12:
-         setup.Form("1000uA (+) [ 2.5pF & 0.25pC]");
-      break;
-
-      case 0x13:
-         setup.Form("1000uA (+) [25.0pF & 2.50pC]");
-         break;
-
-      default:
-         //setup.Form("unknown setup %d", out->fQfwSetup);
-        setup.Form(" - ");
-        break;
-
-
-
-   };
-
-
-
-
+  /* evaluate measurement setup*/
+    TString setup=GetSetupString(boarddata->fQfwSetup);
 
  // APPEND TIME RANGES:
    TString mtitle;
    mtitle.Form("%s", setup.Data());
-
       hBeamX->Reset("");
       hBeamY->Reset("");
-//      hBeamXSlice]->Reset("");
-//      hBeamYSlice->Reset("");
-//      hBeamXSliceOffs->Reset("");
-//      hBeamYSliceOffs->Reset("");
       hBeamX->SetTitle(mtitle.Data());
       hBeamY->SetTitle(mtitle.Data());
-//      hBeamXSlice->SetTitle(mtitle.Data());
-//      hBeamYSlice->SetTitle(mtitle.Data());
-
 
 //      mtitle.Form("%s dt=%.2E us", setup.Data(),premtime);
-
-
 
       }
 
 
 
 
-TQFWCupLoopDisplay::TQFWCupLoopDisplay(Int_t cupid, Int_t loopid)
+TQFWCupLoopDisplay::TQFWCupLoopDisplay(Int_t cupid, Int_t loopid):
+    TQFWLoopDisplay(cupid, loopid),fCupData(0), hCupSlice(0), hCupSliceOffs(0), hAccCupSlice(0)
+
 
 {
 
@@ -667,18 +610,98 @@ void TQFWCupLoopDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
 {
 // TODO: put some scaler histograms here
 
+  TGo4Log::Info("TQFWCupLoopDisplay: Initializing histograms with %d timeslices for Cup %d Loop %d", timeslices,
+      GetDevId(), GetLoopId());
+  if (replace)    //TGo4Analysis::Instance()->
+    SetMakeWithAutosave(kFALSE);
+  TQFWLoopDisplay::InitDisplay(timeslices,replace); // important to remember new timeslices!
+  Int_t cup = GetDevId();
+  Int_t loop = GetLoopId();
+  Int_t segments=PEXOR_QFW_CUPSEGMENTS;
+  if(fCupData)
+  {
+    // take real number of segments from event object
+      segments=fCupData->GetNumSegments();
+  }
+
+
+
+  hCupSlice= MakeTH2('D', Form("Beam/Cup%2d/Loop%2d/Scaler_Time_C%d_L%d", cup,loop, cup, loop),
+      Form("Segment Scaler vs Time slices Cup%2d Loop%2d", cup, loop), segments, 0, segments, timeslices, 0,
+            timeslices, "Segment", "Time Slice");
+
+       /* helper histogram showing current offset*/
+  hCupSliceOffs= MakeTH2('D', Form("Beam/Cup%2d/Loop%2d/Scaler_Time_Offset_C%d_L%d", cup,loop, cup, loop),
+       Form("Segment Scaler vs Time slices average offset Cup%2d Loop%2d", cup, loop), segments, 0, segments,
+            timeslices, 0, timeslices, "Segment", "Time Slice");
+
+  hAccCupSlice=MakeTH2('D', Form("Beam/Cup%2d/Loop%2d/ScalerSum_Time_C%d_L%d", cup,loop, cup, loop),
+            Form("Segment Scaler vs Time slices accum Cup%2d Loop%2d", cup, loop), segments, 0, segments, timeslices, 0,
+            timeslices, "Segment", "Time Slice");
+
+  hSegmentRatio.clear(); // we do not delete histograms here, is handled by framework when recreating
+  hAccSegmentRatio.clear();
+  for(int seg=0; seg<segments;++seg)
+   {
+      hSegmentRatio.push_back(MakeTH1('D', Form("Beam/Cup%2d/Loop%2d/SegmentRatio_C%d_L%d_S%d", cup,loop, cup, loop, seg),
+          Form("Charge Ratio Cup%2d Loop%2d Segment %2d",cup,loop,seg),
+              500, 0, 1,  "Relative Charge"));
+
+      hAccSegmentRatio.push_back(MakeTH1('D', Form("Beam/Cup%2d/Loop%2d/SegmentRatioSum_C%d_L%d_S%d", cup,loop, cup, loop, seg),
+                Form("Charge Ratio Cup%2d Loop%2d Segment %2d Accumulated",cup,loop,seg),
+                    500, 0, 1,  "Relative Charge"));
+   }
+
 }
 
+void TQFWCupLoopDisplay::AdjustDisplay(TQFWLoop* loopdata)
+{
+
+  // check if we have different timeslices:
+
+  if(loopdata->fQfwLoopSize != GetTimeSlices())
+  {
+    InitDisplay(loopdata->fQfwLoopSize,kTRUE);
+  }
 
 
 
+// change histogram titels according setup:
 
-TQFWCupDisplay::TQFWCupDisplay(Int_t cupid): fCupData(0)
+
+   Double_t mtime=loopdata->fQfwLoopTime * 20 / 1000; // measurement time in us
+
+   /* evaluate measurement setup*/
+   TString setup=GetSetupString(loopdata->fQfwSetup);
+
+   // APPEND TIME RANGES:
+   TString mtitle;
+   mtitle.Form("%s dt=%.2E us", setup.Data(), mtime);
+
+
+// clear trace histograms:
+      hCupSlice->Reset("");
+      hCupSliceOffs->Reset("");
+      hCupSlice->SetTitle(mtitle.Data());
+      for(unsigned seg=0; seg<hSegmentRatio.size();++seg)
+        {
+           hSegmentRatio[seg]->Reset("");
+        }
+
+
+}
+
+/////////////////////////////////////////////////////////////////////////////7
+
+
+
+TQFWCupDisplay::TQFWCupDisplay(Int_t cupid): TQFWDisplay(cupid) ,hCupScaler(0), hCupAccScaler(0), fCupData(0)
 {
   for (unsigned i = 0; i < PEXOR_QFWLOOPS; ++i)
   {
     AddLoopDisplay(new TQFWCupLoopDisplay(cupid, i));
   }
+  InitDisplay(PEXOR_QFWSLICES);
 }
 TQFWCupDisplay::~TQFWCupDisplay()
 {
@@ -693,6 +716,10 @@ void TQFWCupDisplay::SetCupEvent(TQFWProfileEvent* out)
    }
 
 
+}
+TQFWCupLoopDisplay* TQFWCupDisplay::GetLoopDisplay(Int_t index)
+{
+  return (TQFWCupLoopDisplay*) GetSubDisplay(index);
 }
 
 void TQFWCupDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
@@ -711,17 +738,36 @@ void TQFWCupDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
   }
 
   hCupScaler = MakeTH1('I', Form("Beam/Cup%2d/Scaler_C%d", cup, cup), Form("Segment scaler Cup%2d", cup), segs, 0,
-      segs, "Wire");
+      segs, "Segment");
 
   hCupAccScaler = MakeTH1('I', Form("Beam/Cup%2d/ScalerSum_C%d", cup, cup), Form("Segment scaler accumulated Cup%2d", cup), segs, 0,
-        segs, "Wire");
+        segs, "Segment");
+
+
+
 
 
 }
 
 
 
+void TQFWCupDisplay::AdjustDisplay(TQFWBoard* boarddata)
+{
 
+//   Bool_t dostop=kFALSE;
+   //Double_t mtime=boarddata->fQfwLoopTime * 20 / 1000; // measurement time in us
+
+   /* evaluate measurement setup*/
+  TString setup=GetSetupString(boarddata->fQfwSetup);
+ // APPEND TIME RANGES:
+   TString mtitle;
+//      mtitle.Form("%s dt=%.2E us", setup.Data(),mtime);
+   mtitle.Form("%s", setup.Data());
+
+      hCupScaler->Reset("");
+      hCupScaler->SetTitle(mtitle.Data());
+
+}
 
 
 

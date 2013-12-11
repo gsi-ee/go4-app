@@ -157,7 +157,9 @@ void TQFWProfileEvent::SetupCups()
   {
     uniqueid = TQFWProfileEvent::fParameter->fCupDeviceID[i];
     modname.Form("QFW_Cup_%02d", uniqueid);
-    TQFWCup* cup = new TQFWCup(modname.Data(), uniqueid, i);
+    Short_t evix=TQFWProfileEvent::fParameter->fNumGrids+i;
+      // NOTE: we must shift composite event index so all cup subevents are after the grids
+    TQFWCup* cup = new TQFWCup(modname.Data(), uniqueid, evix);
     for (int seg = 0; seg < PEXOR_QFW_CUPSEGMENTS; ++seg)
     {
       Int_t board = TQFWProfileEvent::fParameter->fCupBoardID[i][seg];

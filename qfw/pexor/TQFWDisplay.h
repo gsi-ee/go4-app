@@ -60,7 +60,13 @@ public:
     return 0;
   }
 
+   /* Evaluate description of measurement range from qfw setup value*/
+   TString GetSetupString(UChar_t qfwsetup);
+
 protected:
+
+
+
 
   Int_t fDisplayId;
 
@@ -125,7 +131,7 @@ class TQFWBoardLoopDisplay: public TQFWLoopDisplay
 {
 
 public:
-  TQFWBoardLoopDisplay(){;}
+  TQFWBoardLoopDisplay():TQFWLoopDisplay(), hQFWRaw(0),hQFWRawTrace(0) {;}
 
   TQFWBoardLoopDisplay(Int_t boardid, Int_t loopid);
   virtual ~TQFWBoardLoopDisplay(){;}
@@ -161,7 +167,9 @@ class TQFWBoardDisplay: public TQFWDisplay
 {
 
 public:
-  TQFWBoardDisplay(){;}
+  TQFWBoardDisplay(): TQFWDisplay(), hQFWRaw2D(0), hQFWRaw2DTrace(0),
+  hQFWRawErr(0),hQFWRawErrTr(0), pPexorQfws(0), pPexorQfwsTrace(0)
+  {;}
   TQFWBoardDisplay(Int_t boardid);
   virtual ~TQFWBoardDisplay();
 
@@ -201,7 +209,11 @@ class TQFWGridLoopDisplay: public TQFWLoopDisplay
 {
 
 public:
-  TQFWGridLoopDisplay(){;}
+  TQFWGridLoopDisplay():TQFWLoopDisplay(), hBeamXSlice(0), hBeamYSlice(0),
+  hBeamXSliceOffs(0), hBeamYSliceOffs(0), hBeamAccXSlice(0), hBeamAccYSlice(0), hBeamMeanCountsX(0),
+  hBeamMeanCountsY(0), hBeamRMSCountsX(0), hBeamRMSCountsY(0),
+  cBeamXSliceCond(0), cBeamYSliceCond(0), fGridData(0)
+  {;}
 
   TQFWGridLoopDisplay(Int_t grid, Int_t loopid);
   virtual ~TQFWGridLoopDisplay();
@@ -235,16 +247,6 @@ public:
         TGo4WinCond* cBeamXSliceCond;
         TGo4WinCond* cBeamYSliceCond;
 
-
-// TODO: put grid properties in common object identified by grid id
-
-//    /* number of wires in x direction for grid */
-//      Int_t gBeamWiresX;
-//
-//       /* number of wires in y direction for grid */
-//      Int_t gBeamWiresY;
-
-
         /* reference to the grid event object that we display*/
             TQFWGrid* fGridData;
 
@@ -262,7 +264,10 @@ class TQFWGridDisplay: public TQFWDisplay
 {
 
 public:
-  TQFWGridDisplay(){;}
+  TQFWGridDisplay():TQFWDisplay(),
+  hBeamX(0),hBeamY(0), hBeamAccX(0), hBeamAccY(0), pBeamProfiles(0), hBeamMeanXY(0), hBeamRMSX(0), hBeamRMSY(0),
+  pBeamRMS(0),fGridData(0)
+  {;}
 
   TQFWGridDisplay(Int_t grid);
   virtual ~TQFWGridDisplay();
@@ -275,7 +280,7 @@ public:
   virtual void InitDisplay(Int_t timeslices, Bool_t replace=kFALSE);
 
 
-  /* TODO: put some information into histgram headers*/
+  /* put some information into histogram headers*/
   void AdjustDisplay(TQFWBoard* data);
 
   /* create link between this display and the event structure for same unique id*/
@@ -283,11 +288,6 @@ public:
 
 
 
-//  /* number of wires in x direction for grid */
-//      Int_t gBeamWiresX;
-//
-//       /* number of wires in y direction for grid */
-//      Int_t gBeamWiresY;
 
 
   /* xy projections of scalers mapped to grid*/
@@ -321,7 +321,7 @@ class TQFWCupLoopDisplay: public TQFWLoopDisplay
 {
 
 public:
-  TQFWCupLoopDisplay(){;}
+  TQFWCupLoopDisplay(): TQFWLoopDisplay(),fCupData(0), hCupSlice(0), hCupSliceOffs(0), hAccCupSlice(0){;}
   TQFWCupLoopDisplay(Int_t cupid, Int_t loopid);
   virtual ~TQFWCupLoopDisplay();
 
@@ -331,8 +331,29 @@ public:
   /* recreate histograms using the given number of time slice*/
   virtual void InitDisplay(Int_t timeslices, Bool_t replace=kFALSE);
 
+  /* put some information into histogram headers*/
+   void AdjustDisplay(TQFWLoop* data);
+
   /* reference to the grid event object that we display*/
   TQFWCup* fCupData;
+
+
+  TH2* hCupSlice;
+
+     /* helper histogram showing current offset*/
+     TH2* hCupSliceOffs;
+
+     TH2* hAccCupSlice;
+
+     /* keep histograms of current ratios of all cup segments against first (reference) segment
+       * this can be used as indicator for beam position in case of segmented capacitor monitor*/
+      std::vector<TH1*> hSegmentRatio;
+
+      /* keep histograms of current ratios of all cup segments against first (reference) segment
+         * this can be used as indicator for beam position in case of segmented capacitor monitor*/
+            std::vector<TH1*> hAccSegmentRatio;
+
+
 
   ClassDef(TQFWCupLoopDisplay,1)
 };
@@ -346,7 +367,7 @@ class TQFWCupDisplay: public TQFWDisplay
 {
 
 public:
-  TQFWCupDisplay(){;}
+  TQFWCupDisplay():TQFWDisplay(),hCupScaler(0), hCupAccScaler(0), fCupData(0){;}
   TQFWCupDisplay(Int_t cupid);
   virtual ~TQFWCupDisplay();
 
@@ -357,9 +378,17 @@ public:
   /* recreate histograms using the given number of time slice*/
   virtual void InitDisplay(Int_t timeslices, Bool_t replace=kFALSE);
 
+  /* put some information into histogram headers*/
+  void AdjustDisplay(TQFWBoard* data);
+
+
+  TQFWCupLoopDisplay* GetLoopDisplay(Int_t index);
+
   /* each bin is one cup segment*/
   TH1* hCupScaler;
   TH1* hCupAccScaler;
+
+
 
   /* reference to the grid event object that we display*/
   TQFWCup* fCupData;

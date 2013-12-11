@@ -49,6 +49,9 @@ class TQFWProfileParam : public TGo4Parameter {
       Int_t fQFWOffsetYSums[PEXOR_QFW_GRIDS][PEXOR_QFWLOOPS][PEXOR_QFW_WIRES]; // accumulated offset values (grid,loop,wire)
       Int_t fMeasurementCountsY[PEXOR_QFW_GRIDS][PEXOR_QFWLOOPS][PEXOR_QFW_WIRES]; // counts offset values (grid,wire,loop)
 
+      Double_t fQFWOffsetsCup[PEXOR_QFW_CUPS][PEXOR_QFWLOOPS][PEXOR_QFW_CUPSEGMENTS]; // average offset values (grid,loop,wire)
+      Int_t fQFWOffsetCupSums[PEXOR_QFW_CUPS][PEXOR_QFWLOOPS][PEXOR_QFW_CUPSEGMENTS]; // accumulated offset values (grid,loop,wire)
+      Int_t fMeasurementCountsCup[PEXOR_QFW_CUPS][PEXOR_QFWLOOPS][PEXOR_QFW_CUPSEGMENTS]; // counts offset values (grid,wire,loop)
 
 
 
@@ -61,14 +64,21 @@ class TQFWProfileParam : public TGo4Parameter {
        * before initialization. Usually this is done in UpdateFrom*/
       Bool_t SetEventConfig();
 
+      /* Reset values of offset measurement to zero.*/
+      void ResetOffsetMeasurement();
+
+
   /* new measurement point for x direction wire*/
       Bool_t  AddXOffsetMeasurement(Int_t grid, Int_t loop, Int_t wire, UInt_t value);
 
   /* new measurement point for x direction wire*/
       Bool_t AddYOffsetMeasurement(Int_t grid, Int_t loop, Int_t wire, UInt_t value);
 
-//      /* Reset values of offset measurement to zero.*/
-  void ResetOffsetMeasurement();
+   /* new measurement point for cup segment */
+    Bool_t AddCupOffsetMeasurement(Int_t cup, Int_t loop, Int_t segment, UInt_t value);
+
+
+
 
   /* Evaluate offset correction from the previously measured data*/
   Double_t GetCorrectedXValue(Int_t grid, Int_t loop, Int_t wire, UInt_t count);
@@ -76,7 +86,14 @@ class TQFWProfileParam : public TGo4Parameter {
   /* Evaluate offset correction from the previously measured data*/
   Double_t GetCorrectedYValue(Int_t grid, Int_t loop, Int_t wire, UInt_t count);
 
+  /* Evaluate offset correction from the previously measured data*/
+   Double_t GetCorrectedCupValue(Int_t cup, Int_t loop, Int_t segment, UInt_t count);
+
+
   Bool_t CheckGridBoundaries(Int_t grid, Int_t loop, Int_t wire);
+
+  Bool_t CheckCupBoundaries(Int_t cup, Int_t loop, Int_t segment);
+
 
    private:
 
