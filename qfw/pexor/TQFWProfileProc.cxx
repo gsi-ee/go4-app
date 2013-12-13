@@ -158,7 +158,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
         if (xchan < 0)
           continue;    // skip non configured channels
         std::vector<Int_t> & trace = loopData->fQfwTrace[xchan];
-        UInt_t sum = 0;
+        Double_t sum = 0;
         for (unsigned t = 0; t < trace.size(); ++t)
         {
           if (fParam->fMeasureBackground)
@@ -181,7 +181,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 //          loopDisplay->hBeamAccXSlice->SetBinContent(1 + x, 1 + t, prev + trace[t]);
 //          //
         }    // trace t
-        gridDisplay->hBeamX->SetBinContent(1 + x, sum);
+        gridDisplay->hBeamX->AddBinContent(1 + x, sum);
         gridDisplay->hBeamAccX->AddBinContent(1 + x, sum);
 
       }    // x wires
@@ -216,7 +216,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
         if (ychan < 0)
           continue;    // skip non configured channels
         std::vector<Int_t> & trace = loopData->fQfwTrace[ychan];
-        UInt_t sum = 0;
+        Double_t sum = 0;
         for (unsigned t = 0; t < trace.size(); ++t)
         {
 
@@ -235,27 +235,14 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           loopDisplay->hBeamAccYSlice->SetBinContent(1 + y, 1 + t, prev + value);
 
         }    // trace t
-        gridDisplay->hBeamY->SetBinContent(1 + y, sum);
+        gridDisplay->hBeamY->AddBinContent(1 + y, sum);
         gridDisplay->hBeamAccY->AddBinContent(1 + y, sum);
 
       }    // y wires
 
     }    // loops
     
-    // put here mean value calculations and profiles:
-
-    gridData->fBeamMeanX = gridDisplay->hBeamX->GetMean();
-
-    gridData->fBeamMeanY = gridDisplay->hBeamY->GetMean();
-
-    gridData->fBeamRMSX = gridDisplay->hBeamX->GetRMS();
-
-    gridData->fBeamRMSY = gridDisplay->hBeamY->GetRMS();
-
-    gridDisplay->hBeamMeanXY->Fill(gridData->fBeamMeanX, gridData->fBeamMeanY);
-    gridDisplay->hBeamRMSX->Fill(gridData->fBeamRMSX);
-    gridDisplay->hBeamRMSY->Fill(gridData->fBeamRMSY);
-
+    
     // second loop loop to get mean values of traces:
     for (int l = 0; l < gridDisplay->GetNumLoops(); ++l)
     {
@@ -307,6 +294,22 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 
     }    // loops
     
+// put here mean value calculations and profiles:
+
+    gridData->fBeamMeanX = gridDisplay->hBeamX->GetMean();
+
+    gridData->fBeamMeanY = gridDisplay->hBeamY->GetMean();
+
+    gridData->fBeamRMSX = gridDisplay->hBeamX->GetRMS();
+
+    gridData->fBeamRMSY = gridDisplay->hBeamY->GetRMS();
+
+    gridDisplay->hBeamMeanXY->Fill(gridData->fBeamMeanX, gridData->fBeamMeanY);
+    gridDisplay->hBeamRMSX->Fill(gridData->fBeamRMSX);
+    gridDisplay->hBeamRMSY->Fill(gridData->fBeamRMSY);
+
+
+
   }    // grids
 
 
@@ -368,7 +371,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
          if (xchan < 0)
            continue;    // skip non configured channels
          std::vector<Int_t> & trace = loopData->fQfwTrace[xchan];
-         UInt_t sum = 0;
+         Double_t sum = 0;
          for (unsigned t = 0; t < trace.size(); ++t)
          {
            if (fParam->fMeasureBackground)
@@ -386,7 +389,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
            cupData->fCurrent.push_back(value);
  #endif
          }    // trace t
-         cupDisplay->hCupScaler->SetBinContent(1 + x, sum);
+         cupDisplay->hCupScaler->AddBinContent(1 + x, sum);
          cupDisplay->hCupAccScaler->AddBinContent(1 + x, sum);
          segmentcharge[x]=sum;
          chargesum+=sum;
