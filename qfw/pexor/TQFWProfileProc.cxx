@@ -181,8 +181,12 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 //          loopDisplay->hBeamAccXSlice->SetBinContent(1 + x, 1 + t, prev + trace[t]);
 //          //
         }    // trace t
-        gridDisplay->hBeamX->AddBinContent(1 + x, sum);
-        gridDisplay->hBeamAccX->AddBinContent(1 + x, sum);
+
+        gridDisplay->hBeamX->Fill(x, sum);// we need Fill instead SetBinContent to evaluate statistics
+        gridDisplay->hBeamAccX->Fill(x, sum);
+               // this one will not evaluate statistics! :
+//        gridDisplay->hBeamX->AddBinContent(1 + x, sum);
+//        gridDisplay->hBeamAccX->AddBinContent(1 + x, sum);
 
       }    // x wires
 
@@ -235,8 +239,9 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           loopDisplay->hBeamAccYSlice->SetBinContent(1 + y, 1 + t, prev + value);
 
         }    // trace t
-        gridDisplay->hBeamY->AddBinContent(1 + y, sum);
-        gridDisplay->hBeamAccY->AddBinContent(1 + y, sum);
+
+        gridDisplay->hBeamY->Fill(y, sum); // we need Fill instead SetBinContent to evaluate statistics
+        gridDisplay->hBeamAccY->Fill(y, sum);
 
       }    // y wires
 
@@ -304,6 +309,11 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 
     gridData->fBeamRMSY = gridDisplay->hBeamY->GetRMS();
 
+    // JAMDEBUG
+//    printf("Xmean:%e YMean:%e XRMS:%e YRMS:%e\n",
+//          gridData->fBeamMeanX, gridData->fBeamMeanY,
+//          gridData->fBeamRMSX, gridData->fBeamRMSY);
+//    //ENDDEBUG
     gridDisplay->hBeamMeanXY->Fill(gridData->fBeamMeanX, gridData->fBeamMeanY);
     gridDisplay->hBeamRMSX->Fill(gridData->fBeamRMSX);
     gridDisplay->hBeamRMSY->Fill(gridData->fBeamRMSY);
