@@ -125,41 +125,44 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
     while (pdata - psubevt->GetDataField() < lwords)
     {
 
-      Int_t dma_padd = (*pdata & 0xff00) >> 8;
-      Int_t cnt(0);
-      while (cnt < dma_padd)
+      if ((*pdata & 0xffff0000) == 0xadd00000)    // we have padding word (initial data of sfp, skip it:)
       {
-        if ((*pdata & 0xffff0000) != 0xadd00000)
+        Int_t dma_padd = (*pdata & 0xff00) >> 8;
+        Int_t cnt(0);
+        while (cnt < dma_padd)
         {
-          //TGo4Log::Error("Wrong padding format - missing add0");
-          GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: Wrong padding format - missing add0");
-          // avoid that we run second step on invalid raw event!
-          //return kFALSE;
+          if ((*pdata & 0xffff0000) != 0xadd00000)
+          {
+            //TGo4Log::Error("Wrong padding format - missing add0");
+            GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: Wrong padding format - missing add0");
+            // avoid that we run second step on invalid raw event!
+            //return kFALSE;
+          }
+          if (((*pdata & 0xff00) >> 8) != dma_padd)
+          {
+            //TGo4Log::Error("Wrong padding format - 8-15 bits are not the same");
+            GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: Wrong padding format - 8-15 bits are not the same");
+            // avoid that we run second step on invalid raw event!
+            //return kFALSE;
+          }
+          if ((*pdata & 0xff) != cnt)
+          {
+            //TGo4Log::Error("Wrong padding format - 0-7 bits not as expected");
+            GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: Wrong padding format - 0-7 bits not as expected");
+            // avoid that we run second step on invalid raw event!
+            //return kFALSE;
+          }
+          pdata++;
+          cnt++;
         }
-        if (((*pdata & 0xff00) >> 8) != dma_padd)
-        {
-          //TGo4Log::Error("Wrong padding format - 8-15 bits are not the same");
-          GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: Wrong padding format - 8-15 bits are not the same");
-          // avoid that we run second step on invalid raw event!
-          //return kFALSE;
-        }
-        if ((*pdata & 0xff) != cnt)
-        {
-          //TGo4Log::Error("Wrong padding format - 0-7 bits not as expected");
-          GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: Wrong padding format - 0-7 bits not as expected");
-          // avoid that we run second step on invalid raw event!
-          //return kFALSE;
-        }
-        pdata++;
-        cnt++;
+        continue;
       }
-
-      if ((*pdata & 0xff) != 0x34)
+      else if ((*pdata & 0xff) != 0x34)    // regular channel data
       {
         //GO4_STOP_ANALYSIS_MESSAGE("Wrong optic format - 0x34 are expected0-7 bits not as expected");
         //TGo4Log::Error("Wrong optic format 0x%x - 0x34 are expected0-7 bits not as expected", (*pdata & 0xff));
-        GO4_SKIP_EVENT_MESSAGE(
-            "**** TQFWRawProc: Wrong optic format 0x%x - 0x34 are expected0-7 bits not as expected", (*pdata & 0xff));
+        GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: Wrong optic format 0x%x - 0x34 are expected0-7 bits not as expected",
+            (*pdata & 0xff));
         // avoid that we run second step on invalid raw event!
         //return kFALSE;
       }
