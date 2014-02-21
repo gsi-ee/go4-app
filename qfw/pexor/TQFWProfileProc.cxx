@@ -228,7 +228,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           {
             fParam->AddYOffsetMeasurement(g, l, y, trace[t]);
           }
-          loopDisplay->hBeamYSliceOffs->SetBinContent(1 + y, 1 + t, fParam->fQFWOffsetsX[g][l][y]);    // show current averaged offset
+          loopDisplay->hBeamYSliceOffs->SetBinContent(1 + y, 1 + t, fParam->fQFWOffsetsY[g][l][y]);    // show current averaged offset
           Double_t value = fParam->GetCorrectedYValue(g, l, y, trace[t]);
           sum += value;
           loopDisplay->hBeamYSlice->SetBinContent(1 + y, 1 + t, value);
