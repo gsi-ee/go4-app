@@ -36,11 +36,16 @@ void TQFWRawParam::InitBoardMapping()
 
          
          
-   fBoardID[0][0]=10; // test case: one qfw board at sfp0
-   fBoardID[1][0]=11; // test case: one qfw board at sfp1
-   fBoardID[2][0]=12; // test case: one qfw board at sfp2
+//   fBoardID[0][0]=10; // test case: one qfw board at sfp0
+//   fBoardID[1][0]=11; // test case: one qfw board at sfp1
+//   fBoardID[2][0]=12; // test case: one qfw board at sfp2
 
-   fSelectTriggerEvents=kTRUE;
+   // x2 setup:
+   fBoardID[0][0]=11; // test case: one qfw board at sfp0
+     fBoardID[1][0]=10; // test case: one qfw board at sfp1
+
+
+   fSelectTriggerEvents=kFALSE;
    fTriggerHighThreshold=5000000; // selects measurement event if integral of trigger channel counts is above
    fTriggerLowThreshold=4000000; // selects background events if integral of trigger channel counts is below
    fTriggerBoardID=12;

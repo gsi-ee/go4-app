@@ -72,10 +72,21 @@ void TQFWProfileParam::InitProfileMapping()
   for (int wire = 0; wire < PEXOR_QFW_WIRES; ++wire)
   {
 
+//    fGridBoardID_X[grid][wire] = 10;
+//    fGridBoardID_Y[grid][wire] = 11;
+//    fGridChannel_X[grid][wire] = wire;
+//    fGridChannel_Y[grid][wire] = wire;
+//
+
+    // this is setup at x2:
     fGridBoardID_X[grid][wire] = 10;
-    fGridBoardID_Y[grid][wire] = 11;
-    fGridChannel_X[grid][wire] = wire;
-    fGridChannel_Y[grid][wire] = wire;
+       fGridBoardID_Y[grid][wire] = 10;
+   //    fGridChannel_X[grid][wire] = wire;
+   //    fGridChannel_Y[grid][wire] = 31-wire;
+       fGridChannel_X[grid][wire] = wire+16;
+       fGridChannel_Y[grid][wire] = wire;
+// end setup x2
+
 
   }
   // only 31 wire grid at HIT beamtime, disable last channel:
@@ -99,12 +110,18 @@ void TQFWProfileParam::InitProfileMapping()
 // use "faraday cup" object to handle segmented capacitor plates
   fNumCups = 1;
    // [grid index] = unique grid id
-  fCupDeviceID[0]=66;
-  fCupBoardID[0][0] = 12;
-  fCupChannel[0][0] = 0;
-  fCupBoardID[0][1] = 12;
-  fCupChannel[0][1] = 1;
+//  fCupDeviceID[0]=66;
+//  fCupBoardID[0][0] = 12;
+//  fCupChannel[0][0] = 0;
+//  fCupBoardID[0][1] = 12;
+//  fCupChannel[0][1] = 1;
 
+
+  fCupDeviceID[0]=66;
+  fCupBoardID[0][0] = 11;
+  fCupChannel[0][0] = 0;
+  fCupBoardID[0][1] = 11;
+  fCupChannel[0][1] = 1;
 
   
   //         [grid index][wire] = board  ;  [grid index][wire] = channel
