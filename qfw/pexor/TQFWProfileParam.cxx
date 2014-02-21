@@ -90,9 +90,9 @@ void TQFWProfileParam::InitProfileMapping()
 
   }
   // only 31 wire grid at HIT beamtime, disable last channel:
-  fGridChannel_X[grid][31] = -1;
-  fGridChannel_Y[grid][31] = -1;
-  
+//  fGridChannel_X[grid][31] = -1;
+//  fGridChannel_Y[grid][31] = -1;
+//
   // grid index 1 is mapped cup scalers, x direction only
   //  grid = 1;
 //  fGridDeviceID[grid] = 55;
