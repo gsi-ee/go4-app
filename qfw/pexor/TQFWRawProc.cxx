@@ -34,7 +34,7 @@ TQFWRawProc::TQFWRawProc(const char* name) :
   SetMakeWithAutosave(kTRUE);
 //// init user analysis objects:
 
-  fPar = dynamic_cast<TQFWRawParam*>(MakeParameter("QFWRawParam", "TQFWRawParam", "set_QfwPar.C"));
+  fPar = dynamic_cast<TQFWRawParam*>(MakeParameter("QFWRawParam", "TQFWRawParam", "set_QFWRawParam.C"));
   if (fPar)
     fPar->SetConfigBoards();
 

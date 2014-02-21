@@ -32,7 +32,7 @@ TQFWProfileProc::TQFWProfileProc(const char* name) :
   SetMakeWithAutosave(kTRUE);
   //// init user analysis objects:
 
-  fParam = dynamic_cast<TQFWProfileParam*>(MakeParameter("QFWProfileParam", "TQFWProfileParam", "set_QfwProfilePar.C"));
+  fParam = dynamic_cast<TQFWProfileParam*>(MakeParameter("QFWProfileParam", "TQFWProfileParam", "set_QFWProfileParam.C"));
   if (fParam)
     fParam->SetEventConfig();
 
