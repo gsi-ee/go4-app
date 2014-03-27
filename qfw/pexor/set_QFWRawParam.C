@@ -1,4 +1,4 @@
-// written by macro saveparam.C at Fri Feb 21 16:08:17 2014
+// written by macro saveparam.C at Thu Mar 27 12:22:33 2014
 void set_QFWRawParam()
 {
 #ifndef __GO4ANAMACRO__
@@ -12,15 +12,18 @@ void set_QFWRawParam()
       return;
    }
 
-   TGo4Log::Info("Set parameter QFWRawParam as saved at Fri Feb 21 16:08:18 2014");
+   TGo4Log::Info("Set parameter QFWRawParam as saved at Thu Mar 27 12:22:33 2014");
 
-//   param0->fBoardID[0][0] = 11;
+// uncomment lines below to override comiled/stored defaults:
+
+// mapping of qfw frontend boards to gosip optical connections [sfpid][devid]
+//   param0->fBoardID[0][0] = 10;
 //   param0->fBoardID[0][1] = -1;
 //   param0->fBoardID[0][2] = -1;
-//   param0->fBoardID[1][0] = 10;
+//   param0->fBoardID[1][0] = 11;
 //   param0->fBoardID[1][1] = -1;
 //   param0->fBoardID[1][2] = -1;
-//   param0->fBoardID[2][0] = -1;
+//   param0->fBoardID[2][0] = 12;
 //   param0->fBoardID[2][1] = -1;
 //   param0->fBoardID[2][2] = -1;
 //   param0->fBoardID[3][0] = -1;
