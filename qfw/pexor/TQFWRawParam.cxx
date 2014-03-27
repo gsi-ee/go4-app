@@ -36,13 +36,15 @@ void TQFWRawParam::InitBoardMapping()
 
          
          
-//   fBoardID[0][0]=10; // test case: one qfw board at sfp0
-//   fBoardID[1][0]=11; // test case: one qfw board at sfp1
-//   fBoardID[2][0]=12; // test case: one qfw board at sfp2
+
+
+   fBoardID[0][0]=10; // test case: one qfw board at sfp0
+   fBoardID[1][0]=11; // test case: one qfw board at sfp1
+   fBoardID[2][0]=12; // test case: one qfw board at sfp2
 
    // x2 setup:
-   fBoardID[0][0]=11; // test case: one qfw board at sfp0
-     fBoardID[1][0]=10; // test case: one qfw board at sfp1
+//   fBoardID[0][0]=11; // test case: one qfw board at sfp0
+//     fBoardID[1][0]=10; // test case: one qfw board at sfp1
 
 
    fSelectTriggerEvents=kFALSE;

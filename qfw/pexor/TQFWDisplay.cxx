@@ -42,59 +42,138 @@ void TQFWDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
   }
 }
 
-
 TString TQFWDisplay::GetSetupString(UChar_t qfwsetup)
 {
   /* evaluate measurement setup*/
-   TString setup;
-   switch(qfwsetup)
-   {
-      case 0:
-         setup.Form("(-) [ 2.5pF & 0.25pC]");
+  TString setup;
+  switch (qfwsetup)
+  {
+    case 0:
+      setup.Form("(-) [ 2.5pF & 0.25pC]");
       break;
 
-      case 1:
-         setup.Form("(-) [25.0pF & 2.50pC]");
+    case 1:
+      setup.Form("(-) [25.0pF & 2.50pC]");
       break;
 
-      case 2:
-         setup.Form("(+) [ 2.5pF & 0.25pC]");
+    case 2:
+      setup.Form("(+) [ 2.5pF & 0.25pC]");
       break;
 
-      case 3:
-         setup.Form("(+) [25.0pF & 2.50pC]");
+    case 3:
+      setup.Form("(+) [25.0pF & 2.50pC]");
       break;
 
-      case 0x10:
-         setup.Form("1000uA (-) [ 2.5pF & 0.25pC]");
+    case 0x10:
+      setup.Form("1000uA (-) [ 2.5pF & 0.25pC]");
       break;
 
-      case 0x11:
-         setup.Form("1000uA (-) [25.0pF & 2.50pC]");
+    case 0x11:
+      setup.Form("1000uA (-) [25.0pF & 2.50pC]");
       break;
 
-      case 0x12:
-         setup.Form("1000uA (+) [ 2.5pF & 0.25pC]");
+    case 0x12:
+      setup.Form("1000uA (+) [ 2.5pF & 0.25pC]");
       break;
 
-      case 0x13:
-         setup.Form("1000uA (+) [25.0pF & 2.50pC]");
-         break;
+    case 0x13:
+      setup.Form("1000uA (+) [25.0pF & 2.50pC]");
+      break;
 
-      default:
-        setup.Form("unknown setup %d", qfwsetup);
-        break;
-   };
+    default:
+      setup.Form("unknown setup %d", qfwsetup);
+      break;
+  };
 
-
-return setup;
+  return setup;
 }
+
+
+
+TH1* TQFWDisplay::MakeVarbinsTH1(Bool_t replace, char type, const char* fullname, const char* title,
+                           Int_t nbinsx, Double_t* xbins ,
+                           const char* xtitle, const char* ytitle)
+{
+  //fbObjMade = kFALSE;
+   TString foldername, histoname;
+
+   if ((fullname==0) || (strlen(fullname)==0)) {
+      TGo4Log::Error("Histogram name not specified, can be a hard error");
+      return 0;
+   }
+   const char* separ = strrchr(fullname, '/');
+   if (separ!=0) {
+      histoname = separ + 1;
+      foldername.Append(fullname, separ - fullname);
+   } else
+      histoname = fullname;
+
+   int itype = 0;
+   const char* sclass = "TH1I";
+   switch (type) {
+      case 'I': case 'i': itype = 0; sclass = "TH1I"; break;
+      case 'F': case 'f': itype = 1; sclass = "TH1F"; break;
+      case 'D': case 'd': itype = 2; sclass = "TH1D"; break;
+      case 'S': case 's': itype = 3; sclass = "TH1S"; break;
+      case 'C': case 'c': itype = 4; sclass = "TH1C"; break;
+      default: TGo4Log::Error("There is no histogram type: %c, use I instead", type); break;
+   }
+
+   TH1* oldh = GetHistogram(fullname);
+   if (oldh!=0) {
+      if (oldh->InheritsFrom(sclass) && !replace) {
+         if (title) oldh->SetTitle(title);
+         if (xtitle) oldh->GetXaxis()->SetTitle(xtitle);
+         if (ytitle) oldh->GetYaxis()->SetTitle(ytitle);
+         return oldh;
+      }
+
+      if (oldh->InheritsFrom(sclass))
+         TGo4Log::Info("Rebuild existing histogram %s", fullname);
+      else
+         TGo4Log::Info("There is histogram %s with type %s other than specified %s, rebuild",
+                                 fullname, oldh->ClassName(), sclass);
+   }
+
+   TH1* newh = 0;
+
+   switch (itype) {
+      case 0: newh = new TH1I(histoname, title, nbinsx, xbins); break;
+      case 1: newh = new TH1F(histoname, title, nbinsx, xbins); break;
+      case 2: newh = new TH1D(histoname, title, nbinsx, xbins); break;
+      case 3: newh = new TH1S(histoname, title, nbinsx, xbins); break;
+      case 4: newh = new TH1C(histoname, title, nbinsx, xbins); break;
+   }
+
+   newh->SetTitle(title);
+
+   if (xtitle) newh->GetXaxis()->SetTitle(xtitle);
+   if (ytitle) newh->GetYaxis()->SetTitle(ytitle);
+
+   if (oldh) {
+      if ((oldh->GetDimension()==1) && !replace) newh->Add(oldh);
+      RemoveHistogram(fullname);
+   }
+
+   if (foldername.Length() > 0)
+      AddHistogram(newh, foldername.Data());
+   else
+      AddHistogram(newh);
+
+  // fbObjMade = kTRUE;
+
+   return newh;
+}
+
+
+
+
 
 
 ////////////////////////////////////////////////
 
 TQFWLoopDisplay::TQFWLoopDisplay(Int_t deviceid, Int_t loopid) :
-    TQFWDisplay(deviceid), fLoopId(loopid),fTimeSlices(0)
+    TQFWDisplay(deviceid), fLoopId(loopid), fTimeSlices(0)
 {
 }
 
@@ -108,19 +187,10 @@ void TQFWLoopDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
   fTimeSlices = timeslices;
 }
 
-
-
-
-
-
-
-
-
-
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 TQFWBoardLoopDisplay::TQFWBoardLoopDisplay(Int_t boardid, Int_t loopid) :
-    TQFWLoopDisplay(boardid, loopid), hQFWRaw(0),hQFWRawTrace(0)
+    TQFWLoopDisplay(boardid, loopid), hQFWRaw(0), hQFWRawTrace(0)
 {
   //TString loopname.Form("Board%02d/Loop%02d_", boardid, loopid);
   //InitDisplay(PEXOR_QFWSLICES);
@@ -129,7 +199,7 @@ TQFWBoardLoopDisplay::TQFWBoardLoopDisplay(Int_t boardid, Int_t loopid) :
 
 void TQFWBoardLoopDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
 {
-  TQFWLoopDisplay::InitDisplay(timeslices,replace);
+  TQFWLoopDisplay::InitDisplay(timeslices, replace);
   if (replace)
     SetMakeWithAutosave(kFALSE);
   TGo4Log::Info("TQFWBoardLoopDisplay: Initializing histograms with %d timeslices for Board %d Loop %d", timeslices,
@@ -143,36 +213,36 @@ void TQFWBoardLoopDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
   Int_t brd = fDisplayId;
   Int_t loop = fLoopId;
 
-  obname.Form("Board%d/Loop%d/Brd%d-Loop%d-Sum", brd,loop, brd, loop);
+  obname.Form("Board%d/Loop%d/Brd%d-Loop%d-Sum", brd, loop, brd, loop);
   obtitle.Form("QFW Board %d Loop %d Accumulated", brd, loop);
   int qbins = timeslices * PEXOR_QFWCHANS;
   //std::cout <<"*****qbins"<<qbins << std::endl;
   hQFWRaw = MakeTH1('I', obname.Data(), obtitle.Data(), qbins, 0, qbins, "QFW scaler sums");
 
-  obname.Form("Board%d/Loop%d/Brd%d-Loop%d-Trace", brd,loop, brd, loop);
+  obname.Form("Board%d/Loop%d/Brd%d-Loop%d-Trace", brd, loop, brd, loop);
   obtitle.Form("QFW Board %d Loop %d Trace", brd, loop);
   hQFWRawTrace = MakeTH1('I', obname.Data(), obtitle.Data(), qbins, 0, qbins, "QFW scalers");
 
-if(replace)
-{   // avoid problems when taking it from autosave with different binning
-  for (int sl = 0; sl < timeslices; ++sl)
-  {
-    for (int ch = 0; ch < PEXOR_QFWCHANS; ++ch)
+  if (replace)
+  {    // avoid problems when taking it from autosave with different binning
+    for (int sl = 0; sl < timeslices; ++sl)
     {
-      binlabel.Form("SL%d-%d", sl, ch);
-      //cout <<"binlabel:"<<binlabel.Data() << endl;
-      hQFWRaw->GetXaxis()->SetBinLabel(1 + sl * PEXOR_QFWCHANS + ch, binlabel.Data());
-      hQFWRawTrace->GetXaxis()->SetBinLabel(1 + sl * PEXOR_QFWCHANS + ch, binlabel.Data());
+      for (int ch = 0; ch < PEXOR_QFWCHANS; ++ch)
+      {
+        binlabel.Form("SL%d-%d", sl, ch);
+        //cout <<"binlabel:"<<binlabel.Data() << endl;
+        hQFWRaw->GetXaxis()->SetBinLabel(1 + sl * PEXOR_QFWCHANS + ch, binlabel.Data());
+        hQFWRawTrace->GetXaxis()->SetBinLabel(1 + sl * PEXOR_QFWCHANS + ch, binlabel.Data());
+      }
     }
   }
-}
 }
 
 //***********************************************************
 
 TQFWBoardDisplay::TQFWBoardDisplay(Int_t boardid) :
-    TQFWDisplay(boardid) , hQFWRaw2D(0), hQFWRaw2DTrace(0),
-    hQFWRawErr(0),hQFWRawErrTr(0), pPexorQfws(0), pPexorQfwsTrace(0)
+    TQFWDisplay(boardid), hQFWRaw2D(0), hQFWRaw2DTrace(0), hQFWRawErr(0), hQFWRawErrTr(0), pPexorQfws(0),
+        pPexorQfwsTrace(0)
 {
   //TString boardname.Form("Board%02d", boardid);"Wrong optic format - 0x34 are expected0-7 bits not as expected"
   for (int i = 0; i < PEXOR_QFWLOOPS; ++i)
@@ -195,35 +265,34 @@ TQFWBoardLoopDisplay* TQFWBoardDisplay::GetLoopDisplay(Int_t index)
 
 void TQFWBoardDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
 {
-  unsigned numloops=GetNumLoops();
+  unsigned numloops = GetNumLoops();
   
 //   std::cout <<"*************** TQFWBoardDisplay::InitDisplay with timeslices"<<timeslices << std::endl;
 //   std::cout <<"*************** TQFWBoardDisplay::InitDisplay finds numloops="<<numloops << std::endl;
   
   Int_t subtimes[numloops];
-  if(timeslices>0)
+  if (timeslices > 0)
+  {
+    TQFWDisplay::InitDisplay(timeslices, replace);    // handle initialization of subloops
+    for (unsigned subix = 0; subix < numloops; ++subix)
     {
-      TQFWDisplay::InitDisplay(timeslices, replace);    // handle initialization of subloops
-      for(unsigned subix=0; subix<numloops; ++subix)
-             {
-              subtimes[subix]=timeslices;
-             }
+      subtimes[subix] = timeslices;
     }
-    else
-    {
-      timeslices=0; // otherwise do not specify timeslice of subloops, but take values from them (see below)!
+  }
+  else
+  {
+    timeslices = 0;    // otherwise do not specify timeslice of subloops, but take values from them (see below)!
 
-       for(unsigned subix=0; subix<numloops; ++subix)
-       {
-         subtimes[subix]=GetSubDisplay(subix)->GetTimeSlices();
-         timeslices+=subtimes[subix];
+    for (unsigned subix = 0; subix < numloops; ++subix)
+    {
+      subtimes[subix] = GetSubDisplay(subix)->GetTimeSlices();
+      timeslices += subtimes[subix];
 //          std::cout <<"*************** TQFWBoardDisplay::InitDisplay add "<< subix<<". timeslice"<< subtimes[subix] << std::endl;
-     
-       }
-    numloops=1; // we sum up all timeslices, so need only factor 1 below!   
-//      std::cout <<"*************** TQFWBoardDisplay::InitDisplay uses true sum timeslices"<<timeslices << std::endl;
-    }
 
+    }
+    numloops = 1;    // we sum up all timeslices, so need only factor 1 below!
+//      std::cout <<"*************** TQFWBoardDisplay::InitDisplay uses true sum timeslices"<<timeslices << std::endl;
+  }
 
   TString obname;
   TString obtitle;
@@ -238,14 +307,13 @@ void TQFWBoardDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
   hQFWRaw2DTrace = MakeTH2('I', Form("Board%d/Brd%d-2D-Trace", brd, brd), Form("QFW Board %d trace for all loops", brd),
       numloops * timeslices, 0, numloops * timeslices, PEXOR_QFWCHANS, 0, PEXOR_QFWCHANS, "loop", "ch");
 
-
-if(replace)
-  {   // avoid problems when taking it from autosave with different binning
-  // set axis description:
-  numloops=GetNumLoops();
-  int loopoffset=0;
-  TString binlabel;
-  for (unsigned loop = 0; loop < numloops; ++loop)
+  if (replace)
+  {    // avoid problems when taking it from autosave with different binning
+    // set axis description:
+    numloops = GetNumLoops();
+    int loopoffset = 0;
+    TString binlabel;
+    for (unsigned loop = 0; loop < numloops; ++loop)
     {
       for (int t = 0; t < subtimes[loop]; ++t)
       {
@@ -253,13 +321,11 @@ if(replace)
         binlabel.Form("L%d-T%d", loop, t);
         //cout <<"binlabel:"<<binlabel.Data() << endl;
         hQFWRaw2D->GetXaxis()->SetBinLabel(1 + loopoffset + t, binlabel.Data());
-        hQFWRaw2DTrace->GetXaxis()->SetBinLabel(1 + loopoffset +t , binlabel.Data());
+        hQFWRaw2DTrace->GetXaxis()->SetBinLabel(1 + loopoffset + t, binlabel.Data());
       }
-      loopoffset+=subtimes[loop];
+      loopoffset += subtimes[loop];
     }
   }
-
-
 
 //
 
@@ -315,10 +381,11 @@ if(replace)
 //***********************************************************
 
 TQFWGridLoopDisplay::TQFWGridLoopDisplay(Int_t gridid, Int_t loopid) :
-  TQFWLoopDisplay(gridid, loopid),hBeamXSlice(0), hBeamYSlice(0),
-  hBeamXSliceOffs(0), hBeamYSliceOffs(0), hBeamAccXSlice(0), hBeamAccYSlice(0), hBeamMeanCountsX(0),
-  hBeamMeanCountsY(0), hBeamRMSCountsX(0), hBeamRMSCountsY(0),
-  cBeamXSliceCond(0), cBeamYSliceCond(0), fGridData(0)
+    TQFWLoopDisplay(gridid, loopid), hBeamXSlice(0), hBeamYSlice(0), hBeamXSliceOffs(0), hBeamYSliceOffs(0),
+        hBeamAccXSlice(0), hBeamAccYSlice(0), hBeamLoopX(0), hBeamLoopY(0), hBeamAccLoopX(0), hBeamAccLoopY(0),
+        hPosLoopX(0), hPosLoopY(0), hPosAccLoopX(0), hPosAccLoopY(0),
+        hBeamMeanCountsX(0), hBeamMeanCountsY(0), hBeamRMSCountsX(0), hBeamRMSCountsY(0), cBeamXSliceCond(0),
+        cBeamYSliceCond(0), fGridData(0), fParam(0)
 {
 
 }
@@ -330,130 +397,213 @@ TQFWGridLoopDisplay::~TQFWGridLoopDisplay()
 }
 void TQFWGridLoopDisplay::SetGridEvent(TQFWProfileEvent* out)
 {
-  fGridData=out->GetGrid(GetDevId());
+  fGridData = out->GetGrid(GetDevId());
 
 }
 
 void TQFWGridLoopDisplay::InitDisplay(int timeslices, Bool_t replace)
 {
-TGo4Log::Info("TQFWGridLoopDisplay: Initializing histograms with %d timeslices for Grid %d Loop %d", timeslices,
-    GetDevId(), GetLoopId());
-TString obname;
-TString obtitle;
-if (replace)    //TGo4Analysis::Instance()->
-  SetMakeWithAutosave(kFALSE);
-TQFWLoopDisplay::InitDisplay(timeslices,replace);
+  TGo4Log::Info("TQFWGridLoopDisplay: Initializing histograms with %d timeslices for Grid %d Loop %d", timeslices,
+      GetDevId(), GetLoopId());
+  TString obname;
+  TString obtitle;
+  if (replace)    //TGo4Analysis::Instance()->
+    SetMakeWithAutosave(kFALSE);
+  TQFWLoopDisplay::InitDisplay(timeslices, replace);
 
-Int_t grid = GetDevId();
-Int_t loop = GetLoopId();
-Int_t wiresX=PEXOR_QFW_WIRES;
-Int_t wiresY=PEXOR_QFW_WIRES;
-if(fGridData)
-{
-  // take real number of wires from event object
-    wiresX=fGridData->GetNumXWires();
-    wiresY=fGridData->GetNumYWires();
-}
+  Int_t grid = GetDevId();
+  Int_t loop = GetLoopId();
+  Int_t wiresX = PEXOR_QFW_WIRES;
+  Int_t wiresY = PEXOR_QFW_WIRES;
+  Int_t gix =-1;
+  if (fGridData)
+  {
+    // take real number of wires from event object
+    wiresX = fGridData->GetNumXWires();
+    wiresY = fGridData->GetNumYWires();
+  }
 
-/* xy beam display*/
-obname.Form("Beam/GridAccu");
-obtitle.Form("Beam grid current accumulate");
+// here evaluate visible range from parameter
+// note that first existing wire has index 0, last wire index (wiresX-1)
+// means maxX/maxY is always upper excluded boundary
+  Int_t minX = 0;
+  Int_t maxX = wiresX;
+  Int_t minY = 0;
+  Int_t maxY = wiresY;
+  if (fParam)
+  {
+    gix = fParam->FindGridIndex(grid);
+    if (gix >= 0)
+    {
+      //printf("GGGGGG Using index %d of grid uid %d in loop %d \n", gix, grid, loop);
 
-hBeamXSlice = MakeTH2('D', Form("Beam/Grid%2d/Loop%2d/Profile_X_Time_G%d_L%d", grid ,loop, grid, loop),
-    Form("X Profile vs Time slices Grid%2d Loop%2d", grid, loop), wiresX, 0, wiresX, timeslices, 0,
-    timeslices, "Wire", "Time Slice");
-hBeamYSlice = MakeTH2('D', Form("Beam/Grid%2d/Loop%2d/Profile_Y_Time_G%d_L%d", grid, loop,grid, loop),
-    Form("Y Profile vs Time slices Grid%2d Loop%2d", grid, loop), wiresY, 0, wiresY, timeslices, 0,
-    timeslices, "Wire", "Time Slice");
+      if (fParam->fGridMinWire_X[gix] >= 0)
+        minX = fParam->fGridMinWire_X[gix];
+      if (fParam->fGridMaxWire_X[gix] >= 0)
+        maxX = fParam->fGridMaxWire_X[gix];
+      if (maxX > wiresX)
+        maxX = wiresX;
+      if (minX > maxX)
+        minX = maxX;
 
-hBeamXSliceOffs = MakeTH2('D', Form("Beam/Grid%2d/Loop%2d/Profile_X_Time_Offset_G%d_L%d", grid,loop, grid, loop),
-    Form("X Profile vs Time slices average offset Grid%2d Loop%2d", grid, loop), wiresX, 0, wiresX,
-    timeslices, 0, timeslices, "Wire", "Time Slice");
-hBeamYSliceOffs = MakeTH2('D', Form("Beam/Grid%2d/Loop%2d/Profile_Y_Time_Offset_G%d_L%d", grid,loop, grid, loop),
-    Form("Y Profile vs Time slices average offset Grid%2d Loop%2d", grid, loop), wiresY, 0, wiresY,
-    timeslices, 0, timeslices, "Wire", "Time Slice");
+      if (fParam->fGridMinWire_Y[gix] >= 0)
+        minY = fParam->fGridMinWire_Y[gix];
+      if (fParam->fGridMaxWire_Y[gix] >= 0)
+        maxY = fParam->fGridMaxWire_Y[gix];
+      if (maxY > wiresY)
+        maxY = wiresY;
+      if (minY > maxY)
+        minY = maxY;
+    }
+  }
 
-hBeamAccXSlice = MakeTH2('D', Form("Beam/Grid%2d/Loop%2d/ProfileSum_X_Time_G%d_L%d", grid,loop, grid, loop),
-    Form("X Profile vs Time slices accum Grid%2d Loop%2d", grid, loop), wiresX, 0, wiresX, timeslices, 0,
-    timeslices, "Wire", "Time Slice");
-hBeamAccYSlice = MakeTH2('D', Form("Beam/Grid%2d/Loop%2d/ProfileSum_Y_Time_G%d_L%d", grid,loop, grid, loop),
-    Form("Y Profile vs Time slices accum Grid%2d Loop%2d", grid, loop), wiresY, 0, wiresY, timeslices, 0,
-    timeslices, "Wire", "Time Slice");
+  Int_t binsX = maxX - minX;
+  Int_t binsY = maxY - minY;
 
-/* mean count of beam profile part: */
+  /* xy beam display*/
+  obname.Form("Beam/GridAccu");
+  obtitle.Form("Beam grid current accumulate");
 
-cBeamXSliceCond = MakeWinCond(Form("Beam/Grid%2d/Loop%2d/XSliceCond_G%d_L%d", grid,loop, grid,loop), 0, wiresX, 0, timeslices,
-    hBeamXSlice->GetName());
-cBeamYSliceCond = MakeWinCond(Form("Beam/Grid%2d/Loop%2d/YSliceCond_G%d_L%d", grid,loop, grid,loop), 0, wiresY, 0, timeslices,
-    hBeamYSlice->GetName());
+  hBeamXSlice = MakeTH2('D', Form("Beam/Grid%2d/Loop%2d/Profile_X_Time_G%d_L%d", grid, loop, grid, loop),
+      Form("X Profile vs Time slices Grid%2d Loop%2d", grid, loop), binsX, minX, maxX, timeslices, 0, timeslices,
+      "Wire", "Time Slice");
+  hBeamYSlice = MakeTH2('D', Form("Beam/Grid%2d/Loop%2d/Profile_Y_Time_G%d_L%d", grid, loop, grid, loop),
+      Form("Y Profile vs Time slices Grid%2d Loop%2d", grid, loop), binsY, minY, maxY, timeslices, 0, timeslices,
+      "Wire", "Time Slice");
 
-hBeamMeanCountsX = MakeTH1('I', Form("Beam/Grid%2d/Loop%2d/Mean_Counts_X_G%d_L%d", grid,loop, grid,loop), Form("X Counts Mean Grid%2d Loop%2d", grid,loop),
-    1000, 0, 100, "Mean counts");
+  hBeamXSliceOffs = MakeTH2('D', Form("Beam/Grid%2d/Loop%2d/Profile_X_Time_Offset_G%d_L%d", grid, loop, grid, loop),
+      Form("X Profile vs Time slices average offset Grid%2d Loop%2d", grid, loop), binsX, minX, maxX, timeslices, 0,
+      timeslices, "Wire", "Time Slice");
+  hBeamYSliceOffs = MakeTH2('D', Form("Beam/Grid%2d/Loop%2d/Profile_Y_Time_Offset_G%d_L%d", grid, loop, grid, loop),
+      Form("Y Profile vs Time slices average offset Grid%2d Loop%2d", grid, loop), binsY, minY, maxY, timeslices, 0,
+      timeslices, "Wire", "Time Slice");
 
-hBeamMeanCountsY = MakeTH1('I', Form("Beam/Grid%2d/Loop%2d/Mean_Counts_Y_G%d_L%d", grid,loop, grid,loop), Form("Y Counts Mean Grid%2d Loop%2d", grid,loop),
-    1000, 0, 100, "Mean counts");
+  hBeamAccXSlice = MakeTH2('D', Form("Beam/Grid%2d/Loop%2d/ProfileSum_X_Time_G%d_L%d", grid, loop, grid, loop),
+      Form("X Profile vs Time slices accum Grid%2d Loop%2d", grid, loop), binsX, minX, maxX, timeslices, 0, timeslices,
+      "Wire", "Time Slice");
+  hBeamAccYSlice = MakeTH2('D', Form("Beam/Grid%2d/Loop%2d/ProfileSum_Y_Time_G%d_L%d", grid, loop, grid, loop),
+      Form("Y Profile vs Time slices accum Grid%2d Loop%2d", grid, loop), binsY, minY, maxY, timeslices, 0, timeslices,
+      "Wire", "Time Slice");
 
-hBeamRMSCountsX = MakeTH1('I', Form("Beam/Grid%2d/Loop%2d/RMS_Counts_X_G%d_L%d", grid,loop, grid,loop), Form("X Counts RMS Grid%2d Loop%2d", grid,loop),
-    1000, 0, 100, "RMS counts");
+  hBeamLoopX = MakeTH1('D', Form("Beam/Grid%2d/Loop%2d/Profile_X_G%d_L%d", grid, loop, grid, loop),
+      Form("X Profile Grid%2d Loop%2d", grid, loop), binsX, minX, maxX, "Wire");
 
-hBeamRMSCountsY = MakeTH1('I', Form("Beam/Grid%2d/Loop%2d/RMS_Counts_Y_G%d_L%d", grid,loop, grid,loop), Form("Y Counts RMS Grid%2d Loop%2d", grid,loop),
-    1000, 0, 100, "RMS counts");
+  hBeamLoopY = MakeTH1('D', Form("Beam/Grid%2d/Loop%2d/Profile_Y_G%d_L%d", grid, loop, grid, loop),
+      Form("Y Profile Grid%2d Loop%2d", grid, loop), binsY, minY, maxY, "Wire");
+
+  hBeamAccLoopX = MakeTH1('D', Form("Beam/Grid%2d/Loop%2d/ProfileSum_X_G%d_L%d", grid, loop, grid, loop),
+      Form("X Profile accumulated Grid%2d Loop%2d", grid, loop), binsX, minX, maxX, "Wire");
+  hBeamAccLoopY = MakeTH1('D', Form("Beam/Grid%2d/Loop%2d/ProfileSum_Y_G%d_L%d", grid, loop, grid, loop),
+      Form("Y Profile accumulated Grid%2d Loop%2d", grid, loop), binsY, minY, maxY, "Wire");
+
+
+  if (fParam && (gix >= 0))
+    {
+      // these only make sense with position map from parameter is there
+      Double_t xposition[PEXOR_QFW_WIRES];
+         for (Int_t ix = 0 , jx=minX; (ix < binsX) && (jx+1 <PEXOR_QFW_WIRES) ; ++ix, ++jx)
+         {
+           Double_t binwidth=fParam->fGridPosition_X[gix][jx+1] - fParam->fGridPosition_X[gix][jx];
+           if(ix==0) xposition[ix] = fParam->fGridPosition_X[gix][jx] - binwidth/2;
+           xposition[ix+1] = fParam->fGridPosition_X[gix][jx] + binwidth/2;
+           printf("XXXXXXXXX grid %d loop%d  index %d:lowedge:%f centre:%f upedge:%f \n",grid, loop, ix,xposition[ix], fParam->fGridPosition_X[gix][jx], xposition[ix+1]);
+         }
+
+      hPosLoopX = MakeVarbinsTH1(replace, 'I', Form("Beam/Grid%2d/Loop%2d/Position_X_G%d_L%d", grid,loop, grid, loop), Form("X Position Grid%2d Loop%2d", grid, loop),
+          binsX, xposition, "Position [mm]");
+
+      hPosAccLoopX = MakeVarbinsTH1(replace, 'I', Form("Beam/Grid%2d/Loop%2d/PositionSum_X_G%d_L%d", grid,loop, grid, loop), Form("X Position accumulated Grid%2d Loop%2d", grid, loop),
+              binsX, xposition, "Position [mm]");
+
+      Double_t yposition[PEXOR_QFW_WIRES];
+      for (Int_t ix = 0 , jx=minY; (ix < binsY)&& (jx+1 < PEXOR_QFW_WIRES) ; ++ix, ++jx)
+       {
+          Double_t binwidth=fParam->fGridPosition_Y[gix][jx+1] - fParam->fGridPosition_Y[gix][jx];
+           if(ix==0) yposition[ix] = fParam->fGridPosition_Y[gix][jx] - binwidth/2;
+           yposition[ix+1] = fParam->fGridPosition_Y[gix][jx] + binwidth/2;
+           printf("YYYYYYYY grid %d loop%d index %d:lowedge:%f centre:%f upedge:%f \n",grid, loop,ix,yposition[ix], fParam->fGridPosition_Y[gix][jx], yposition[ix+1]);
+       }
+
+
+     hPosLoopY = MakeVarbinsTH1(replace, 'I', Form("Beam/Grid%2d/Loop%2d/Position_Y_G%d_L%d", grid,loop, grid, loop), Form("Y Position Grid%2d Loop%2d", grid, loop),
+               binsY, yposition, "Position [mm]");
+
+     hPosAccLoopY = MakeVarbinsTH1(replace, 'I', Form("Beam/Grid%2d/Loop%2d/PositionSum_Y_G%d_L%d", grid,loop, grid, loop), Form("Y Position accumulated Grid%2d Loop%2d", grid, loop),
+                    binsY, yposition, "Position [mm]");
+
+
+    }
 
 
 
+
+  /* mean count of beam profile part: */
+
+  cBeamXSliceCond = MakeWinCond(Form("Beam/Grid%2d/Loop%2d/XSliceCond_G%d_L%d", grid, loop, grid, loop), minX, maxX, 0,
+      timeslices, hBeamXSlice->GetName());
+  cBeamYSliceCond = MakeWinCond(Form("Beam/Grid%2d/Loop%2d/YSliceCond_G%d_L%d", grid, loop, grid, loop), minY, maxY, 0,
+      timeslices, hBeamYSlice->GetName());
+
+  hBeamMeanCountsX = MakeTH1('I', Form("Beam/Grid%2d/Loop%2d/Mean_Counts_X_G%d_L%d", grid, loop, grid, loop),
+      Form("X Counts Mean Grid%2d Loop%2d", grid, loop), 1000, 0, 100, "Mean counts");
+
+  hBeamMeanCountsY = MakeTH1('I', Form("Beam/Grid%2d/Loop%2d/Mean_Counts_Y_G%d_L%d", grid, loop, grid, loop),
+      Form("Y Counts Mean Grid%2d Loop%2d", grid, loop), 1000, 0, 100, "Mean counts");
+
+  hBeamRMSCountsX = MakeTH1('I', Form("Beam/Grid%2d/Loop%2d/RMS_Counts_X_G%d_L%d", grid, loop, grid, loop),
+      Form("X Counts RMS Grid%2d Loop%2d", grid, loop), 1000, 0, 100, "RMS counts");
+
+  hBeamRMSCountsY = MakeTH1('I', Form("Beam/Grid%2d/Loop%2d/RMS_Counts_Y_G%d_L%d", grid, loop, grid, loop),
+      Form("Y Counts RMS Grid%2d Loop%2d", grid, loop), 1000, 0, 100, "RMS counts");
 
 }
 
 void TQFWGridLoopDisplay::AdjustDisplay(TQFWLoop* loopdata)
 {
   // check if we have different timeslices:
-  if(loopdata->fQfwLoopSize != GetTimeSlices())
+  if (loopdata->fQfwLoopSize != GetTimeSlices())
   {
-    InitDisplay(loopdata->fQfwLoopSize,kTRUE);
+    InitDisplay(loopdata->fQfwLoopSize, kTRUE);
   }
 // change histogram titels according setup:
-   Double_t mtime=loopdata->fQfwLoopTime * 20 / 1000; // measurement time in us
+  Double_t mtime = loopdata->fQfwLoopTime * 20 / 1000;    // measurement time in us
 
-   /* evaluate measurement setup*/
-   TString setup=GetSetupString(loopdata->fQfwSetup);
+  /* evaluate measurement setup*/
+  TString setup = GetSetupString(loopdata->fQfwSetup);
 
 // APPEND TIME RANGES:
-   TString mtitle;
-   mtitle.Form("%s dt=%.2E us", setup.Data(), mtime);
+  TString mtitle;
+  mtitle.Form("%s dt=%.2E us", setup.Data(), mtime);
 
 // clear trace histograms:
-      hBeamXSlice->Reset("");
-      hBeamYSlice->Reset("");
-      hBeamXSliceOffs->Reset("");
-      hBeamYSliceOffs->Reset("");
-      hBeamXSlice->SetTitle(mtitle.Data());
-      hBeamYSlice->SetTitle(mtitle.Data());
+
+  hBeamLoopX->Reset("");
+  hBeamLoopY->Reset("");
+  hPosLoopX->Reset("");
+  hPosLoopY->Reset("");
+
+
+  hBeamXSlice->Reset("");
+  hBeamYSlice->Reset("");
+  hBeamXSliceOffs->Reset("");
+  hBeamYSliceOffs->Reset("");
+  hBeamXSlice->SetTitle(mtitle.Data());
+  hBeamYSlice->SetTitle(mtitle.Data());
 }
-
-
-
-
-
-
-
-
-
-
-
 
 ///*********************************************
 
 TQFWGridDisplay::TQFWGridDisplay(Int_t gridid) :
-  TQFWDisplay(gridid),
-  hBeamX(0),hBeamY(0), hBeamAccX(0), hBeamAccY(0), pBeamProfiles(0), hBeamMeanXY(0), hBeamRMSX(0), hBeamRMSY(0),
-  pBeamRMS(0),fGridData(0)
+    TQFWDisplay(gridid), hBeamX(0), hBeamY(0), hBeamAccX(0), hBeamAccY(0), hPosX(0), hPosY(0), hPosAccX(0), hPosAccY(0),
+        pBeamProfiles(0), hBeamMeanXY(0), hBeamRMSX(0), hBeamRMSY(0), hPosMeanXY(0), hPosRMSX(0), hPosRMSY(0),
+        pBeamRMS(0), fGridData(0), fParam(0)
 {
 
-for (int i = 0; i < PEXOR_QFWLOOPS; ++i)
-{
-  AddLoopDisplay(new TQFWGridLoopDisplay(gridid, i));
-}
-InitDisplay(PEXOR_QFWSLICES);
+  for (int i = 0; i < PEXOR_QFWLOOPS; ++i)
+  {
+    AddLoopDisplay(new TQFWGridLoopDisplay(gridid, i));
+  }
+  InitDisplay(PEXOR_QFWSLICES);
 }
 
 //***********************************************************
@@ -467,131 +617,273 @@ TQFWGridLoopDisplay* TQFWGridDisplay::GetLoopDisplay(Int_t index)
   return (TQFWGridLoopDisplay*) GetSubDisplay(index);
 }
 
-
-
 void TQFWGridDisplay::SetGridEvent(TQFWProfileEvent* out)
 {
-  fGridData=out->GetGrid(GetDevId());
+  fGridData = out->GetGrid(GetDevId());
   for (unsigned i = 0; i < fLoops.size(); ++i)
-    {TQFWGridLoopDisplay* cuploop=dynamic_cast<TQFWGridLoopDisplay*>(fLoops[i]);
-      cuploop->SetGridEvent(out);
-    }
-
+  {
+    TQFWGridLoopDisplay* cuploop = dynamic_cast<TQFWGridLoopDisplay*>(fLoops[i]);
+    cuploop->SetGridEvent(out);
+  }
 
 }
 
+void TQFWGridDisplay::SetProfileParam(TQFWProfileParam* par)
+{
+  fParam = par;
+  for (unsigned i = 0; i < fLoops.size(); ++i)
+  {
+    TQFWGridLoopDisplay* loop = dynamic_cast<TQFWGridLoopDisplay*>(fLoops[i]);
+    loop->SetProfileParam(par);
+  }
+}
 
 void TQFWGridDisplay::InitDisplay(int timeslices, Bool_t replace)
 {
-TQFWDisplay::InitDisplay(timeslices, replace);    // handle initialization of subloops
-if (replace)
-  SetMakeWithAutosave(kFALSE);
-TString obname;
-TString obtitle;
-TString foldername;
-Int_t grid = GetDevId();
-Int_t wiresX=PEXOR_QFW_WIRES;
-Int_t wiresY=PEXOR_QFW_WIRES;
-if(fGridData)
-{
-  // take real number of wires from event object
-    wiresX=fGridData->GetNumXWires();
-    wiresY=fGridData->GetNumYWires();
-}
+  TQFWDisplay::InitDisplay(timeslices, replace);    // handle initialization of subloops
+  if (replace)
+    SetMakeWithAutosave(kFALSE);
+  TString obname;
+  TString obtitle;
+  TString foldername;
+  Int_t grid = GetDevId();
+  Int_t wiresX = PEXOR_QFW_WIRES;
+  Int_t wiresY = PEXOR_QFW_WIRES;
 
-/* xy beam display*/
-obname.Form("Beam/GridAccu");
-obtitle.Form("Beam grid current accumulate");
+  if (fGridData)
+  {
+    // take real number of wires from event object
+    wiresX = fGridData->GetNumXWires();
+    wiresY = fGridData->GetNumYWires();
+  }
 
-hBeamX = MakeTH1('D', Form("Beam/Grid%2d/Profile_X_G%d", grid, grid), Form("X Profile Grid%2d", grid), wiresX, 0,
-    wiresX, "Wire");
-hBeamY = MakeTH1('D', Form("Beam/Grid%2d/Profile_Y_G%d", grid, grid), Form("Y Profile Grid%2d", grid), wiresY, 0,
-    wiresY, "Wire");
+// here evaluate visible range from parameter
+// note that first existing wire has index 0, last wire index (wiresX-1)
+// means maxX/maxY is always upper excluded boundary
+  Int_t minX = 0;
+  Int_t maxX = wiresX;
+  Int_t minY = 0;
+  Int_t maxY = wiresY;
+  Int_t gix=-1;
+  if (fParam)
+  {
+    gix = fParam->FindGridIndex(grid);
+    if (gix >= 0)
+    {
+      //printf("GGGGGG Using index %d of grid uid%d \n", gix, grid);
+      if (fParam->fGridMinWire_X >= 0)
+        minX = fParam->fGridMinWire_X[gix];
+      if (fParam->fGridMaxWire_X[gix] >= 0)
+        maxX = fParam->fGridMaxWire_X[gix];
+      if (maxX > wiresX)
+        maxX = wiresX;
+      if (minX > maxX)
+        minX = maxX;
 
-hBeamAccX = MakeTH1('D', Form("Beam/Grid%2d/ProfileSum_X_G%d", grid, grid), Form("X Profile accumulated Grid%2d", grid),
-    wiresX, 0, wiresX, "Wire");
-hBeamAccY = MakeTH1('D', Form("Beam/Grid%2d/ProfileSum_Y_G%d", grid, grid), Form("Y Profile accumulated Grid%2d", grid),
-    wiresY, 0, wiresY, "Wire");
+      if (fParam->fGridMinWire_Y[gix] >= 0)
+        minY = fParam->fGridMinWire_Y[gix];
+      if (fParam->fGridMaxWire_Y[gix] >= 0)
+        maxY = fParam->fGridMaxWire_Y[gix];
+      if (maxY > wiresY)
+        maxY = wiresY;
+      if (minY > maxY)
+        minX = maxX;
+    }
+  }
 
-obname.Form("Beam Display Grid%2d", grid);
-pBeamProfiles = GetPicture(obname.Data());
-if (pBeamProfiles == 0)
-{
-  obtitle.Form("Overview beam projections Grid%2d", grid);
-  foldername.Form("Beam/Grid%2d", grid);
-  pBeamProfiles = new TGo4Picture(obname.Data(), obtitle.Data());
-  pBeamProfiles->SetDivision(2, 2);
-  pBeamProfiles->Pic(0, 0)->AddObject(hBeamX);
-  pBeamProfiles->Pic(0, 0)->SetFillAtt(3, 3001);
-  pBeamProfiles->Pic(0, 1)->AddObject(hBeamY);
-  pBeamProfiles->Pic(0, 1)->SetFillAtt(4, 3001);
-  pBeamProfiles->Pic(1, 0)->AddObject(hBeamAccX);
-  pBeamProfiles->Pic(1, 0)->SetFillAtt(3, 3001);
-  pBeamProfiles->Pic(1, 1)->AddObject(hBeamAccY);
-  pBeamProfiles->Pic(1, 1)->SetFillAtt(4, 3001);
-  AddPicture(pBeamProfiles, foldername.Data());
+  Int_t binsX = maxX - minX;
+  Int_t binsY = maxY - minY;
 
-}
+  /* xy beam display*/
+  obname.Form("Beam/GridAccu");
+  obtitle.Form("Beam grid current accumulate");
 
-hBeamMeanXY = MakeTH2('I', Form("Beam/Grid%2d/Meanpos_G%d", grid, grid),
-    Form("Beam Mean position scaler Grid%2d", grid), wiresX, 0, wiresX, wiresY, 0, wiresY, "X",
-    "Y");
+  hBeamX = MakeTH1('D', Form("Beam/Grid%2d/Profile_X_G%d", grid, grid), Form("X Profile Grid%2d", grid), binsX, minX,
+      maxX, "Wire");
+  hBeamY = MakeTH1('D', Form("Beam/Grid%2d/Profile_Y_G%d", grid, grid), Form("Y Profile Grid%2d", grid), binsY, minY,
+      maxY, "Wire");
 
-hBeamRMSX = MakeTH1('I', Form("Beam/Grid%2d/RMS_X_G%d", grid, grid), Form("X Profile RMS Grid%2d", grid),
-    10 * wiresX, 0, wiresX, "Wire spacings");
-
-hBeamRMSY = MakeTH1('I', Form("Beam/Grid%2d/RMS_Y_G%d", grid, grid), Form("Y Profile RMS Grid%2d", grid),
-    10 * wiresX, 0, wiresY, "Wire spacings");
-
-obname.Form("Beam RMS Grid%2d", grid);
-pBeamRMS = GetPicture(obname.Data());
-if (pBeamRMS == 0)
-{
-  obtitle.Form("Beam RMS distribution Grid%2d", grid);
-  foldername.Form("Beam/Grid%2d", grid);
-  pBeamRMS = new TGo4Picture(obname.Data(), obtitle.Data());
-  pBeamRMS->SetDivision(1, 2);
-  pBeamRMS->Pic(0, 0)->AddObject(hBeamRMSX);
-  pBeamRMS->Pic(0, 0)->SetFillAtt(3, 3002);
-  pBeamRMS->Pic(0, 1)->AddObject(hBeamRMSY);
-  pBeamRMS->Pic(0, 1)->SetFillAtt(4, 3002);
-  AddPicture(pBeamRMS, foldername.Data());
-
-}
+  hBeamAccX = MakeTH1('D', Form("Beam/Grid%2d/ProfileSum_X_G%d", grid, grid),
+      Form("X Profile accumulated Grid%2d", grid), binsX, minX, maxX, "Wire");
+  hBeamAccY = MakeTH1('D', Form("Beam/Grid%2d/ProfileSum_Y_G%d", grid, grid),
+      Form("Y Profile accumulated Grid%2d", grid), binsY, minY, maxY, "Wire");
 
 
 
-}
 
 
-void TQFWGridDisplay::AdjustDisplay(TQFWBoard* boarddata)
-{
 
-//   Bool_t dostop=kFALSE;
-   //Double_t mtime=boarddata->fQfwLoopTime * 20 / 1000; // measurement time in us
 
-   /* evaluate measurement setup*/
-  /* evaluate measurement setup*/
-    TString setup=GetSetupString(boarddata->fQfwSetup);
+  obname.Form("Beam Display Grid%2d", grid);
+  pBeamProfiles = GetPicture(obname.Data());
+  if (pBeamProfiles == 0)
+  {
+    obtitle.Form("Overview beam projections Grid%2d", grid);
+    foldername.Form("Beam/Grid%2d", grid);
+    pBeamProfiles = new TGo4Picture(obname.Data(), obtitle.Data());
+    pBeamProfiles->SetDivision(2, 2);
+    pBeamProfiles->Pic(0, 0)->AddObject(hBeamX);
+    pBeamProfiles->Pic(0, 0)->SetFillAtt(3, 3001);
+    pBeamProfiles->Pic(0, 1)->AddObject(hBeamY);
+    pBeamProfiles->Pic(0, 1)->SetFillAtt(4, 3001);
+    pBeamProfiles->Pic(1, 0)->AddObject(hBeamAccX);
+    pBeamProfiles->Pic(1, 0)->SetFillAtt(3, 3001);
+    pBeamProfiles->Pic(1, 1)->AddObject(hBeamAccY);
+    pBeamProfiles->Pic(1, 1)->SetFillAtt(4, 3001);
+    AddPicture(pBeamProfiles, foldername.Data());
 
- // APPEND TIME RANGES:
-   TString mtitle;
-   mtitle.Form("%s", setup.Data());
-      hBeamX->Reset("");
-      hBeamY->Reset("");
-      hBeamX->SetTitle(mtitle.Data());
-      hBeamY->SetTitle(mtitle.Data());
+  }
 
-//      mtitle.Form("%s dt=%.2E us", setup.Data(),premtime);
+  hBeamMeanXY = MakeTH2('I', Form("Beam/Grid%2d/Meanpos_G%d", grid, grid),
+      Form("Beam Mean position scaler Grid%2d", grid), binsX, minX, maxX, binsY, minY, maxY, "X", "Y");
+
+  hBeamRMSX = MakeTH1('I', Form("Beam/Grid%2d/RMS_X_G%d", grid, grid), Form("X Profile RMS Grid%2d", grid), 10 * binsX,
+      minX, maxX, "Wire spacings");
+
+  hBeamRMSY = MakeTH1('I', Form("Beam/Grid%2d/RMS_Y_G%d", grid, grid), Form("Y Profile RMS Grid%2d", grid), 10 * binsY,
+      minY, maxY, "Wire spacings");
+
+  obname.Form("Beam RMS Grid%2d", grid);
+  pBeamRMS = GetPicture(obname.Data());
+  if (pBeamRMS == 0)
+  {
+    obtitle.Form("Beam RMS distribution Grid%2d", grid);
+    foldername.Form("Beam/Grid%2d", grid);
+    pBeamRMS = new TGo4Picture(obname.Data(), obtitle.Data());
+    pBeamRMS->SetDivision(1, 2);
+    pBeamRMS->Pic(0, 0)->AddObject(hBeamRMSX);
+    pBeamRMS->Pic(0, 0)->SetFillAtt(3, 3002);
+    pBeamRMS->Pic(0, 1)->AddObject(hBeamRMSY);
+    pBeamRMS->Pic(0, 1)->SetFillAtt(4, 3002);
+    AddPicture(pBeamRMS, foldername.Data());
+
+  }
+
+
+  // position histogram with non equidistant bins
+  if (fParam && gix >= 0)
+  {
+    // these only make sense with position map from parameter is there
+    Double_t xposition[PEXOR_QFW_WIRES];
+    for (Int_t ix = 0 , jx=minX; (ix < binsX) && (jx+1 <PEXOR_QFW_WIRES) ; ++ix, ++jx)
+    {
+      Double_t binwidth=fParam->fGridPosition_X[gix][jx+1] - fParam->fGridPosition_X[gix][jx];
+      if(ix==0) xposition[ix] = fParam->fGridPosition_X[gix][jx] - binwidth/2;
+      xposition[ix+1] = fParam->fGridPosition_X[gix][jx] + binwidth/2;
+      printf("XXXXXXXXX grid %d index %d:lowedge:%f centre:%f upedge:%f \n",grid, ix,xposition[ix], fParam->fGridPosition_X[gix][jx], xposition[ix+1]);
+    }
+    hPosX = MakeVarbinsTH1(replace, 'I', Form("Beam/Grid%2d/Position_X_G%d", grid, grid), Form("X Position Grid%2d", grid),
+        binsX, xposition, "Position [mm]");
+
+    hPosAccX = MakeVarbinsTH1(replace, 'I', Form("Beam/Grid%2d/PositionSum_X_G%d", grid, grid), Form("X Position accumulated Grid%2d", grid),
+           binsX, xposition, "Position [mm]");
+
+
+    Double_t yposition[PEXOR_QFW_WIRES];
+    for (Int_t ix = 0 , jx=minY; (ix < binsY)&& (jx+1 < PEXOR_QFW_WIRES) ; ++ix, ++jx)
+   {
+      Double_t binwidth=fParam->fGridPosition_Y[gix][jx+1] - fParam->fGridPosition_Y[gix][jx];
+       if(ix==0) yposition[ix] = fParam->fGridPosition_Y[gix][jx] - binwidth/2;
+       yposition[ix+1] = fParam->fGridPosition_Y[gix][jx] + binwidth/2;
+       printf("YYYYYYYY grid %d index %d:lowedge:%f centre:%f upedge:%f \n",grid,ix,yposition[ix], fParam->fGridPosition_Y[gix][jx], yposition[ix+1]);
+   }
+   hPosY = MakeVarbinsTH1(replace, 'I', Form("Beam/Grid%2d/Position_Y_G%d", grid, grid), Form("Y Position Grid%2d", grid),
+           binsY, yposition, "Position [mm]");
+   hPosAccY = MakeVarbinsTH1(replace, 'I', Form("Beam/Grid%2d/PositionSum_Y_G%d", grid, grid), Form("Y Position accumulated Grid%2d", grid),
+            binsY, yposition, "Position [mm]");
+
+
+
+   obname.Form("Beam Position Display Grid%2d", grid);
+     pPosProfiles = GetPicture(obname.Data());
+     if (pPosProfiles == 0)
+     {
+       obtitle.Form("Overview beam position projections Grid%2d", grid);
+       foldername.Form("Beam/Grid%2d", grid);
+       pPosProfiles = new TGo4Picture(obname.Data(), obtitle.Data());
+       pPosProfiles->SetDivision(2, 2);
+       pPosProfiles->Pic(0, 0)->AddObject(hPosX);
+       pPosProfiles->Pic(0, 0)->SetFillAtt(3, 3001);
+       pPosProfiles->Pic(0, 1)->AddObject(hPosY);
+       pPosProfiles->Pic(0, 1)->SetFillAtt(4, 3001);
+       pPosProfiles->Pic(1, 0)->AddObject(hPosAccX);
+       pPosProfiles->Pic(1, 0)->SetFillAtt(3, 3001);
+       pPosProfiles->Pic(1, 1)->AddObject(hPosAccY);
+       pPosProfiles->Pic(1, 1)->SetFillAtt(4, 3001);
+       AddPicture(pPosProfiles, foldername.Data());
+
+     }
+
+
+
+   // TODO: put 2d mean positions hBeamMeanXY#
+     Double_t minX_mm=fParam->fGridPosition_X[gix][minX];
+     Double_t maxX_mm=fParam->fGridPosition_X[gix][maxX];
+     Double_t minY_mm=fParam->fGridPosition_Y[gix][minY];
+     Double_t maxY_mm=fParam->fGridPosition_Y[gix][maxY];
+
+     hPosMeanXY = MakeTH2('I', Form("Beam/Grid%2d/MeanposMM_G%d", grid, grid),
+          Form("Beam Mean position [mm] Grid%2d", grid), 10*binsX, minX_mm, maxX_mm, 10*binsY, minY_mm, maxY_mm, "X [mm]", "Y[mm]");
+
+     hPosRMSX = MakeTH1('I', Form("Beam/Grid%2d/RMSMM_X_G%d", grid, grid), Form("X Profile RMS [mm] Grid%2d", grid), 10 * binsX,
+          minX_mm, maxX_mm, "mm");
+
+     hPosRMSY = MakeTH1('I', Form("Beam/Grid%2d/RMSMM_Y_G%d", grid, grid), Form("Y Profile RMS [mm]Grid%2d", grid), 10 * binsY,
+          minY_mm, maxY_mm, "mm");
+
+
+     obname.Form("Beam RMS [mm] Grid%2d", grid);
+      pPosRMS = GetPicture(obname.Data());
+      if (pPosRMS == 0)
+      {
+        obtitle.Form("Beam RMS distribution [mm] Grid%2d", grid);
+        foldername.Form("Beam/Grid%2d", grid);
+        pPosRMS = new TGo4Picture(obname.Data(), obtitle.Data());
+        pPosRMS->SetDivision(1, 2);
+        pPosRMS->Pic(0, 0)->AddObject(hPosRMSX);
+        pPosRMS->Pic(0, 0)->SetFillAtt(3, 3002);
+        pPosRMS->Pic(0, 1)->AddObject(hPosRMSY);
+        pPosRMS->Pic(0, 1)->SetFillAtt(4, 3002);
+        AddPicture(pPosRMS, foldername.Data());
 
       }
 
 
 
+  } // if (fParam && gix >= 0)
 
-TQFWCupLoopDisplay::TQFWCupLoopDisplay(Int_t cupid, Int_t loopid):
-    TQFWLoopDisplay(cupid, loopid),fCupData(0), hCupSlice(0), hCupSliceOffs(0), hAccCupSlice(0)
+}
 
+void TQFWGridDisplay::AdjustDisplay(TQFWBoard* boarddata)
+{
+
+//   Bool_t dostop=kFALSE;
+  //Double_t mtime=boarddata->fQfwLoopTime * 20 / 1000; // measurement time in us
+
+  /* evaluate measurement setup*/
+  /* evaluate measurement setup*/
+  TString setup = GetSetupString(boarddata->fQfwSetup);
+
+  // APPEND TIME RANGES:
+  TString mtitle;
+  mtitle.Form("%s", setup.Data());
+  hBeamX->Reset("");
+  hBeamY->Reset("");
+  hBeamX->SetTitle(mtitle.Data());
+  hBeamY->SetTitle(mtitle.Data());
+  hPosX->Reset("");
+  hPosY->Reset("");
+  hPosX->SetTitle(mtitle.Data());
+  hPosY->SetTitle(mtitle.Data());
+
+
+//      mtitle.Form("%s dt=%.2E us", setup.Data(),premtime);
+
+}
+
+TQFWCupLoopDisplay::TQFWCupLoopDisplay(Int_t cupid, Int_t loopid) :
+    TQFWLoopDisplay(cupid, loopid), fCupData(0), hCupSlice(0), hCupSliceOffs(0), hAccCupSlice(0), hCupLoopScaler(0),
+        hCupAccLoopScaler(0)
 
 {
 
@@ -602,7 +894,7 @@ TQFWCupLoopDisplay::~TQFWCupLoopDisplay()
 }
 void TQFWCupLoopDisplay::SetCupEvent(TQFWProfileEvent* out)
 {
-  fCupData=out->GetCup(GetDevId());
+  fCupData = out->GetCup(GetDevId());
 
 }
 
@@ -614,43 +906,47 @@ void TQFWCupLoopDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
       GetDevId(), GetLoopId());
   if (replace)    //TGo4Analysis::Instance()->
     SetMakeWithAutosave(kFALSE);
-  TQFWLoopDisplay::InitDisplay(timeslices,replace); // important to remember new timeslices!
+  TQFWLoopDisplay::InitDisplay(timeslices, replace);    // important to remember new timeslices!
   Int_t cup = GetDevId();
   Int_t loop = GetLoopId();
-  Int_t segments=PEXOR_QFW_CUPSEGMENTS;
-  if(fCupData)
+  Int_t segments = PEXOR_QFW_CUPSEGMENTS;
+  if (fCupData)
   {
     // take real number of segments from event object
-      segments=fCupData->GetNumSegments();
+    segments = fCupData->GetNumSegments();
   }
 
+  hCupSlice = MakeTH2('D', Form("Beam/Cup%2d/Loop%2d/Scaler_Time_C%d_L%d", cup, loop, cup, loop),
+      Form("Segment Scaler vs Time slices Cup%2d Loop%2d", cup, loop), segments, 0, segments, timeslices, 0, timeslices,
+      "Segment", "Time Slice");
 
+  /* helper histogram showing current offset*/
+  hCupSliceOffs = MakeTH2('D', Form("Beam/Cup%2d/Loop%2d/Scaler_Time_Offset_C%d_L%d", cup, loop, cup, loop),
+      Form("Segment Scaler vs Time slices average offset Cup%2d Loop%2d", cup, loop), segments, 0, segments, timeslices,
+      0, timeslices, "Segment", "Time Slice");
 
-  hCupSlice= MakeTH2('D', Form("Beam/Cup%2d/Loop%2d/Scaler_Time_C%d_L%d", cup,loop, cup, loop),
-      Form("Segment Scaler vs Time slices Cup%2d Loop%2d", cup, loop), segments, 0, segments, timeslices, 0,
-            timeslices, "Segment", "Time Slice");
+  hAccCupSlice = MakeTH2('D', Form("Beam/Cup%2d/Loop%2d/ScalerSum_Time_C%d_L%d", cup, loop, cup, loop),
+      Form("Segment Scaler vs Time slices accum Cup%2d Loop%2d", cup, loop), segments, 0, segments, timeslices, 0,
+      timeslices, "Segment", "Time Slice");
 
-       /* helper histogram showing current offset*/
-  hCupSliceOffs= MakeTH2('D', Form("Beam/Cup%2d/Loop%2d/Scaler_Time_Offset_C%d_L%d", cup,loop, cup, loop),
-       Form("Segment Scaler vs Time slices average offset Cup%2d Loop%2d", cup, loop), segments, 0, segments,
-            timeslices, 0, timeslices, "Segment", "Time Slice");
+  hCupLoopScaler = MakeTH1('I', Form("Beam/Cup%2d/Loop%2d/Scaler_C%d_L%d", cup, loop, cup, loop),
+      Form("Segment scaler Cup%2d Loop%2d", cup, loop), segments, 0, segments, "Segment");
 
-  hAccCupSlice=MakeTH2('D', Form("Beam/Cup%2d/Loop%2d/ScalerSum_Time_C%d_L%d", cup,loop, cup, loop),
-            Form("Segment Scaler vs Time slices accum Cup%2d Loop%2d", cup, loop), segments, 0, segments, timeslices, 0,
-            timeslices, "Segment", "Time Slice");
+  hCupAccLoopScaler = MakeTH1('I', Form("Beam/Cup%2d/Loop%2d/ScalerSum_C%d_L%d", cup, loop, cup, loop),
+      Form("Segment scaler accumulated Cup%2d Loop%2d", cup, loop), segments, 0, segments, "Segment");
 
-  hSegmentRatio.clear(); // we do not delete histograms here, is handled by framework when recreating
+  hSegmentRatio.clear();    // we do not delete histograms here, is handled by framework when recreating
   hAccSegmentRatio.clear();
-  for(int seg=0; seg<segments;++seg)
-   {
-      hSegmentRatio.push_back(MakeTH1('D', Form("Beam/Cup%2d/Loop%2d/SegmentRatio_C%d_L%d_S%d", cup,loop, cup, loop, seg),
-          Form("Charge Ratio Cup%2d Loop%2d Segment %2d",cup,loop,seg),
-              500, 0, 1,  "Relative Charge"));
+  for (int seg = 0; seg < segments; ++seg)
+  {
+    hSegmentRatio.push_back(
+        MakeTH1('D', Form("Beam/Cup%2d/Loop%2d/SegmentRatio_C%d_L%d_S%d", cup, loop, cup, loop, seg),
+            Form("Charge Ratio Cup%2d Loop%2d Segment %2d", cup, loop, seg), 500, 0, 1, "Relative Charge"));
 
-      hAccSegmentRatio.push_back(MakeTH1('D', Form("Beam/Cup%2d/Loop%2d/SegmentRatioSum_C%d_L%d_S%d", cup,loop, cup, loop, seg),
-                Form("Charge Ratio Cup%2d Loop%2d Segment %2d Accumulated",cup,loop,seg),
-                    500, 0, 1,  "Relative Charge"));
-   }
+    hAccSegmentRatio.push_back(
+        MakeTH1('D', Form("Beam/Cup%2d/Loop%2d/SegmentRatioSum_C%d_L%d_S%d", cup, loop, cup, loop, seg),
+            Form("Charge Ratio Cup%2d Loop%2d Segment %2d Accumulated", cup, loop, seg), 500, 0, 1, "Relative Charge"));
+  }
 
 }
 
@@ -659,43 +955,39 @@ void TQFWCupLoopDisplay::AdjustDisplay(TQFWLoop* loopdata)
 
   // check if we have different timeslices:
 
-  if(loopdata->fQfwLoopSize != GetTimeSlices())
+  if (loopdata->fQfwLoopSize != GetTimeSlices())
   {
-    InitDisplay(loopdata->fQfwLoopSize,kTRUE);
+    InitDisplay(loopdata->fQfwLoopSize, kTRUE);
   }
-
-
 
 // change histogram titels according setup:
 
+  Double_t mtime = loopdata->fQfwLoopTime * 20 / 1000;    // measurement time in us
 
-   Double_t mtime=loopdata->fQfwLoopTime * 20 / 1000; // measurement time in us
+  /* evaluate measurement setup*/
+  TString setup = GetSetupString(loopdata->fQfwSetup);
 
-   /* evaluate measurement setup*/
-   TString setup=GetSetupString(loopdata->fQfwSetup);
-
-   // APPEND TIME RANGES:
-   TString mtitle;
-   mtitle.Form("%s dt=%.2E us", setup.Data(), mtime);
-
+  // APPEND TIME RANGES:
+  TString mtitle;
+  mtitle.Form("%s dt=%.2E us", setup.Data(), mtime);
 
 // clear trace histograms:
-      hCupSlice->Reset("");
-      hCupSliceOffs->Reset("");
-      hCupSlice->SetTitle(mtitle.Data());
-      for(unsigned seg=0; seg<hSegmentRatio.size();++seg)
-        {
-           hSegmentRatio[seg]->Reset("");
-        }
+  hCupSlice->Reset("");
+  hCupSliceOffs->Reset("");
+  hCupLoopScaler->Reset("");
 
+  hCupSlice->SetTitle(mtitle.Data());
+  for (unsigned seg = 0; seg < hSegmentRatio.size(); ++seg)
+  {
+    hSegmentRatio[seg]->Reset("");
+  }
 
 }
 
 /////////////////////////////////////////////////////////////////////////////7
 
-
-
-TQFWCupDisplay::TQFWCupDisplay(Int_t cupid): TQFWDisplay(cupid) ,hCupScaler(0), hCupAccScaler(0), fCupData(0)
+TQFWCupDisplay::TQFWCupDisplay(Int_t cupid) :
+    TQFWDisplay(cupid), hCupScaler(0), hCupAccScaler(0), fCupData(0)
 {
   for (unsigned i = 0; i < PEXOR_QFWLOOPS; ++i)
   {
@@ -709,12 +1001,12 @@ TQFWCupDisplay::~TQFWCupDisplay()
 }
 void TQFWCupDisplay::SetCupEvent(TQFWProfileEvent* out)
 {
-  fCupData=out->GetCup(GetDevId());
+  fCupData = out->GetCup(GetDevId());
   for (unsigned i = 0; i < fLoops.size(); ++i)
-   {TQFWCupLoopDisplay* cuploop=dynamic_cast<TQFWCupLoopDisplay*>(fLoops[i]);
-     cuploop->SetCupEvent(out);
-   }
-
+  {
+    TQFWCupLoopDisplay* cuploop = dynamic_cast<TQFWCupLoopDisplay*>(fLoops[i]);
+    cuploop->SetCupEvent(out);
+  }
 
 }
 TQFWCupLoopDisplay* TQFWCupDisplay::GetLoopDisplay(Int_t index)
@@ -727,52 +1019,37 @@ void TQFWCupDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
   TQFWDisplay::InitDisplay(timeslices, replace);
 // TODO: put some scaler histograms here
 
-//  TH1* hCupScaler;
-//   TH1* hCupAccScaler;
   Int_t cup = GetDevId();
-  Int_t segs=PEXOR_QFW_CUPSEGMENTS;
- if(fCupData)
+  Int_t segs = PEXOR_QFW_CUPSEGMENTS;
+  if (fCupData)
   {
     // take real number of segments from event object
-      segs=fCupData->GetNumSegments();
+    segs = fCupData->GetNumSegments();
   }
 
-  hCupScaler = MakeTH1('I', Form("Beam/Cup%2d/Scaler_C%d", cup, cup), Form("Segment scaler Cup%2d", cup), segs, 0,
-      segs, "Segment");
+  hCupScaler = MakeTH1('I', Form("Beam/Cup%2d/Scaler_C%d", cup, cup), Form("Segment scaler Cup%2d", cup), segs, 0, segs,
+      "Segment");
 
-  hCupAccScaler = MakeTH1('I', Form("Beam/Cup%2d/ScalerSum_C%d", cup, cup), Form("Segment scaler accumulated Cup%2d", cup), segs, 0,
-        segs, "Segment");
-
-
-
-
+  hCupAccScaler = MakeTH1('I', Form("Beam/Cup%2d/ScalerSum_C%d", cup, cup),
+      Form("Segment scaler accumulated Cup%2d", cup), segs, 0, segs, "Segment");
 
 }
-
-
 
 void TQFWCupDisplay::AdjustDisplay(TQFWBoard* boarddata)
 {
 
 //   Bool_t dostop=kFALSE;
-   //Double_t mtime=boarddata->fQfwLoopTime * 20 / 1000; // measurement time in us
+  //Double_t mtime=boarddata->fQfwLoopTime * 20 / 1000; // measurement time in us
 
-   /* evaluate measurement setup*/
-  TString setup=GetSetupString(boarddata->fQfwSetup);
- // APPEND TIME RANGES:
-   TString mtitle;
+  /* evaluate measurement setup*/
+  TString setup = GetSetupString(boarddata->fQfwSetup);
+  // APPEND TIME RANGES:
+  TString mtitle;
 //      mtitle.Form("%s dt=%.2E us", setup.Data(),mtime);
-   mtitle.Form("%s", setup.Data());
+  mtitle.Form("%s", setup.Data());
 
-      hCupScaler->Reset("");
-      hCupScaler->SetTitle(mtitle.Data());
+  hCupScaler->Reset("");
+  hCupScaler->SetTitle(mtitle.Data());
 
 }
-
-
-
-
-
-
-
 

@@ -77,6 +77,7 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
   for (unsigned i = 0; i < fGrids.size(); ++i)
   {
     fGrids[i]->SetGridEvent(fOutput);
+    fGrids[i]->SetProfileParam(fParam);
     fGrids[i]->InitDisplay(timeslices);
   }
   for (unsigned i = 0; i < fCups.size(); ++i)
@@ -110,8 +111,10 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 
   for (unsigned g = 0; g < fGrids.size(); ++g)
   {
-    TQFWGridDisplay* gridDisplay = fGrids[g];
-    Int_t gridid = gridDisplay->GetDevId();
+    // mind the different indices!
+    TQFWGridDisplay* gridDisplay = fGrids[g];  // g      =vector index of display component
+    Int_t gridid = gridDisplay->GetDevId();    // gridid =unique hardware id
+    Int_t gix=fParam->FindGridIndex(gridid);   // gix    =index in grid parameter array
     TQFWGrid* gridData = fOutput->GetGrid(gridid);
     TQFWBoard* boardData = 0;
     Int_t oldboardid = -1;
@@ -170,6 +173,9 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           sum += value;
           loopDisplay->hBeamXSlice->SetBinContent(1 + x, 1 + t, value);
 
+
+
+
           Double_t prev = loopDisplay->hBeamAccXSlice->GetBinContent(1 + x, 1 + t);
           loopDisplay->hBeamAccXSlice->SetBinContent(1 + x, 1 + t, prev + value);
 #ifdef QFW_STORECURRENTS
@@ -182,11 +188,24 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 //          //
         }    // trace t
 
+        loopDisplay->hBeamLoopX->Fill(x, sum);
+        loopDisplay->hBeamAccLoopX->Fill(x, sum);
         gridDisplay->hBeamX->Fill(x, sum);// we need Fill instead SetBinContent to evaluate statistics
         gridDisplay->hBeamAccX->Fill(x, sum);
-               // this one will not evaluate statistics! :
+                       // this one will not evaluate statistics! :
 //        gridDisplay->hBeamX->AddBinContent(1 + x, sum);
 //        gridDisplay->hBeamAccX->AddBinContent(1 + x, sum);
+
+        // here position calibrated histograms:
+        if (gix >= 0)
+        {
+          Double_t xpos = fParam->fGridPosition_X[gix][x];
+          loopDisplay->hPosLoopX->Fill(xpos, sum);
+          loopDisplay->hPosAccLoopX->Fill(xpos, sum);
+          gridDisplay->hPosX->Fill(xpos, sum);    // we need Fill instead SetBinContent to evaluate statistics
+          gridDisplay->hPosAccX->Fill(xpos, sum);
+        }
+
 
       }    // x wires
 
@@ -239,9 +258,24 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           loopDisplay->hBeamAccYSlice->SetBinContent(1 + y, 1 + t, prev + value);
 
         }    // trace t
-
+        loopDisplay->hBeamLoopY->Fill(y, sum);
+        loopDisplay->hBeamAccLoopY->Fill(y, sum);
         gridDisplay->hBeamY->Fill(y, sum); // we need Fill instead SetBinContent to evaluate statistics
         gridDisplay->hBeamAccY->Fill(y, sum);
+
+        // here position calibrated histograms:
+        if (gix >= 0)
+        {
+          Double_t ypos = fParam->fGridPosition_Y[gix][y];
+          loopDisplay->hPosLoopY->Fill(ypos, sum);
+          loopDisplay->hPosAccLoopY->Fill(ypos, sum);
+          gridDisplay->hPosY->Fill(ypos, sum);    // we need Fill instead SetBinContent to evaluate statistics
+          gridDisplay->hPosAccY->Fill(ypos, sum);
+        }
+
+
+
+
 
       }    // y wires
 
@@ -301,13 +335,15 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
     
 // put here mean value calculations and profiles:
 
+ // TODO: separate this profiles regarding different loops that can have different timeslices and measuerement ranges!
+
+
+
     gridData->fBeamMeanX = gridDisplay->hBeamX->GetMean();
-
     gridData->fBeamMeanY = gridDisplay->hBeamY->GetMean();
-
     gridData->fBeamRMSX = gridDisplay->hBeamX->GetRMS();
-
     gridData->fBeamRMSY = gridDisplay->hBeamY->GetRMS();
+// todo: do we really need this values in output event?
 
     // JAMDEBUG
 //    printf("Xmean:%e YMean:%e XRMS:%e YRMS:%e\n",
@@ -318,7 +354,17 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
     gridDisplay->hBeamRMSX->Fill(gridData->fBeamRMSX);
     gridDisplay->hBeamRMSY->Fill(gridData->fBeamRMSY);
 
+    Double_t posMeanX = gridDisplay->hPosX->GetMean();
+    Double_t posMeanY = gridDisplay->hPosY->GetMean();
+    Double_t posRMSX  = gridDisplay->hPosX->GetRMS();
+    Double_t posRMSY  = gridDisplay->hPosY->GetRMS();
 
+    gridDisplay->hPosMeanXY->Fill(posMeanX, posMeanY);
+    gridDisplay->hPosRMSX->Fill(posRMSX);
+    gridDisplay->hPosRMSY->Fill(posRMSY);
+
+// TODO: move above plots to each loop display.
+// maybe we keep overall plots here only if we account it with the current calibration!
 
   }    // grids
 

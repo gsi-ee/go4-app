@@ -39,7 +39,13 @@ class TQFWProfileParam : public TGo4Parameter {
       Int_t fGridBoardID_Y[PEXOR_QFW_GRIDS][PEXOR_QFW_WIRES]; // qfw board id for [grid,wireY]
       Int_t fGridChannel_X[PEXOR_QFW_GRIDS][PEXOR_QFW_WIRES];  // qfw channel on board for [grid,wireX]
       Int_t fGridChannel_Y[PEXOR_QFW_GRIDS][PEXOR_QFW_WIRES];  // qfw channel on board for [grid,wireY]
+      Int_t fGridMinWire_X[PEXOR_QFW_GRIDS]; // minimum valid X wire index for display
+      Int_t fGridMaxWire_X[PEXOR_QFW_GRIDS]; // maximum valid X wire index for display
+      Int_t fGridMinWire_Y[PEXOR_QFW_GRIDS]; // minimum valid Y wire index for display
+      Int_t fGridMaxWire_Y[PEXOR_QFW_GRIDS]; // maximum valid Y wire index for display
 
+      Double_t fGridPosition_X[PEXOR_QFW_GRIDS][PEXOR_QFW_WIRES]; // absolute position (mm) of [grid,wireX]
+      Double_t fGridPosition_Y[PEXOR_QFW_GRIDS][PEXOR_QFW_WIRES]; // absolute position (mm) of [grid,wirey]
 
       Double_t fQFWOffsetsX[PEXOR_QFW_GRIDS][PEXOR_QFWLOOPS][PEXOR_QFW_WIRES]; // average offset values (grid,loop,wire)
       Int_t fQFWOffsetXSums[PEXOR_QFW_GRIDS][PEXOR_QFWLOOPS][PEXOR_QFW_WIRES]; // accumulated offset values (grid,loop,wire)
@@ -94,12 +100,15 @@ class TQFWProfileParam : public TGo4Parameter {
 
   Bool_t CheckCupBoundaries(Int_t cup, Int_t loop, Int_t segment);
 
+  /* evaluate parameter index for grid of given unique id*/
+  Int_t FindGridIndex(Int_t gridUID);
+
 
    private:
 
 
 
-   ClassDef(TQFWProfileParam,1)
+   ClassDef(TQFWProfileParam,3)
 };
 
 #endif // TQFWProfileParam_H

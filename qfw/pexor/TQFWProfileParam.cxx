@@ -43,8 +43,14 @@ void TQFWProfileParam::InitProfileMapping()
       fGridBoardID_Y[grid][wire] = -1;
       fGridChannel_X[grid][wire] = -1;
       fGridChannel_Y[grid][wire] = -1;
+      fGridPosition_X[grid][wire] = wire;
+      fGridPosition_Y[grid][wire] = wire;
 
     }
+    fGridMinWire_X[grid] = -1;
+    fGridMaxWire_X[grid] = -1;
+    fGridMinWire_Y[grid] = -1;
+    fGridMaxWire_Y[grid] = -1;
   }
 
   fNumCups = 0;
@@ -69,28 +75,104 @@ void TQFWProfileParam::InitProfileMapping()
   // we assume 1:1 mapping of qfwboard channels to grid wires
   int grid = 0;
   fGridDeviceID[grid] = 42;
+
   for (int wire = 0; wire < PEXOR_QFW_WIRES; ++wire)
   {
 
-//    fGridBoardID_X[grid][wire] = 10;
-//    fGridBoardID_Y[grid][wire] = 11;
-//    fGridChannel_X[grid][wire] = wire;
-//    fGridChannel_Y[grid][wire] = wire;
+    fGridBoardID_X[grid][wire] = 10;
+    fGridBoardID_Y[grid][wire] = 11;
+    fGridChannel_X[grid][wire] = wire;
+    fGridChannel_Y[grid][wire] = wire;
 //
 
     // this is setup at x2:
-    fGridBoardID_X[grid][wire] = 10;
-       fGridBoardID_Y[grid][wire] = 10;
-   //    fGridChannel_X[grid][wire] = wire;
-   //    fGridChannel_Y[grid][wire] = 31-wire;
-       fGridChannel_X[grid][wire] = wire+16;
-       fGridChannel_Y[grid][wire] = wire;
+//    fGridBoardID_X[grid][wire] = 10;
+//       fGridBoardID_Y[grid][wire] = 10;
+//   //    fGridChannel_X[grid][wire] = wire;
+//   //    fGridChannel_Y[grid][wire] = 31-wire;
+//       fGridChannel_X[grid][wire] = wire+16;
+//       fGridChannel_Y[grid][wire] = wire;
 // end setup x2
 
 
   }
+  // control visible wire range for this grid by these parameters:
+  fGridMinWire_X[grid]=2; // if set to -1, use full range from data
+  fGridMaxWire_X[grid]=30; // if set to -1, use full range from data
+  fGridMinWire_Y[grid]=3; // if set to -1, use full range from data
+  fGridMaxWire_Y[grid]=30; // if set to -1, use full range from data
+
+  // initialize here SEM grid geometries:
+  fGridPosition_X[grid][0] = -45.0;
+  fGridPosition_X[grid][1] = -40.5;
+  fGridPosition_X[grid][2] = -36.0;
+  fGridPosition_X[grid][3] = -31.5;
+  fGridPosition_X[grid][4] = -27.0;
+  fGridPosition_X[grid][5] = -22.5;
+  fGridPosition_X[grid][6] = -19.5;
+  fGridPosition_X[grid][7] = -16.5;
+  fGridPosition_X[grid][8] = -13.5;
+  fGridPosition_X[grid][9] = -10.5;
+  fGridPosition_X[grid][10] = -7.5;
+  fGridPosition_X[grid][11] = -6.0;
+  fGridPosition_X[grid][12] = -4.5;
+  fGridPosition_X[grid][13] = -3.0;
+  fGridPosition_X[grid][14] = -1.5;
+  fGridPosition_X[grid][15] =  0.0;
+  fGridPosition_X[grid][16] =  1.5;
+  fGridPosition_X[grid][17] =  3.0;
+  fGridPosition_X[grid][18] =  4.5;
+  fGridPosition_X[grid][19] =  6.0;
+  fGridPosition_X[grid][20] =  7.5;
+  fGridPosition_X[grid][21] = 10.5;
+  fGridPosition_X[grid][22] = 13.5;
+  fGridPosition_X[grid][23] = 16.5;
+  fGridPosition_X[grid][24] = 19.5;
+  fGridPosition_X[grid][25] = 22.5;
+  fGridPosition_X[grid][26] = 27.0;
+  fGridPosition_X[grid][27] = 31.5;
+  fGridPosition_X[grid][28] = 36.0;
+  fGridPosition_X[grid][29] = 40.5;
+  fGridPosition_X[grid][30] = 45.0;
+  fGridPosition_X[grid][31] = 49.5;
+
+
+  fGridPosition_Y[grid][0] = -45.0;
+   fGridPosition_Y[grid][1] = -40.5;
+   fGridPosition_Y[grid][2] = -36.0;
+   fGridPosition_Y[grid][3] = -31.5;
+   fGridPosition_Y[grid][4] = -27.0;
+   fGridPosition_Y[grid][5] = -22.5;
+   fGridPosition_Y[grid][6] = -19.5;
+   fGridPosition_Y[grid][7] = -16.5;
+   fGridPosition_Y[grid][8] = -13.5;
+   fGridPosition_Y[grid][9] = -10.5;
+   fGridPosition_Y[grid][10] = -7.5;
+   fGridPosition_Y[grid][11] = -6.0;
+   fGridPosition_Y[grid][12] = -4.5;
+   fGridPosition_Y[grid][13] = -3.0;
+   fGridPosition_Y[grid][14] = -1.5;
+   fGridPosition_Y[grid][15] =  0.0;
+   fGridPosition_Y[grid][16] =  1.5;
+   fGridPosition_Y[grid][17] =  3.0;
+   fGridPosition_Y[grid][18] =  4.5;
+   fGridPosition_Y[grid][19] =  6.0;
+   fGridPosition_Y[grid][20] =  7.5;
+   fGridPosition_Y[grid][21] = 10.5;
+   fGridPosition_Y[grid][22] = 13.5;
+   fGridPosition_Y[grid][23] = 16.5;
+   fGridPosition_Y[grid][24] = 19.5;
+   fGridPosition_Y[grid][25] = 22.5;
+   fGridPosition_Y[grid][26] = 27.0;
+   fGridPosition_Y[grid][27] = 31.5;
+   fGridPosition_Y[grid][28] = 36.0;
+   fGridPosition_Y[grid][29] = 40.5;
+   fGridPosition_Y[grid][30] = 45.0;
+   fGridPosition_Y[grid][31] = 49.5;
+
+
   // only 31 wire grid at HIT beamtime, disable last channel:
-//  fGridChannel_X[grid][31] = -1;
+//  fGridChannel_Y[grid][31] = -1;
 //  fGridChannel_Y[grid][31] = -1;
 //
   // grid index 1 is mapped cup scalers, x direction only
@@ -110,18 +192,18 @@ void TQFWProfileParam::InitProfileMapping()
 // use "faraday cup" object to handle segmented capacitor plates
   fNumCups = 1;
    // [grid index] = unique grid id
-//  fCupDeviceID[0]=66;
-//  fCupBoardID[0][0] = 12;
-//  fCupChannel[0][0] = 0;
-//  fCupBoardID[0][1] = 12;
-//  fCupChannel[0][1] = 1;
-
-
   fCupDeviceID[0]=66;
-  fCupBoardID[0][0] = 11;
+  fCupBoardID[0][0] = 12;
   fCupChannel[0][0] = 0;
-  fCupBoardID[0][1] = 11;
+  fCupBoardID[0][1] = 12;
   fCupChannel[0][1] = 1;
+
+
+//  fCupDeviceID[0]=66;
+//  fCupBoardID[0][0] = 11;
+//  fCupChannel[0][0] = 0;
+//  fCupBoardID[0][1] = 11;
+//  fCupChannel[0][1] = 1;
 
   
   //         [grid index][wire] = board  ;  [grid index][wire] = channel
@@ -289,6 +371,17 @@ Bool_t TQFWProfileParam::CheckCupBoundaries(Int_t cup, Int_t loop, Int_t segment
   return kFALSE;
 }
 
+
+
+Int_t TQFWProfileParam::FindGridIndex(Int_t gridUID)
+{
+for(Int_t ix=0; ix<PEXOR_QFW_GRIDS;++ix)
+{
+  if(gridUID==fGridDeviceID[ix]) return ix;
+}
+return -1;
+}
+
 Bool_t TQFWProfileParam::UpdateFrom(TGo4Parameter *pp)
 {
   TQFWProfileParam* from = dynamic_cast<TQFWProfileParam*>(pp);
@@ -316,6 +409,10 @@ Bool_t TQFWProfileParam::UpdateFrom(TGo4Parameter *pp)
   for (int grid = 0; grid < PEXOR_QFW_GRIDS; ++grid)
   {
     fGridDeviceID[grid] = from->fGridDeviceID[grid];
+    fGridMaxWire_X[grid] = from->fGridMaxWire_X[grid];
+    fGridMinWire_X[grid] = from->fGridMinWire_X[grid];
+    fGridMaxWire_Y[grid] = from->fGridMaxWire_Y[grid];
+    fGridMinWire_Y[grid] = from->fGridMinWire_Y[grid];
     for (int wire = 0; wire < PEXOR_QFW_WIRES; ++wire)
     {
 
@@ -323,6 +420,9 @@ Bool_t TQFWProfileParam::UpdateFrom(TGo4Parameter *pp)
       fGridBoardID_Y[grid][wire] = from->fGridBoardID_Y[grid][wire];
       fGridChannel_X[grid][wire] = from->fGridChannel_X[grid][wire];
       fGridChannel_Y[grid][wire] = from->fGridChannel_Y[grid][wire];
+
+      fGridPosition_X[grid][wire] = from->fGridPosition_X[grid][wire];
+      fGridPosition_Y[grid][wire] = from->fGridPosition_Y[grid][wire];
 
     }
   }

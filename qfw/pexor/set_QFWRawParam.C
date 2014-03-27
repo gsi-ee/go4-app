@@ -14,18 +14,18 @@ void set_QFWRawParam()
 
    TGo4Log::Info("Set parameter QFWRawParam as saved at Fri Feb 21 16:08:18 2014");
 
-   param0->fBoardID[0][0] = 11;
-   param0->fBoardID[0][1] = -1;
-   param0->fBoardID[0][2] = -1;
-   param0->fBoardID[1][0] = 10;
-   param0->fBoardID[1][1] = -1;
-   param0->fBoardID[1][2] = -1;
-   param0->fBoardID[2][0] = -1;
-   param0->fBoardID[2][1] = -1;
-   param0->fBoardID[2][2] = -1;
-   param0->fBoardID[3][0] = -1;
-   param0->fBoardID[3][1] = -1;
-   param0->fBoardID[3][2] = -1;
+//   param0->fBoardID[0][0] = 11;
+//   param0->fBoardID[0][1] = -1;
+//   param0->fBoardID[0][2] = -1;
+//   param0->fBoardID[1][0] = 10;
+//   param0->fBoardID[1][1] = -1;
+//   param0->fBoardID[1][2] = -1;
+//   param0->fBoardID[2][0] = -1;
+//   param0->fBoardID[2][1] = -1;
+//   param0->fBoardID[2][2] = -1;
+//   param0->fBoardID[3][0] = -1;
+//   param0->fBoardID[3][1] = -1;
+//   param0->fBoardID[3][2] = -1;
    param0->fSimpleCompensation = kFALSE;
    param0->fSelectTriggerEvents = kFALSE;
    param0->fTriggerHighThreshold = 5000000;
