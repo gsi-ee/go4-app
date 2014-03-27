@@ -38,6 +38,57 @@ void TQFWLoop::Clear(Option_t *t)
   }
 }
 
+
+     Double_t TQFWLoop::GetCoulombPerCount()
+     {
+       Double_t CperCount=0;
+       switch (fQfwSetup)
+        {
+          case 0:
+            CperCount = -0.25 * 1e-12;
+            break;
+          case 1:
+            CperCount = -2.5 * 1e-12;
+            break;
+          case 2:
+            CperCount = 0.25 * 1e-12;
+            break;
+          case 3:
+            CperCount = 2.5 * 1e-12;
+            break;
+
+          case 0x10:
+            CperCount = -0.25 * 1e-12;
+            break;
+          case 0x11:
+            CperCount = -2.5 * 1e-12;
+            break;
+          case 0x12:
+            CperCount = 0.25 * 1e-12;
+            break;
+          case 0x13:
+            CperCount = 2.5 * 1e-12;
+            break;
+          default:
+            break;
+
+        };
+
+       return CperCount;
+     }
+
+     Double_t TQFWLoop::GetMicroSecsPerTimeSlice()
+     {
+        return (fQfwLoopTime * 20 / 1000);
+     }
+
+     TString TQFWLoop::GetSetupString()
+     {
+       return TQFWBoard::GetSetupString(fQfwSetup);
+     }
+
+
+
 //************************************************************************//
 
 TQFWBoard::TQFWBoard() :
@@ -74,6 +125,62 @@ void TQFWBoard::Clear(Option_t *t)
       fQfwErr[q]=0;
    }
 }
+
+TString TQFWBoard::GetSetupString()
+{
+  return TQFWBoard::GetSetupString(fQfwSetup);
+}
+
+
+TString TQFWBoard::GetSetupString(UChar_t qfwset)
+  {
+    /* evaluate measurement setup*/
+    TString setup;
+    switch (qfwset)
+    {
+      case 0:
+        setup.Form("(-) [ 2.5pF & 0.25pC]");
+        break;
+
+      case 1:
+        setup.Form("(-) [25.0pF & 2.50pC]");
+        break;
+
+      case 2:
+        setup.Form("(+) [ 2.5pF & 0.25pC]");
+        break;
+
+      case 3:
+        setup.Form("(+) [25.0pF & 2.50pC]");
+        break;
+
+      case 0x10:
+        setup.Form("1000uA (-) [ 2.5pF & 0.25pC]");
+        break;
+
+      case 0x11:
+        setup.Form("1000uA (-) [25.0pF & 2.50pC]");
+        break;
+
+      case 0x12:
+        setup.Form("1000uA (+) [ 2.5pF & 0.25pC]");
+        break;
+
+      case 0x13:
+        setup.Form("1000uA (+) [25.0pF & 2.50pC]");
+        break;
+
+      default:
+        setup.Form("unknown setup %d", qfwset);
+        break;
+    };
+
+    return setup;
+  }
+
+
+
+
 
 //***********************************************************
 

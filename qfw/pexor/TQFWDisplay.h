@@ -71,7 +71,7 @@ public:
   }
 
   /* Evaluate description of measurement range from qfw setup value*/
-  TString GetSetupString(UChar_t qfwsetup);
+//  TString GetSetupString(UChar_t qfwsetup);
 
 protected:
 
@@ -219,11 +219,11 @@ class TQFWGridLoopDisplay: public TQFWLoopDisplay
 public:
   TQFWGridLoopDisplay() :
       TQFWLoopDisplay(), hBeamXSlice(0), hBeamYSlice(0), hBeamXSliceOffs(0), hBeamYSliceOffs(0), hBeamAccXSlice(0),
-          hBeamAccYSlice(0), hBeamLoopX(0), hBeamLoopY(0), hBeamAccLoopX(0), hBeamAccLoopY(0),
-          hPosLoopX(0), hPosLoopY(0), hPosAccLoopX(0), hPosAccLoopY(0),
-          hBeamMeanCountsX(0),
-          hBeamMeanCountsY(0), hBeamRMSCountsX(0), hBeamRMSCountsY(0), cBeamXSliceCond(0), cBeamYSliceCond(0),
-          fGridData(0), fParam(0)
+          hBeamAccYSlice(0), hBeamLoopX(0), hBeamLoopY(0), hBeamAccLoopX(0), hBeamAccLoopY(0), hPosLoopX(0),
+          hPosLoopY(0), hPosAccLoopX(0), hPosAccLoopY(0), hPosQLoopX(0), hPosQLoopY(0), hPosQAccLoopX(0), hPosQAccLoopY(0),
+          hPosILoopX(0), hPosILoopY(0), hPosIAveLoopX(0), hPosIAveLoopY(0),
+          hBeamMeanCountsX(0), hBeamMeanCountsY(0), hBeamRMSCountsX(0),
+          hBeamRMSCountsY(0), cBeamXSliceCond(0), cBeamYSliceCond(0), fGridData(0), fParam(0)
   {
     ;
   }
@@ -241,10 +241,10 @@ public:
   void SetGridEvent(TQFWProfileEvent* out);
 
   /*  create link between this display and setup parameter*/
-   void SetProfileParam(TQFWProfileParam* par)
-   {
-     fParam=par;
-   }
+  void SetProfileParam(TQFWProfileParam* par)
+  {
+    fParam = par;
+  }
 
   /* xy projections of scalers mapped to grid*/
   TH2* hBeamXSlice;
@@ -265,16 +265,29 @@ public:
   TH1* hBeamAccLoopX;
   TH1* hBeamAccLoopY;
 
-  /* xy projections loopwise mapped to grid absolute positions (mm)*/
-   TH1* hPosLoopX;
-   TH1* hPosLoopY;
+  /* xy counts projections loopwise mapped to grid absolute positions (mm)*/
+  TH1* hPosLoopX;
+  TH1* hPosLoopY;
 
-   /* xy projections loopwise accumulatedmapped to grid absolute positions (mm)*/
-   TH1* hPosAccLoopX;
-   TH1* hPosAccLoopY;
+  /* xy counts projections loopwise accumulatedmapped to grid absolute positions (mm)*/
+  TH1* hPosAccLoopX;
+  TH1* hPosAccLoopY;
 
+  /* xy charge projections loopwise mapped to grid absolute positions (mm)*/
+  TH1* hPosQLoopX;
+  TH1* hPosQLoopY;
 
+  /* xy charge projections loopwise accumulatedmapped to grid absolute positions (mm)*/
+  TH1* hPosQAccLoopX;
+  TH1* hPosQAccLoopY;
 
+  /* xy current projections loopwise mapped to grid absolute positions (mm)*/
+  TH1* hPosILoopX;
+  TH1* hPosILoopY;
+
+  /* xy current projections loopwise accumulated average, mapped to grid absolute positions (mm)*/
+  TH1* hPosIAveLoopX;
+  TH1* hPosIAveLoopY;
 
   TH1* hBeamMeanCountsX;
   TH1* hBeamMeanCountsY;
@@ -303,12 +316,11 @@ class TQFWGridDisplay: public TQFWDisplay
 
 public:
   TQFWGridDisplay() :
-      TQFWDisplay(), hBeamX(0), hBeamY(0), hBeamAccX(0), hBeamAccY(0),
-      hPosX(0), hPosY(0), hPosAccX(0), hPosAccY(0),
-      pBeamProfiles(0),
-      hBeamMeanXY(0), hBeamRMSX(0), hBeamRMSY(0),
-      hPosMeanXY(0), hPosRMSX(0), hPosRMSY(0),
-      pBeamRMS(0), fGridData(0), fParam(0)
+      TQFWDisplay(), hBeamX(0), hBeamY(0), hBeamAccX(0), hBeamAccY(0), hPosX(0), hPosY(0), hPosAccX(0), hPosAccY(0),
+      hPosQ_X(0), hPosQ_Y(0),hPosQAcc_X(0),hPosQAcc_Y(0), hPosI_X(0), hPosI_Y(0), hPosIAve_X(0), hPosIAve_Y(0),
+      pBeamProfiles(0), pPosProfiles(0), pChargeProfiles(0), pCurrentProfiles(0),
+      hBeamMeanXY(0), hBeamRMSX(0), hBeamRMSY(0), hPosMeanXY(0), hPosRMSX(0), hPosRMSY(0),
+      pBeamRMS(0), pPosRMS(0), fGridData(0), fParam(0)
   {
     ;
   }
@@ -345,9 +357,27 @@ public:
   TH1* hPosAccX;
   TH1* hPosAccY;
 
+  /* xy charge projections mapped to grid absolute positions (mm)*/
+  TH1* hPosQ_X;
+  TH1* hPosQ_Y;
+
+  /* xy charge projections accumulated mapped to grid absolute positions (mm)*/
+  TH1* hPosQAcc_X;
+  TH1* hPosQAcc_Y;
+
+  /* xy current projections mapped to grid absolute positions (mm)*/
+  TH1* hPosI_X;
+  TH1* hPosI_Y;
+
+  /* xy current projections accumulated average, mapped to grid absolute positions (mm)*/
+  TH1* hPosIAve_X;
+  TH1* hPosIAve_Y;
 
   TGo4Picture *pBeamProfiles;
   TGo4Picture *pPosProfiles;
+  TGo4Picture *pChargeProfiles;
+  TGo4Picture *pCurrentProfiles;
+
 
   TH2* hBeamMeanXY;
   TH1* hBeamRMSX;
@@ -356,7 +386,6 @@ public:
   TH2* hPosMeanXY;
   TH1* hPosRMSX;
   TH1* hPosRMSY;
-
 
   TGo4Picture *pBeamRMS;
   TGo4Picture *pPosRMS;

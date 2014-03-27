@@ -103,7 +103,6 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
   TQFWRawEvent* QFWRawEvent = (TQFWRawEvent*) GetInputEvent();
   fOutput->SetValid(kFALSE);    // not store
 
-  // FillGrids(QFWRawEvent);
 
 
   TString mtitle;
@@ -162,6 +161,9 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           continue;    // skip non configured channels
         std::vector<Int_t> & trace = loopData->fQfwTrace[xchan];
         Double_t sum = 0;
+        Double_t CperCount=loopData->GetCoulombPerCount(); // unit C
+        Double_t TperLoop=1.0e-6 * loopData->GetMicroSecsPerTimeSlice()* loopData->fQfwLoopSize; // unit s
+
         for (unsigned t = 0; t < trace.size(); ++t)
         {
           if (fParam->fMeasureBackground)
@@ -204,6 +206,28 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           loopDisplay->hPosAccLoopX->Fill(xpos, sum);
           gridDisplay->hPosX->Fill(xpos, sum);    // we need Fill instead SetBinContent to evaluate statistics
           gridDisplay->hPosAccX->Fill(xpos, sum);
+
+
+          // calibrated displays for charge and current-
+
+          Double_t charge=CperCount*sum;
+          Double_t current=0;
+          if(TperLoop) current=charge/TperLoop; // unit A
+
+          loopDisplay->hPosQLoopX->Fill(xpos, charge);
+          loopDisplay->hPosQAccLoopX->Fill(xpos, charge);
+          gridDisplay->hPosQ_X->Fill(xpos, charge);
+          gridDisplay->hPosQAcc_X->Fill(xpos, charge);
+
+          loopDisplay->hPosILoopX->Fill(xpos, current);
+
+          // average current is bin content of accumulated charge by number of samples by loop time
+          Int_t numsamples=1+ gridDisplay->hPosQAcc_X->GetEntries()/gridDisplay->hPosQAcc_X->GetNbinsX(); // divide number of entries by bins to get number of charge measurements per wire
+          Int_t xposbin=gridDisplay->hPosQAcc_X->FindBin(xpos);
+          Double_t chargesum=gridDisplay->hPosQAcc_X->GetBinContent(xposbin);
+          Double_t currentaverage=chargesum/numsamples/TperLoop;
+          loopDisplay->hPosIAveLoopX->Fill(xpos, currentaverage);
+
         }
 
 
@@ -240,6 +264,8 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           continue;    // skip non configured channels
         std::vector<Int_t> & trace = loopData->fQfwTrace[ychan];
         Double_t sum = 0;
+        Double_t CperCount=loopData->GetCoulombPerCount(); // unit C
+        Double_t TperLoop=1.0e-6 * loopData->GetMicroSecsPerTimeSlice()* loopData->fQfwLoopSize; // unit s
         for (unsigned t = 0; t < trace.size(); ++t)
         {
 
@@ -271,11 +297,26 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           loopDisplay->hPosAccLoopY->Fill(ypos, sum);
           gridDisplay->hPosY->Fill(ypos, sum);    // we need Fill instead SetBinContent to evaluate statistics
           gridDisplay->hPosAccY->Fill(ypos, sum);
-        }
+
+          Double_t charge=CperCount*sum;
+          Double_t current=0;
+          if(TperLoop) current=charge/TperLoop; // unit A
+          loopDisplay->hPosQLoopY->Fill(ypos, charge);
+          loopDisplay->hPosQAccLoopY->Fill(ypos, charge);
+          gridDisplay->hPosQ_Y->Fill(ypos, charge);
+          gridDisplay->hPosQAcc_Y->Fill(ypos, charge);
+          loopDisplay->hPosILoopY->Fill(ypos, current);
+
+          // average current is bin content of accumulated charge by number of samples by loop time
+          Int_t numsamples=1+ gridDisplay->hPosQAcc_Y->GetEntries()/gridDisplay->hPosQAcc_Y->GetNbinsX(); // divide number of entries by bins to get number of charge measurements per wire
+          Int_t yposbin=gridDisplay->hPosQAcc_Y->FindBin(ypos);
+          Double_t chargesum=gridDisplay->hPosQAcc_Y->GetBinContent(yposbin);
+          Double_t currentaverage=chargesum/numsamples/TperLoop;
+          loopDisplay->hPosIAveLoopY->Fill(ypos, currentaverage);
 
 
 
-
+        } //gix
 
       }    // y wires
 

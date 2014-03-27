@@ -61,10 +61,17 @@ class TQFWLoop : public TGo4EventElement {
       void Clear(Option_t *t="");
 
 
+      /* Evaluate actual charge calibration from setup*/
+      Double_t GetCoulombPerCount();
+
+      /* Evaluate time per slice from setup*/
+      Double_t GetMicroSecsPerTimeSlice();
+
+      /* build setup string*/
+      TString GetSetupString();
+
       /* each vector contains trace of this loop for the channel*/
       std::vector<Int_t> fQfwTrace[PEXOR_QFWCHANS];
-
-      //UInt_t fQfw[PEXOR_QFWCHANS];
 
 
       /* the actual number of time slices used*/
@@ -120,6 +127,12 @@ class TQFWBoard : public TGo4CompositeEvent {
 
       /* setup number (only one byte used!)*/
         UChar_t fQfwSetup;
+
+       TString GetSetupString();
+
+
+      /* build setup string from value. generic helper used in loop and board until we rearrange data...*/
+      static TString GetSetupString(UChar_t setup);
 
 
    private:
