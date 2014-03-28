@@ -32,7 +32,8 @@ TQFWProfileProc::TQFWProfileProc(const char* name) :
   SetMakeWithAutosave(kTRUE);
   //// init user analysis objects:
 
-  fParam = dynamic_cast<TQFWProfileParam*>(MakeParameter("QFWProfileParam", "TQFWProfileParam", "set_QFWProfileParam.C"));
+  fParam =
+      dynamic_cast<TQFWProfileParam*>(MakeParameter("QFWProfileParam", "TQFWProfileParam", "set_QFWProfileParam.C"));
   if (fParam)
     fParam->SetEventConfig();
 
@@ -103,17 +104,15 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
   TQFWRawEvent* QFWRawEvent = (TQFWRawEvent*) GetInputEvent();
   fOutput->SetValid(kFALSE);    // not store
 
-
-
   TString mtitle;
   // first loop over grids:
 
   for (unsigned g = 0; g < fGrids.size(); ++g)
   {
     // mind the different indices!
-    TQFWGridDisplay* gridDisplay = fGrids[g];  // g      =vector index of display component
+    TQFWGridDisplay* gridDisplay = fGrids[g];    // g      =vector index of display component
     Int_t gridid = gridDisplay->GetDevId();    // gridid =unique hardware id
-    Int_t gix=fParam->FindGridIndex(gridid);   // gix    =index in grid parameter array
+    Int_t gix = fParam->FindGridIndex(gridid);    // gix    =index in grid parameter array
     TQFWGrid* gridData = fOutput->GetGrid(gridid);
     TQFWBoard* boardData = 0;
     Int_t oldboardid = -1;
@@ -161,8 +160,8 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           continue;    // skip non configured channels
         std::vector<Int_t> & trace = loopData->fQfwTrace[xchan];
         Double_t sum = 0;
-        Double_t CperCount=loopData->GetCoulombPerCount(); // unit C
-        Double_t TperLoop=1.0e-6 * loopData->GetMicroSecsPerTimeSlice()* loopData->fQfwLoopSize; // unit s
+        Double_t CperCount = loopData->GetCoulombPerCount();    // unit C
+        Double_t TperLoop = 1.0e-6 * loopData->GetMicroSecsPerTimeSlice() * loopData->fQfwLoopSize;    // unit s
 
         for (unsigned t = 0; t < trace.size(); ++t)
         {
@@ -174,9 +173,6 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           Double_t value = fParam->GetCorrectedXValue(g, l, x, trace[t]);
           sum += value;
           loopDisplay->hBeamXSlice->SetBinContent(1 + x, 1 + t, value);
-
-
-
 
           Double_t prev = loopDisplay->hBeamAccXSlice->GetBinContent(1 + x, 1 + t);
           loopDisplay->hBeamAccXSlice->SetBinContent(1 + x, 1 + t, prev + value);
@@ -192,9 +188,9 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 
         loopDisplay->hBeamLoopX->Fill(x, sum);
         loopDisplay->hBeamAccLoopX->Fill(x, sum);
-        gridDisplay->hBeamX->Fill(x, sum);// we need Fill instead SetBinContent to evaluate statistics
+        gridDisplay->hBeamX->Fill(x, sum);    // we need Fill instead SetBinContent to evaluate statistics
         gridDisplay->hBeamAccX->Fill(x, sum);
-                       // this one will not evaluate statistics! :
+        // this one will not evaluate statistics! :
 //        gridDisplay->hBeamX->AddBinContent(1 + x, sum);
 //        gridDisplay->hBeamAccX->AddBinContent(1 + x, sum);
 
@@ -207,29 +203,42 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           gridDisplay->hPosX->Fill(xpos, sum);    // we need Fill instead SetBinContent to evaluate statistics
           gridDisplay->hPosAccX->Fill(xpos, sum);
 
-
           // calibrated displays for charge and current-
 
-          Double_t charge=CperCount*sum;
-          Double_t current=0;
-          if(TperLoop) current=charge/TperLoop; // unit A
+          Double_t charge = CperCount * sum;
+          Double_t current = 0;
+          if (TperLoop)
+            current = charge / TperLoop;    // unit A
 
-          loopDisplay->hPosQLoopX->Fill(xpos, charge);
-          loopDisplay->hPosQAccLoopX->Fill(xpos, charge);
-          gridDisplay->hPosQ_X->Fill(xpos, charge);
-          gridDisplay->hPosQAcc_X->Fill(xpos, charge);
+          // NOTE: we should not fill underflow/overflow bins for charge,
+          // otherwise we are not able to calculate average current correctly!
+          // (need to know number charge samples in chargesum histogram)
+          // => we check for wire range here!
+          if (((fParam->fGridMinWire_X[gix] < 0) || (x >= fParam->fGridMinWire_X[gix]))
+              && ((fParam->fGridMaxWire_X[gix] < 0) || (x < fParam->fGridMaxWire_X[gix])))
+          {
+            // only fill these if inside wire range or if full wire range is selected
+            loopDisplay->hPosQLoopX->Fill(xpos, charge);
+            loopDisplay->hPosQAccLoopX->Fill(xpos, charge);
+            gridDisplay->hPosQ_X->Fill(xpos, charge);
+            gridDisplay->hPosQAcc_X->Fill(xpos, charge);
 
-          loopDisplay->hPosILoopX->Fill(xpos, current);
+            loopDisplay->hPosILoopX->Fill(xpos, current);
 
-          // average current is bin content of accumulated charge by number of samples by loop time
-          Int_t numsamples=1+ gridDisplay->hPosQAcc_X->GetEntries()/gridDisplay->hPosQAcc_X->GetNbinsX(); // divide number of entries by bins to get number of charge measurements per wire
-          Int_t xposbin=gridDisplay->hPosQAcc_X->FindBin(xpos);
-          Double_t chargesum=gridDisplay->hPosQAcc_X->GetBinContent(xposbin);
-          Double_t currentaverage=chargesum/numsamples/TperLoop;
-          loopDisplay->hPosIAveLoopX->Fill(xpos, currentaverage);
+            // average current is bin content of accumulated charge by number of samples by loop time
+            Int_t numsamples = 1
+                + (Int_t) (( loopDisplay->hPosQAccLoopX->GetEntries() -1) / loopDisplay->hPosQAccLoopX->GetNbinsX());    // divide number of entries by bins to get number of charge measurements per wire
+            Int_t xposbin = loopDisplay->hPosQAccLoopX->FindBin(xpos);
+//            printf("XXXXXXXX I- grid %d loop%d xpos:%f xposbin:%d, entries:%f bins:%d numsamples=%d \n", g, l, xpos, xposbin,
+//                loopDisplay->hPosQAccLoopX->GetEntries(), loopDisplay->hPosQAccLoopX->GetNbinsX(), numsamples);
+
+            Double_t chargesum = loopDisplay->hPosQAccLoopX->GetBinContent(xposbin);
+            Double_t currentaverage = chargesum / numsamples / TperLoop;
+//            printf("----- chargesum: %e C currentaverage:%e A current:%e \n", chargesum, currentaverage, current);
+            loopDisplay->hPosIAveLoopX->Fill(xpos, currentaverage);
+          }
 
         }
-
 
       }    // x wires
 
@@ -264,8 +273,8 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           continue;    // skip non configured channels
         std::vector<Int_t> & trace = loopData->fQfwTrace[ychan];
         Double_t sum = 0;
-        Double_t CperCount=loopData->GetCoulombPerCount(); // unit C
-        Double_t TperLoop=1.0e-6 * loopData->GetMicroSecsPerTimeSlice()* loopData->fQfwLoopSize; // unit s
+        Double_t CperCount = loopData->GetCoulombPerCount();    // unit C
+        Double_t TperLoop = 1.0e-6 * loopData->GetMicroSecsPerTimeSlice() * loopData->fQfwLoopSize;    // unit s
         for (unsigned t = 0; t < trace.size(); ++t)
         {
 
@@ -286,7 +295,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
         }    // trace t
         loopDisplay->hBeamLoopY->Fill(y, sum);
         loopDisplay->hBeamAccLoopY->Fill(y, sum);
-        gridDisplay->hBeamY->Fill(y, sum); // we need Fill instead SetBinContent to evaluate statistics
+        gridDisplay->hBeamY->Fill(y, sum);    // we need Fill instead SetBinContent to evaluate statistics
         gridDisplay->hBeamAccY->Fill(y, sum);
 
         // here position calibrated histograms:
@@ -298,30 +307,44 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           gridDisplay->hPosY->Fill(ypos, sum);    // we need Fill instead SetBinContent to evaluate statistics
           gridDisplay->hPosAccY->Fill(ypos, sum);
 
-          Double_t charge=CperCount*sum;
-          Double_t current=0;
-          if(TperLoop) current=charge/TperLoop; // unit A
-          loopDisplay->hPosQLoopY->Fill(ypos, charge);
-          loopDisplay->hPosQAccLoopY->Fill(ypos, charge);
-          gridDisplay->hPosQ_Y->Fill(ypos, charge);
-          gridDisplay->hPosQAcc_Y->Fill(ypos, charge);
-          loopDisplay->hPosILoopY->Fill(ypos, current);
+          Double_t charge = CperCount * sum;
+          Double_t current = 0;
+          if (TperLoop)
+            current = charge / TperLoop;    // unit A
 
-          // average current is bin content of accumulated charge by number of samples by loop time
-          Int_t numsamples=1+ gridDisplay->hPosQAcc_Y->GetEntries()/gridDisplay->hPosQAcc_Y->GetNbinsX(); // divide number of entries by bins to get number of charge measurements per wire
-          Int_t yposbin=gridDisplay->hPosQAcc_Y->FindBin(ypos);
-          Double_t chargesum=gridDisplay->hPosQAcc_Y->GetBinContent(yposbin);
-          Double_t currentaverage=chargesum/numsamples/TperLoop;
-          loopDisplay->hPosIAveLoopY->Fill(ypos, currentaverage);
+          // NOTE: we should not fill underflow/overflow bins for charge,
+          // otherwise we are not able to calculate average current correctly!
+          // (need to know number charge samples in chargesum histogram)
+          // => we check for wire range here!
+          if (((fParam->fGridMinWire_Y[gix] < 0) || (y >= fParam->fGridMinWire_Y[gix]))
+              && ((fParam->fGridMaxWire_Y[gix] < 0) || (y < fParam->fGridMaxWire_Y[gix])))
+          {
 
+            loopDisplay->hPosQLoopY->Fill(ypos, charge);
+            loopDisplay->hPosQAccLoopY->Fill(ypos, charge);
+            gridDisplay->hPosQ_Y->Fill(ypos, charge);
+            gridDisplay->hPosQAcc_Y->Fill(ypos, charge);
+            loopDisplay->hPosILoopY->Fill(ypos, current);
 
+            // average current is bin content of accumulated charge by number of samples by loop time
+            Int_t numsamples = 1
+                + (Int_t) ((loopDisplay->hPosQAccLoopY->GetEntries()-1) / loopDisplay->hPosQAccLoopY->GetNbinsX());    // divide number of entries by bins to get number of charge measurements per wire
+            Int_t yposbin = loopDisplay->hPosQAccLoopY->FindBin(ypos);
+//            printf("YYYYYYYY I- grid %d loop%d ypos:%f yposbin:%d, entries:%f bins:%d numsamples=%d \n", g, l, ypos, yposbin,
+//                loopDisplay->hPosQAccLoopY->GetEntries(), loopDisplay->hPosQAccLoopY->GetNbinsX(), numsamples);
 
-        } //gix
+            Double_t chargesum = loopDisplay->hPosQAccLoopY->GetBinContent(yposbin);
+            Double_t currentaverage = chargesum / numsamples / TperLoop;
+//            printf("----- chargesum: %e C currentaverage:%e A current:%e \n", chargesum, currentaverage, current);
+            loopDisplay->hPosIAveLoopY->Fill(ypos, currentaverage);
+
+          }    // wire range
+
+        }    //gix
 
       }    // y wires
 
     }    // loops
-    
     
     // second loop loop to get mean values of traces:
     for (int l = 0; l < gridDisplay->GetNumLoops(); ++l)
@@ -376,9 +399,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
     
 // put here mean value calculations and profiles:
 
- // TODO: separate this profiles regarding different loops that can have different timeslices and measuerement ranges!
-
-
+    // TODO: separate this profiles regarding different loops that can have different timeslices and measuerement ranges!
 
     gridData->fBeamMeanX = gridDisplay->hBeamX->GetMean();
     gridData->fBeamMeanY = gridDisplay->hBeamY->GetMean();
@@ -397,8 +418,8 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 
     Double_t posMeanX = gridDisplay->hPosX->GetMean();
     Double_t posMeanY = gridDisplay->hPosY->GetMean();
-    Double_t posRMSX  = gridDisplay->hPosX->GetRMS();
-    Double_t posRMSY  = gridDisplay->hPosY->GetRMS();
+    Double_t posRMSX = gridDisplay->hPosX->GetRMS();
+    Double_t posRMSY = gridDisplay->hPosY->GetRMS();
 
     gridDisplay->hPosMeanXY->Fill(posMeanX, posMeanY);
     gridDisplay->hPosRMSX->Fill(posRMSX);
@@ -409,123 +430,116 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 
   }    // grids
 
-
   // TODO: here fill segmented cup displays
   
   /////////////////////////////////////////////////////////////7
 
   for (unsigned c = 0; c < fCups.size(); ++c)
-   {
-     TQFWCupDisplay* cupDisplay = fCups[c];
-     Int_t cupid = cupDisplay->GetDevId();
-     TQFWCup* cupData = fOutput->GetCup(cupid);
-     TQFWBoard* boardData = 0;
-     Int_t oldboardid = -1;
-     Bool_t cupfirst = kTRUE;
+  {
+    TQFWCupDisplay* cupDisplay = fCups[c];
+    Int_t cupid = cupDisplay->GetDevId();
+    TQFWCup* cupData = fOutput->GetCup(cupid);
+    TQFWBoard* boardData = 0;
+    Int_t oldboardid = -1;
+    Bool_t cupfirst = kTRUE;
 
-     for (int l = 0; l < cupDisplay->GetNumLoops(); ++l)
-     {
-       TQFWCupLoopDisplay* loopDisplay = cupDisplay->GetLoopDisplay(l);
-       Bool_t loopfirst = kTRUE;
+    for (int l = 0; l < cupDisplay->GetNumLoops(); ++l)
+    {
+      TQFWCupLoopDisplay* loopDisplay = cupDisplay->GetLoopDisplay(l);
+      Bool_t loopfirst = kTRUE;
 
-       Double_t segmentcharge[cupData->GetNumSegments()];
-       Double_t chargesum=0;
-       for (int x = 0; x < cupData->GetNumSegments(); ++x)
-       {
-         segmentcharge[x]=0;
-         TQFWChannelMap xmap = cupData->GetChannelMap(x);
-         if (oldboardid != (Int_t) xmap.fBoardID)
-         {
-           //TGo4Log::Info("Grid %d Retrieving X Board of id %d",gridid, xmap.fBoardID);
-           boardData = QFWRawEvent->GetBoard(xmap.fBoardID);
-           oldboardid = xmap.fBoardID;
-           if (boardData == 0)
-           {
-             TGo4Log::Error("Configuration error: Board id %d does not exist as subevent!", xmap.fBoardID);
-             return kFALSE;
-           }
-           if (cupfirst)
-           {
-             cupDisplay->AdjustDisplay(boardData);    // TODO: h
-             cupfirst = kFALSE;
-           }
-         }
-         TQFWLoop* loopData = boardData->GetLoop(l);
-         if (loopData == 0)
-         {
-           TGo4Log::Error("Configuration error: Board id %d does not contain loopdata %d as subevent!", xmap.fBoardID,
-               l);
-           return kFALSE;
-         }
-         if (loopfirst)
-         {
-           loopDisplay->AdjustDisplay(loopData);
-           loopfirst = kFALSE;
-         }
-         Int_t xchan = xmap.fQFWChannel;
-         //printf("ProfileProc: processing board %d channel %d for grid %d X wire %d \n",
-         //   xmap.fBoardID, xchan, gridid, x);
-         if (xchan < 0)
-           continue;    // skip non configured channels
-         std::vector<Int_t> & trace = loopData->fQfwTrace[xchan];
-         Double_t sum = 0;
-         for (unsigned t = 0; t < trace.size(); ++t)
-         {
-           if (fParam->fMeasureBackground)
-           {
-             fParam->AddCupOffsetMeasurement(c, l, x, trace[t]);
-           }
-           loopDisplay->hCupSliceOffs->SetBinContent(1 + x, 1 + t, fParam->fQFWOffsetsCup[c][l][x]);    // show current averaged offset
-           Double_t value = fParam->GetCorrectedCupValue(c, l, x, trace[t]);
-           sum += value;
-           loopDisplay->hCupSlice->SetBinContent(1 + x, 1 + t, value);
+      Double_t segmentcharge[cupData->GetNumSegments()];
+      Double_t chargesum = 0;
+      for (int x = 0; x < cupData->GetNumSegments(); ++x)
+      {
+        segmentcharge[x] = 0;
+        TQFWChannelMap xmap = cupData->GetChannelMap(x);
+        if (oldboardid != (Int_t) xmap.fBoardID)
+        {
+          //TGo4Log::Info("Grid %d Retrieving X Board of id %d",gridid, xmap.fBoardID);
+          boardData = QFWRawEvent->GetBoard(xmap.fBoardID);
+          oldboardid = xmap.fBoardID;
+          if (boardData == 0)
+          {
+            TGo4Log::Error("Configuration error: Board id %d does not exist as subevent!", xmap.fBoardID);
+            return kFALSE;
+          }
+          if (cupfirst)
+          {
+            cupDisplay->AdjustDisplay(boardData);    // TODO: h
+            cupfirst = kFALSE;
+          }
+        }
+        TQFWLoop* loopData = boardData->GetLoop(l);
+        if (loopData == 0)
+        {
+          TGo4Log::Error("Configuration error: Board id %d does not contain loopdata %d as subevent!", xmap.fBoardID,
+              l);
+          return kFALSE;
+        }
+        if (loopfirst)
+        {
+          loopDisplay->AdjustDisplay(loopData);
+          loopfirst = kFALSE;
+        }
+        Int_t xchan = xmap.fQFWChannel;
+        //printf("ProfileProc: processing board %d channel %d for grid %d X wire %d \n",
+        //   xmap.fBoardID, xchan, gridid, x);
+        if (xchan < 0)
+          continue;    // skip non configured channels
+        std::vector<Int_t> & trace = loopData->fQfwTrace[xchan];
+        Double_t sum = 0;
+        for (unsigned t = 0; t < trace.size(); ++t)
+        {
+          if (fParam->fMeasureBackground)
+          {
+            fParam->AddCupOffsetMeasurement(c, l, x, trace[t]);
+          }
+          loopDisplay->hCupSliceOffs->SetBinContent(1 + x, 1 + t, fParam->fQFWOffsetsCup[c][l][x]);    // show current averaged offset
+          Double_t value = fParam->GetCorrectedCupValue(c, l, x, trace[t]);
+          sum += value;
+          loopDisplay->hCupSlice->SetBinContent(1 + x, 1 + t, value);
 
-           Double_t prev = loopDisplay->hAccCupSlice->GetBinContent(1 + x, 1 + t);
-           loopDisplay->hAccCupSlice->SetBinContent(1 + x, 1 + t, prev + value);
- #ifdef QFW_STORECURRENTS
-           cupData->fCurrent.push_back(value);
- #endif
-         }    // trace t
-         cupDisplay->hCupScaler->AddBinContent(1 + x, sum);
-         cupDisplay->hCupAccScaler->AddBinContent(1 + x, sum);
-         segmentcharge[x]=sum;
-         chargesum+=sum;
+          Double_t prev = loopDisplay->hAccCupSlice->GetBinContent(1 + x, 1 + t);
+          loopDisplay->hAccCupSlice->SetBinContent(1 + x, 1 + t, prev + value);
+#ifdef QFW_STORECURRENTS
+          cupData->fCurrent.push_back(value);
+#endif
+        }    // trace t
+        cupDisplay->hCupScaler->AddBinContent(1 + x, sum);
+        cupDisplay->hCupAccScaler->AddBinContent(1 + x, sum);
+        segmentcharge[x] = sum;
+        chargesum += sum;
 
-       }    // segments
+      }    // segments
 
-       // here ratio histograms between segments:
-     for(unsigned seg=0; seg<loopDisplay->hSegmentRatio.size();++seg)
-            {
-               if (seg>= (unsigned) cupData->GetNumSegments())
-               {
-                 TGo4Log::Error("Configuration error: Display segments index %d exceeds number of data segments %d ",
-                     seg, cupData->GetNumSegments());
-                 continue;
-               }
-               Double_t value=0;
-               if(chargesum) value=segmentcharge[seg]/chargesum;
-               loopDisplay->hSegmentRatio[seg]->Fill(value);
-               loopDisplay->hAccSegmentRatio[seg]->Fill(value);
-            }
+      // here ratio histograms between segments:
+      for (unsigned seg = 0; seg < loopDisplay->hSegmentRatio.size(); ++seg)
+      {
+        if (seg >= (unsigned) cupData->GetNumSegments())
+        {
+          TGo4Log::Error("Configuration error: Display segments index %d exceeds number of data segments %d ", seg,
+              cupData->GetNumSegments());
+          continue;
+        }
+        Double_t value = 0;
+        if (chargesum)
+          value = segmentcharge[seg] / chargesum;
+        loopDisplay->hSegmentRatio[seg]->Fill(value);
+        loopDisplay->hAccSegmentRatio[seg]->Fill(value);
+      }
 
-     }    // loops
+    }    // loops
 
-
-
-
-
-   }    // cups
+  }    // cups
   // end cup display
-
 
   fOutput->SetValid(kTRUE);    // to store
 
-  if(fParam->fSlowMotionStart>0)
-   if(QFWRawEvent->fSequenceNumber > (Int_t) fParam->fSlowMotionStart)
-     GO4_STOP_ANALYSIS_MESSAGE("Stopped for slow motion mode at event of sequence number %d",QFWRawEvent->fSequenceNumber);
-
-
-
+  if (fParam->fSlowMotionStart > 0)
+    if (QFWRawEvent->fSequenceNumber > (Int_t) fParam->fSlowMotionStart)
+      GO4_STOP_ANALYSIS_MESSAGE(
+          "Stopped for slow motion mode at event of sequence number %d", QFWRawEvent->fSequenceNumber);
 
   return kTRUE;
 }

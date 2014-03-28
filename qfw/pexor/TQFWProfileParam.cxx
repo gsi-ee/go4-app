@@ -97,10 +97,10 @@ void TQFWProfileParam::InitProfileMapping()
 
   }
   // control visible wire range for this grid by these parameters:
-  fGridMinWire_X[grid]=2; // if set to -1, use full range from data
-  fGridMaxWire_X[grid]=30; // if set to -1, use full range from data
-  fGridMinWire_Y[grid]=3; // if set to -1, use full range from data
-  fGridMaxWire_Y[grid]=30; // if set to -1, use full range from data
+  fGridMinWire_X[grid]=2; // inclusive minimum - if set to -1, use full range from data
+  fGridMaxWire_X[grid]=30; // exclusive maximum -if set to -1, use full range from data
+  fGridMinWire_Y[grid]=3; // inclusive minimum - if set to -1, use full range from data
+  fGridMaxWire_Y[grid]=30; // exclusive maximum - if set to -1, use full range from data
 
   // initialize here SEM grid geometries:
   fGridPosition_X[grid][0] = -45.0;
