@@ -13,7 +13,7 @@
 
 ---------------------------------------------
 // Readout of QFW beam diagnostic board via PEXOR family optical receiver.
-// V 0.9 11-Dec-2013
+// V 1.1 28-Mar-2014
 // Joern Adamczewski-Musch, CSEE, GSI Darmstadt
 // j.adamczewski@gsi.de
 ---------------------------------------------
@@ -30,6 +30,10 @@ Usage of this software for QFW test:
 1) Ist installiert auf sdpc095.gsi.de als user mbsdaq im Verzeichnis
 ~/go4_qfw/hd/pexor. Das zugehörige Repository (zur Installation auf beliebigem Rechner mit Go4 framework) ist erreichbar unter
 https://subversion.gsi.de/go4/app/qfw/pexor
+
+Eine neue identische Kopie aus dem aktuellen Repository liegt auf 
+sdpc095.gsi.de:/LynxOS/mbsusr/mbsdaq/go4_qfw/svnhead
+
 
 ***********************************************************************
 2) Starten:
@@ -52,6 +56,7 @@ Dabei ist
     fBoardID: eine (hier willkürliche) eindeutige GeräteID des QFW boards. Für den HIT Aufbau sind hier die ids 10,11, 12 gewählt. Später sollten diese Nummern irgendwie auf der Board hardware zu finden sein...
 Funktion TQFWRawParam::InitBoardMapping() in TQFWRawParam.cxx initialisiert dies mit dem Aufbau am HIT
 
+------------------------------------------------------------
 Die Verkabelung der qfw boards zu den grids/faraday cups etc ist in der Klasse TQFWProfileParam eingestellt mit Parameter Arrays über einen laufenden index aller Profilgitter (grid) und Gitterdrähten (wire):
 
  fNumGrids - Anzahl aller Gitter im Aufbau
@@ -69,7 +74,7 @@ Unique id des qfw boards an Gitter grid, Draht wire in Y Richtung
 
  fGridChannel_Y[grid][wire] -  Nummer des qfw board Kanals (0...32) für Gitter grid, Draht wire in Y
 
-
+-----------------------------
 Neben den Strahlprofilgittern können "Cup" Objekte konfiguriert werden, d.h. irgendwie segmentierte Ladungsmessungsplatten. Dies geschieht mit Parametern über indices der Segmentierten Einheiten (cup) und der Segmentnummer (seg)
 
 fNumCups - Anzahl aller "Segmentierten Cups"
@@ -88,6 +93,37 @@ Die Konfiguration der Time Slices passiert automatisch anhand der eingelesenen D
 Für die HIT Strahlzeit gibt es hier ein Gitter mit willkürlicher ID 42
 (verbunden mit boards 10 und 11) und ein "Cup" mit id 66 und 2 Segmenten, das sind die schräg segmentierten Kondensatorplatten (?)
 
+-----------------------------------------------------------
+Geometrieparameter für die Grids (auch in TQFWProfileParam):
+
+Der sichtbare Bereich für jedes Gitter (gridindex) kann mittels der minimum und maximum indices festgelegt werden:
+fGridMinWire_X[gridindex]; // minimum valid X wire index for display (inxlusive)
+fGridMaxWire_X[gridindex]; // maximum X wire index for display (exlusive)
+fGridMinWire_Y[gridindex]; // minimum valid Y wire index for display (inclusive)
+fGridMaxWire_Y[gridindex]; // maximum  Y wire index for display (exclusive)
+
+Diese Grenzen beeinflussen alle Histogramme, auch die auf die Drahtposition umgerechneten!
+Achtung: der minimum Draht ist inklusive, der maximum Draht exklusive (<-ROOT Histogramm Konvention).
+
+Das Mapping der Drähte (wire) jedes Gitters (grid) auf absolute Positionen erfolgt mit den Arrays:
+
+Double_t fGridPosition_X[gitter][draht]; // absolute position (mm) of [grid,wireX]
+Double_t fGridPosition_Y[gitter][draht]; // absolute position (mm) of [grid,wirey]
+
+-------------------------------
+Einstellungen des Setup:
+
+Kompilierte Voreinstellungen sind in den Funktionen TQFWRawParam::InitBoardMapping() bzw. TQFWProfileParam::InitProfileMapping() gesetzt.
+Wenn ein Autosave file existiert, werden diese ggfs. durch die interaktiv im GUI Condition editor
+geänderten Werte überschrieben!
+
+Ohne Neukompilation kann das Setup mittels der Skripte 
+set_QFWRawParam.C
+set_QFWProfileParam.C
+geändert werden.
+Diese Skripte werden bei jeder Neukonfiguration des Go4 ("Submit" settings oder batchmode Neustart) ausgeführt 
+und überstimmen die Defaults im kompilierten code bzw. im Autosave file
+
 
 *************************************************************************
 4) Histogramm Displays:
@@ -99,15 +135,26 @@ Die erste Stufe packt die Rohdaten von der DAQ aus und zeigt die QFW Board Kanäl
 Die zweite Stufe mappt die qfw Kanäle entsprechend der oben beschriebenen Zuweisungen auf die messenden Geräte, also Gitter oder segmentierte Platten/Cups. Deren Histogramme sind unter
 Histograms/Beam/Grid42 bzw Histograms/Beam/Cup66 zu finden.
 
-Für jedes board/grid/cup gibt es Unterordner Loop0,Loop1,Loop2, die spezifische Histogramme für den jeweiligen Zeitloop enthalten.
+Allgemeine Histogramm Unterverzeichnisse für jedes grid/cup:
+
+Raw     - Unkalibrierte qfw counts aufgetragen gegen Drahtnummern
+Counts  - Unkalibrierte qfw counts aufgetragen gegen kalibrierte Drahtpositionen in mm
+Charge  - Ladung in Couloumb aufgetragen gegen kalibrierte Drahtpositionen in mm (Profile) bzw. gegen Drahtnummern (looptraces)
+Current - Strom in Ampere aufgetragen gegen kalibrierte Drahtpositionen in mm (Profile) bzw. gegen Drahtnummern (looptraces)
+
+Für jedes board/grid/cup gibt es weitere Unterordner Loop0,Loop1,Loop2, die spezifische Histogramme für den jeweiligen Zeitloop enthalten.
+
 
 
 Besondere Histogramme für grids:
-Meanpos_G42: Statistik des mean values über alle x/y Profile. Das sollte eine Art Strahlpositon in x/y wiedergeben
+Raw/Meanpos_G42: Statistik des mean values über alle x/y Profile. Das sollte eine Art Strahlpositon in x/y wiedergeben
+Counts/MeanposMM_G42: dito skaliert auf Millimeter.
 
-RMS_X_G42: Statistik des rms values über alle x/y Profile in x. Das sollte eine Art rms Strahldurchmesser in x ergeben
+Raw/RMS_X_G42: Statistik des rms values über alle x/y Profile in x. Das sollte eine Art rms Strahldurchmesser in x ergeben
+Counts/RMSMM_X_G42: dito skaliert auf Millimeter.
 
-RMS_Y_G42: Statistik des rms values über alle x/y Profile in x. Das sollte eine Art rms Strahldurchmesser in x ergeben
+Raw/RMS_Y_G42: Statistik des rms values über alle x/y Profile in x. Das sollte eine Art rms Strahldurchmesser in x ergeben
+Counts/RMSMM_Y_G42: dito skaliert auf Millimeter.
 
 
 Besondere Histogramme für segmentierte cups:
@@ -123,11 +170,13 @@ Mehrere Histogramme für ein Device sind in "Go4 Pictures" zusammengefasst:
 z.B.
 Pictures/Board10/QFW_Rawscalers_Brd10 - alle scaler für board 10 Kanäle
 
-Pictures/Beam/Grid42/Beam Display Grid42
+Pictures/Beam/Grid42/Raw/Beam Display Grid42
 - Projektionen des "Strahlprofils" in x/y
 
-Pictures/Beam/Grid42/Beam RMS Grid42
+Pictures/Beam/Grid42/Raw/Beam RMS Grid42
 - RMS "Strahldurchmesser" (s.o.) in x und y
+
+Die Unterverzeichnisse Charge, Current und Counts enthalten entsprechende Pictures kalibriert auf Millimeter-Position bzw. Ladung/Strom
 
 
 **************************************************************************
@@ -143,9 +192,9 @@ Untergrundkorrektur kann zusätzlich mit
 "fCorrectBackground" ein und ausgeschaltet werden.
 
 Zur Kontrolle der gerade zur Korrektur benutzten Offsets dienen Histogramme
-"Beam/Grid42/Loop 1/Profile_X_Time_Offset_G42_L1" (analog für andere timeloops und grid ids)
+"Beam/Grid42/Raw/Loop 1/Profile_X_Time_Offset_G42_L1" (analog für andere timeloops und grid ids)
 bzw.
-Beam/Cup66/Loop 1/Scaler_Time_Offset_C42_L1 (dito)
+Beam/Cup66/Raw/Loop 1/Scaler_Time_Offset_C42_L1 (dito)
 
 ---------------------------------------------------------------------------
 B) Slow motion:
@@ -191,4 +240,4 @@ GO4-*> Skip event of seqnr 9327 with triggersum 4466225!
 ************************************************************************ 
 
 
-JAM 11-Dec-2013
+JAM 28-Mar-2014
