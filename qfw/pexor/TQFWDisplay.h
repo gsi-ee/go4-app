@@ -219,7 +219,10 @@ class TQFWGridLoopDisplay: public TQFWLoopDisplay
 public:
   TQFWGridLoopDisplay() :
       TQFWLoopDisplay(), hBeamXSlice(0), hBeamYSlice(0), hBeamXSliceOffs(0), hBeamYSliceOffs(0), hBeamAccXSlice(0),
-          hBeamAccYSlice(0), hBeamLoopX(0), hBeamLoopY(0), hBeamAccLoopX(0), hBeamAccLoopY(0), hPosLoopX(0),
+          hBeamAccYSlice(0),
+          hBeamChargeXSlice(0), hBeamChargeYSlice(0), hBeamAccChargeXSlice(0), hBeamAccChargeYSlice(0),
+          hBeamCurrentXSlice(0), hBeamCurrentYSlice(0), hBeamAveCurrentXSlice(0), hBeamAveCurrentYSlice(0),
+          hBeamLoopX(0), hBeamLoopY(0), hBeamAccLoopX(0), hBeamAccLoopY(0), hPosLoopX(0),
           hPosLoopY(0), hPosAccLoopX(0), hPosAccLoopY(0), hPosQLoopX(0), hPosQLoopY(0), hPosQAccLoopX(0), hPosQAccLoopY(0),
           hPosILoopX(0), hPosILoopY(0), hPosIAveLoopX(0), hPosIAveLoopY(0),
           hBeamMeanCountsX(0), hBeamMeanCountsY(0), hBeamRMSCountsX(0),
@@ -250,12 +253,27 @@ public:
   TH2* hBeamXSlice;
   TH2* hBeamYSlice;
 
-  /* helper histogram showing current offset*/
+  /* helper histogram showing current offset (in counts)*/
   TH2* hBeamXSliceOffs;
   TH2* hBeamYSliceOffs;
 
   TH2* hBeamAccXSlice;
   TH2* hBeamAccYSlice;
+
+  /* xy projections of charge mapped to grid*/
+   TH2* hBeamChargeXSlice;
+   TH2* hBeamChargeYSlice;
+   /* xy projections of charge accumulated mapped to grid*/
+   TH2* hBeamAccChargeXSlice;
+   TH2* hBeamAccChargeYSlice;
+
+   /* xy projections of current mapped to grid*/
+  TH2* hBeamCurrentXSlice;
+  TH2* hBeamCurrentYSlice;
+  /* xy projections of average current mapped to grid*/
+  TH2* hBeamAveCurrentXSlice;
+  TH2* hBeamAveCurrentYSlice;
+
 
   /* xy projections loopwise profiles*/
   TH1* hBeamLoopX;
@@ -409,8 +427,9 @@ class TQFWCupLoopDisplay: public TQFWLoopDisplay
 
 public:
   TQFWCupLoopDisplay() :
-      TQFWLoopDisplay(), fCupData(0), hCupSlice(0), hCupSliceOffs(0), hAccCupSlice(0), hCupLoopScaler(0),
-          hCupAccLoopScaler(0)
+      TQFWLoopDisplay(), fCupData(0), hCupSlice(0), hCupSliceOffs(0), hAccCupSlice(0),
+      hCupChargeSlice(0), hCupAccChargeSlice(0),hCupCurrentSlice(0), hCupAveCurrentSlice(0), hCupLoopScaler(0),
+          hCupAccLoopScaler(0), hCupLoopCharge(0), hCupAccLoopCharge(0), hCupLoopCurrent(0), hCupAveLoopCurrent(0)
   {
     ;
   }
@@ -436,8 +455,21 @@ public:
 
   TH2* hAccCupSlice;
 
+  TH2* hCupChargeSlice;
+  TH2* hCupAccChargeSlice;
+
+  TH2* hCupCurrentSlice;
+  TH2* hCupAveCurrentSlice;
+
+
   TH1* hCupLoopScaler;
   TH1* hCupAccLoopScaler;
+
+  TH1* hCupLoopCharge;
+  TH1* hCupAccLoopCharge;
+
+  TH1* hCupLoopCurrent;
+  TH1* hCupAveLoopCurrent;
 
   /* keep histograms of current ratios of all cup segments against first (reference) segment
    * this can be used as indicator for beam position in case of segmented capacitor monitor*/

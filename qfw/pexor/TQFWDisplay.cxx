@@ -42,51 +42,7 @@ void TQFWDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
   }
 }
 
-//TString TQFWDisplay::GetSetupString(UChar_t qfwsetup)
-//{
-//  /* evaluate measurement setup*/
-//  TString setup;
-//  switch (qfwsetup)
-//  {
-//    case 0:
-//      setup.Form("(-) [ 2.5pF & 0.25pC]");
-//      break;
-//
-//    case 1:
-//      setup.Form("(-) [25.0pF & 2.50pC]");
-//      break;
-//
-//    case 2:
-//      setup.Form("(+) [ 2.5pF & 0.25pC]");
-//      break;
-//
-//    case 3:
-//      setup.Form("(+) [25.0pF & 2.50pC]");
-//      break;
-//
-//    case 0x10:
-//      setup.Form("1000uA (-) [ 2.5pF & 0.25pC]");
-//      break;
-//
-//    case 0x11:
-//      setup.Form("1000uA (-) [25.0pF & 2.50pC]");
-//      break;
-//
-//    case 0x12:
-//      setup.Form("1000uA (+) [ 2.5pF & 0.25pC]");
-//      break;
-//
-//    case 0x13:
-//      setup.Form("1000uA (+) [25.0pF & 2.50pC]");
-//      break;
-//
-//    default:
-//      setup.Form("unknown setup %d", qfwsetup);
-//      break;
-//  };
-//
-//  return setup;
-//}
+
 
 TH1* TQFWDisplay::MakeVarbinsTH1(Bool_t replace, char type, const char* fullname, const char* title, Int_t nbinsx,
     Double_t* xbins, const char* xtitle, const char* ytitle)
@@ -420,8 +376,14 @@ void TQFWBoardDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
 
 TQFWGridLoopDisplay::TQFWGridLoopDisplay(Int_t gridid, Int_t loopid) :
     TQFWLoopDisplay(gridid, loopid), hBeamXSlice(0), hBeamYSlice(0), hBeamXSliceOffs(0), hBeamYSliceOffs(0),
-        hBeamAccXSlice(0), hBeamAccYSlice(0), hBeamLoopX(0), hBeamLoopY(0), hBeamAccLoopX(0), hBeamAccLoopY(0),
-        hPosLoopX(0), hPosLoopY(0), hPosAccLoopX(0), hPosAccLoopY(0), hBeamMeanCountsX(0), hBeamMeanCountsY(0),
+        hBeamAccXSlice(0), hBeamAccYSlice(0),
+        hBeamChargeXSlice(0), hBeamChargeYSlice(0), hBeamAccChargeXSlice(0), hBeamAccChargeYSlice(0),
+        hBeamCurrentXSlice(0), hBeamCurrentYSlice(0), hBeamAveCurrentXSlice(0), hBeamAveCurrentYSlice(0),
+        hBeamLoopX(0), hBeamLoopY(0), hBeamAccLoopX(0), hBeamAccLoopY(0),
+        hPosLoopX(0), hPosLoopY(0), hPosAccLoopX(0), hPosAccLoopY(0),
+        hPosQLoopX(0), hPosQLoopY(0), hPosQAccLoopX(0), hPosQAccLoopY(0),
+        hPosILoopX(0), hPosILoopY(0), hPosIAveLoopX(0), hPosIAveLoopY(0),
+        hBeamMeanCountsX(0), hBeamMeanCountsY(0),
         hBeamRMSCountsX(0), hBeamRMSCountsY(0), cBeamXSliceCond(0), cBeamYSliceCond(0), fGridData(0), fParam(0)
 {
 
@@ -580,31 +542,31 @@ void TQFWGridLoopDisplay::InitDisplay(int timeslices, Bool_t replace)
     foldername.Form("Beam/Grid%2d/Counts/Loop%2d", grid, loop);
 
     hPosLoopX = MakeVarbinsTH1(replace, 'I', Form("%s/N_Position_X_G%d_L%d", foldername.Data(), grid, loop),
-        Form("X Position Grid%2d Loop%2d", grid, loop), binsX, xposition, "Position [mm]");
+        Form("X Position Grid%2d Loop%2d", grid, loop), binsX, xposition, "X-Position [mm]");
 
     hPosAccLoopX = MakeVarbinsTH1(replace, 'I', Form("%s/N_PositionSum_X_G%d_L%d", foldername.Data(), grid, loop),
-        Form("X Position accumulated Grid%2d Loop%2d", grid, loop), binsX, xposition, "Position [mm]");
+        Form("X Position accumulated Grid%2d Loop%2d", grid, loop), binsX, xposition, "X-Position [mm]");
 
     hPosLoopY = MakeVarbinsTH1(replace, 'I', Form("%s/N_Position_Y_G%d_L%d", foldername.Data(), grid, loop),
-        Form("Y Position Grid%2d Loop%2d", grid, loop), binsY, yposition, "Position [mm]");
+        Form("Y Position Grid%2d Loop%2d", grid, loop), binsY, yposition, "Y-Position [mm]");
 
     hPosAccLoopY = MakeVarbinsTH1(replace, 'I', Form("%s/N_PositionSum_Y_G%d_L%d", foldername.Data(), grid, loop),
-        Form("Y Position accumulated Grid%2d Loop%2d", grid, loop), binsY, yposition, "Position [mm]");
+        Form("Y Position accumulated Grid%2d Loop%2d", grid, loop), binsY, yposition, "Y-Position [mm]");
 
     //  here calibrated charge versus position profiles, trace and accumulated
     foldername.Form("Beam/Grid%2d/Charge/Loop%2d", grid, loop);
 
     hPosQLoopX = MakeVarbinsTH1(replace, 'D', Form("%s/Q_Position_X_G%d_L%d", foldername.Data(), grid, loop),
-        Form("X Charge profile Grid%2d Loop%2d", grid, loop), binsX, xposition, "Position [mm]", "Q [C]");
+        Form("X Charge profile Grid%2d Loop%2d", grid, loop), binsX, xposition, "X-Position [mm]", "Q [C]");
 
     hPosQAccLoopX = MakeVarbinsTH1(replace, 'D', Form("%s/Q_PositionSum_X_G%d_L%d", foldername.Data(), grid, loop),
-        Form("X  Charge profile accumulated Grid%2d Loop%2d", grid, loop), binsX, xposition, "Position [mm]", "Q [C]");
+        Form("X  Charge profile accumulated Grid%2d Loop%2d", grid, loop), binsX, xposition, "X-Position [mm]", "Q [C]");
 
     hPosQLoopY = MakeVarbinsTH1(replace, 'D', Form("%s/Q_Position_Y_G%d_L%d", foldername.Data(), grid, loop),
-        Form("Y Charge profile Grid%2d Loop%2d", grid, loop), binsY, yposition, "Position [mm]", "Q [C]");
+        Form("Y Charge profile Grid%2d Loop%2d", grid, loop), binsY, yposition, "Y-Position [mm]", "Q [C]");
 
     hPosQAccLoopY = MakeVarbinsTH1(replace, 'D', Form("%s/Q_PositionSum_Y_G%d_L%d", foldername.Data(), grid, loop),
-        Form("Y  Charge profile accumulated Grid%2d Loop%2d", grid, loop), binsY, yposition, "Position [mm]", "Q [C]");
+        Form("Y  Charge profile accumulated Grid%2d Loop%2d", grid, loop), binsY, yposition, "Y-Position [mm]", "Q [C]");
 
     obname.Form("Beam Position Charge Display Grid%2d Loop %2d", grid, loop);
     TGo4Picture* pic = GetPicture(obname.Data());
@@ -638,22 +600,41 @@ void TQFWGridLoopDisplay::InitDisplay(int timeslices, Bool_t replace)
 
     }
 
-    // TODO: here trace current profile, maybe also average current accumulated?
+
+    hBeamChargeXSlice = MakeTH2('D', Form("%s/Charge_X_Time_G%d_L%d", foldername.Data(), grid, loop),
+          Form("X Charge Profile vs Time slices Grid%2d Loop%2d", grid, loop), binsX, minX, maxX, timeslices, 0, timeslices,
+          "Wire", "Time Slice", "Q [Q]");
+    hBeamChargeYSlice = MakeTH2('D', Form("%s/Charge_Y_Time_G%d_L%d", foldername.Data(), grid, loop),
+          Form("Y Charge Profile vs Time slices Grid%2d Loop%2d", grid, loop), binsY, minY, maxY, timeslices, 0, timeslices,
+          "Wire", "Time Slice", "Q [Q]");
+
+    hBeamAccChargeXSlice = MakeTH2('D', Form("%s/ChargeSum_X_Time_G%d_L%d", foldername.Data(), grid, loop),
+              Form("X Accumulated Charge Profile vs Time slices Grid%2d Loop%2d", grid, loop), binsX, minX, maxX, timeslices, 0, timeslices,
+              "Wire", "Time Slice", "I [A]");
+    hBeamAccChargeYSlice = MakeTH2('D', Form("%s/ChargeSum_Y_Time_G%d_L%d", foldername.Data(), grid, loop),
+              Form("Y Accumulated Charge Profile vs Time slices Grid%2d Loop%2d", grid, loop), binsY, minY, maxY, timeslices, 0, timeslices,
+              "Wire", "Time Slice", "I [A]");
+
+
+
+
+
+    // here trace current profile, maybe also average current accumulated?
     foldername.Form("Beam/Grid%2d/Current/Loop%2d", grid, loop);
 
     hPosILoopX = MakeVarbinsTH1(replace, 'D', Form("%s/I_Position_X_G%d_L%d", foldername.Data(), grid, loop),
-        Form("X Current profile Grid%2d Loop%2d", grid, loop), binsX, xposition, "Position [mm]", "I [A]");
+        Form("X Current profile Grid%2d Loop%2d", grid, loop), binsX, xposition, "X-Position [mm]", "I [A]");
 
     hPosIAveLoopX = MakeVarbinsTH1(replace, 'D', Form("%s/I_PositionAverage_X_G%d_L%d", foldername.Data(), grid, loop),
-        Form("X  Average current profile accumulated Grid%2d Loop%2d", grid, loop), binsX, xposition, "Position [mm]",
+        Form("X  Average current profile accumulated Grid%2d Loop%2d", grid, loop), binsX, xposition, "X-Position [mm]",
         "I [A]");
 
     hPosILoopY = MakeVarbinsTH1(replace, 'D', Form("%s/I_Position_Y_G%d_L%d", foldername.Data(), grid, loop),
-        Form("Y Current profile Grid%2d Loop%2d", grid, loop), binsY, yposition, "Position [mm]", "I [A]");
+        Form("Y Current profile Grid%2d Loop%2d", grid, loop), binsY, yposition, "Y-Position [mm]", "I [A]");
 
     hPosIAveLoopY = MakeVarbinsTH1(replace, 'D', Form("%s/I_PositionAverage_Y_G%d_L%d", foldername.Data(), grid, loop),
         Form("Y  Average current profileCharge profile accumulated Grid%2d Loop%2d", grid, loop), binsY, yposition,
-        "Position [mm]", "I [A]");
+        "Y-Position [mm]", "I [A]");
 
     obname.Form("Beam Position Current Display Grid%2d Loop %2d", grid, loop);
     pic = GetPicture(obname.Data());
@@ -685,6 +666,22 @@ void TQFWGridLoopDisplay::InitDisplay(int timeslices, Bool_t replace)
       pic->Pic(1, 1)->SetFillAtt(4, 3001);
       AddPicture(pic, foldername.Data());
     }
+
+    hBeamCurrentXSlice = MakeTH2('D', Form("%s/Current_X_Time_G%d_L%d", foldername.Data(), grid, loop),
+        Form("X Current Profile vs Time slices Grid%2d Loop%2d", grid, loop), binsX, minX, maxX, timeslices, 0,
+        timeslices, "Wire", "Time Slice", "I [A]");
+    hBeamCurrentYSlice = MakeTH2('D', Form("%s/Current_Y_Time_G%d_L%d", foldername.Data(), grid, loop),
+        Form("Y Current Profile vs Time slices Grid%2d Loop%2d", grid, loop), binsY, minY, maxY, timeslices, 0,
+        timeslices, "Wire", "Time Slice", "I [A]");
+
+    hBeamAveCurrentXSlice = MakeTH2('D', Form("%s/CurrentAverage_X_Time_G%d_L%d", foldername.Data(), grid, loop),
+        Form("X Average Current Profile vs Time slices Grid%2d Loop%2d", grid, loop), binsX, minX, maxX, timeslices, 0,
+        timeslices, "Wire", "Time Slice", "I [A]");
+    hBeamAveCurrentYSlice = MakeTH2('D', Form("%s/CurrentAverage_Y_Time_G%d_L%d", foldername.Data(), grid, loop),
+        Form("Y Average Current Profile vs Time slices Grid%2d Loop%2d", grid, loop), binsY, minY, maxY, timeslices, 0,
+        timeslices, "Wire", "Time Slice", "I [A]");
+
+
 
   }    //  if (fParam && (gix >= 0))
 
@@ -727,6 +724,14 @@ void TQFWGridLoopDisplay::AdjustDisplay(TQFWLoop* loopdata)
   hBeamYSliceOffs->Reset("");
   hBeamXSlice->SetTitle(mtitle.Data());
   hBeamYSlice->SetTitle(mtitle.Data());
+
+  hBeamChargeXSlice->Reset("");
+  hBeamChargeYSlice->Reset("");
+  hBeamCurrentXSlice->Reset("");
+  hBeamCurrentYSlice->Reset("");
+  hBeamAveCurrentXSlice->Reset("");
+  hBeamAveCurrentYSlice->Reset("");
+
 }
 
 ///*********************************************
@@ -908,10 +913,10 @@ void TQFWGridDisplay::InitDisplay(int timeslices, Bool_t replace)
     foldername.Form("Beam/Grid%2d/Counts", grid);
 
     hPosX = MakeVarbinsTH1(replace, 'I', Form("%s/Position_X_G%d", foldername.Data(), grid),
-        Form("X Position Grid%2d", grid), binsX, xposition, "Position [mm]");
+        Form("X Position Grid%2d", grid), binsX, xposition, "X-Position [mm]");
 
     hPosAccX = MakeVarbinsTH1(replace, 'I', Form("%s/PositionSum_X_G%d", foldername.Data(), grid),
-        Form("X Position accumulated Grid%2d", grid), binsX, xposition, "Position [mm]");
+        Form("X Position accumulated Grid%2d", grid), binsX, xposition, "X-Position [mm]");
 
     Double_t yposition[PEXOR_QFW_WIRES];
     for (Int_t ix = 0, jx = minY; (ix < binsY) && (jx + 1 < PEXOR_QFW_WIRES); ++ix, ++jx)
@@ -923,9 +928,9 @@ void TQFWGridDisplay::InitDisplay(int timeslices, Bool_t replace)
       //printf("YYYYYYYY grid %d index %d:lowedge:%f centre:%f upedge:%f \n",grid,ix,yposition[ix], fParam->fGridPosition_Y[gix][jx], yposition[ix+1]);
     }
     hPosY = MakeVarbinsTH1(replace, 'I', Form("%s/Position_Y_G%d", foldername.Data(), grid),
-        Form("Y Position Grid%2d", grid), binsY, yposition, "Position [mm]");
+        Form("Y Position Grid%2d", grid), binsY, yposition, "Y-Position [mm]");
     hPosAccY = MakeVarbinsTH1(replace, 'I', Form("%s/PositionSum_Y_G%d", foldername.Data(), grid),
-        Form("Y Position accumulated Grid%2d", grid), binsY, yposition, "Position [mm]");
+        Form("Y Position accumulated Grid%2d", grid), binsY, yposition, "Y-Position [mm]");
 
     obname.Form("Beam Position Display Grid%2d", grid);
     pPosProfiles = GetPicture(obname.Data());
@@ -982,16 +987,16 @@ void TQFWGridDisplay::InitDisplay(int timeslices, Bool_t replace)
     // TODO here profiles for summed up charges of all loops
     foldername.Form("Beam/Grid%2d/Charge", grid);
     hPosQ_X = MakeVarbinsTH1(replace, 'D', Form("%s/Q_Position_X_G%d", foldername.Data(), grid),
-        Form("X Charge profile Grid%2d", grid), binsX, xposition, "Position [mm]", "Q [C]");
+        Form("X Charge profile Grid%2d", grid), binsX, xposition, "X-Position [mm]", "Q [C]");
 
     hPosQAcc_X = MakeVarbinsTH1(replace, 'D', Form("%s/Q_PositionSum_X_G%d", foldername.Data(), grid),
-        Form("X  Charge profile accumulated Grid%2d", grid), binsX, xposition, "Position [mm]", "Q [C]");
+        Form("X  Charge profile accumulated Grid%2d", grid), binsX, xposition, "X-Position [mm]", "Q [C]");
 
     hPosQ_Y = MakeVarbinsTH1(replace, 'D', Form("%s/Q_Position_Y_G%d", foldername.Data(), grid),
-        Form("Y Charge profile Grid%2d ", grid), binsY, yposition, "Position [mm]", "Q [C]");
+        Form("Y Charge profile Grid%2d ", grid), binsY, yposition, "Y-Position [mm]", "Q [C]");
 
     hPosQAcc_Y = MakeVarbinsTH1(replace, 'D', Form("%s/Q_PositionSum_Y_G%d", foldername.Data(), grid),
-        Form("Y  Charge profile accumulated Grid%2d", grid), binsY, yposition, "Position [mm]", "Q [C]");
+        Form("Y  Charge profile accumulated Grid%2d", grid), binsY, yposition, "Y-Position [mm]", "Q [C]");
 
     obname.Form("Beam Position Charge Display Grid%2d", grid);
     pChargeProfiles = GetPicture(obname.Data());
@@ -1027,17 +1032,17 @@ void TQFWGridDisplay::InitDisplay(int timeslices, Bool_t replace)
 
     // TODO here profiles for summed up currents of all loops maybe also average of loop averages
     foldername.Form("Beam/Grid%2d/Current", grid);
-    hPosI_X = MakeVarbinsTH1(replace, 'D', Form("%s/I_Position_X_G%d", foldername.Data(), grid),
-        Form("X Current profile Grid%2d", grid), binsX, xposition, "Position [mm]", "I [A]");
-
-    hPosIAve_X = MakeVarbinsTH1(replace, 'D', Form("%s/I_PositionAverage_X_G%d", foldername.Data(), grid),
-        Form("X Current profile average Grid%2d", grid), binsX, xposition, "Position [mm]", "I [A]");
-
-    hPosI_Y = MakeVarbinsTH1(replace, 'D', Form("%s/I_Position_Y_G%d", foldername.Data(), grid),
-        Form("Y Current profile Grid%2d ", grid), binsY, yposition, "Position [mm]", "I [A]");
-
-    hPosIAve_Y = MakeVarbinsTH1(replace, 'D', Form("%s/I_PositionAverage_Y_G%d", foldername.Data(), grid),
-        Form("Y Current profile average Grid%2d", grid), binsY, yposition, "Position [mm]", "I [A]");
+//    hPosI_X = MakeVarbinsTH1(replace, 'D', Form("%s/I_Position_X_G%d", foldername.Data(), grid),
+//        Form("X Current profile Grid%2d", grid), binsX, xposition, "Position [mm]", "I [A]");
+//
+//    hPosIAve_X = MakeVarbinsTH1(replace, 'D', Form("%s/I_PositionAverage_X_G%d", foldername.Data(), grid),
+//        Form("X Current profile average Grid%2d", grid), binsX, xposition, "Position [mm]", "I [A]");
+//
+//    hPosI_Y = MakeVarbinsTH1(replace, 'D', Form("%s/I_Position_Y_G%d", foldername.Data(), grid),
+//        Form("Y Current profile Grid%2d ", grid), binsY, yposition, "Position [mm]", "I [A]");
+//
+//    hPosIAve_Y = MakeVarbinsTH1(replace, 'D', Form("%s/I_PositionAverage_Y_G%d", foldername.Data(), grid),
+//        Form("Y Current profile average Grid%2d", grid), binsY, yposition, "Position [mm]", "I [A]");
 
   }    // if (fParam && gix >= 0)
 
@@ -1065,16 +1070,19 @@ void TQFWGridDisplay::AdjustDisplay(TQFWBoard* boarddata)
   hPosY->SetTitle(mtitle.Data());
   hPosQ_X->Reset("");
   hPosQ_Y->Reset("");
-  hPosI_X->Reset("");
-  hPosI_Y->Reset("");
+//  hPosI_X->Reset("");
+//  hPosI_Y->Reset("");
+//  hPosIAve_X->Reset("");
+//  hPosIAve_Y->Reset("");
 
 //      mtitle.Form("%s dt=%.2E us", setup.Data(),premtime);
 
 }
 
 TQFWCupLoopDisplay::TQFWCupLoopDisplay(Int_t cupid, Int_t loopid) :
-    TQFWLoopDisplay(cupid, loopid), fCupData(0), hCupSlice(0), hCupSliceOffs(0), hAccCupSlice(0), hCupLoopScaler(0),
-        hCupAccLoopScaler(0)
+    TQFWLoopDisplay(cupid, loopid), fCupData(0), hCupSlice(0), hCupSliceOffs(0), hAccCupSlice(0),
+    hCupChargeSlice(0), hCupAccChargeSlice(0), hCupCurrentSlice(0), hCupAveCurrentSlice(0), hCupLoopScaler(0),
+        hCupAccLoopScaler(0), hCupLoopCharge(0), hCupAccLoopCharge(0),hCupLoopCurrent(0), hCupAveLoopCurrent(0)
 
 {
 
@@ -1101,43 +1109,81 @@ void TQFWCupLoopDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
   Int_t cup = GetDevId();
   Int_t loop = GetLoopId();
   Int_t segments = PEXOR_QFW_CUPSEGMENTS;
+  TString foldername;
   if (fCupData)
   {
     // take real number of segments from event object
     segments = fCupData->GetNumSegments();
   }
 
-  hCupSlice = MakeTH2('D', Form("Beam/Cup%2d/Loop%2d/Scaler_Time_C%d_L%d", cup, loop, cup, loop),
+  foldername.Form("Beam/Cup%2d/Raw/Loop%2d/", cup,loop);
+
+  hCupSlice = MakeTH2('D', Form("%s/Scaler_Time_C%d_L%d", foldername.Data(), cup, loop),
       Form("Segment Scaler vs Time slices Cup%2d Loop%2d", cup, loop), segments, 0, segments, timeslices, 0, timeslices,
       "Segment", "Time Slice");
 
   /* helper histogram showing current offset*/
-  hCupSliceOffs = MakeTH2('D', Form("Beam/Cup%2d/Loop%2d/Scaler_Time_Offset_C%d_L%d", cup, loop, cup, loop),
+  hCupSliceOffs = MakeTH2('D', Form("%s/Scaler_Time_Offset_C%d_L%d", foldername.Data(), cup, loop),
       Form("Segment Scaler vs Time slices average offset Cup%2d Loop%2d", cup, loop), segments, 0, segments, timeslices,
       0, timeslices, "Segment", "Time Slice");
 
-  hAccCupSlice = MakeTH2('D', Form("Beam/Cup%2d/Loop%2d/ScalerSum_Time_C%d_L%d", cup, loop, cup, loop),
+  hAccCupSlice = MakeTH2('D', Form("%s/ScalerSum_Time_C%d_L%d", foldername.Data(), cup, loop),
       Form("Segment Scaler vs Time slices accum Cup%2d Loop%2d", cup, loop), segments, 0, segments, timeslices, 0,
       timeslices, "Segment", "Time Slice");
 
-  hCupLoopScaler = MakeTH1('I', Form("Beam/Cup%2d/Loop%2d/Scaler_C%d_L%d", cup, loop, cup, loop),
-      Form("Segment scaler Cup%2d Loop%2d", cup, loop), segments, 0, segments, "Segment");
+  hCupLoopScaler = MakeTH1('I', Form("%s/Scaler_C%d_L%d", foldername.Data(), cup, loop),
+      Form("Segment scaler Cup%2d Loop%2d", cup, loop), segments, 0, segments, "Segment", "Counts");
 
-  hCupAccLoopScaler = MakeTH1('I', Form("Beam/Cup%2d/Loop%2d/ScalerSum_C%d_L%d", cup, loop, cup, loop),
-      Form("Segment scaler accumulated Cup%2d Loop%2d", cup, loop), segments, 0, segments, "Segment");
+  hCupAccLoopScaler = MakeTH1('I', Form("%s/ScalerSum_C%d_L%d", foldername.Data(), cup, loop),
+      Form("Segment scaler accumulated Cup%2d Loop%2d", cup, loop), segments, 0, segments, "Segment", "Counts");
+
+
+  foldername.Form("Beam/Cup%2d/Charge/Loop%2d/", cup,loop);
+
+  hCupLoopCharge = MakeTH1('D', Form("%s/Charge_C%d_L%d", foldername.Data(), cup, loop),
+       Form("Segment charge Cup%2d Loop%2d", cup, loop), segments, 0, segments, "Segment", "Q [C]");
+
+  hCupAccLoopCharge = MakeTH1('D', Form("%s/ChargeSum_C%d_L%d", foldername.Data(), cup, loop),
+        Form("Segment charge accumulated Cup%2d Loop%2d", cup, loop), segments, 0, segments, "Segment", "Q [C]");
+
+  hCupChargeSlice = MakeTH2('D', Form("%s/Charge_Time_C%d_L%d", foldername.Data(), cup, loop),
+         Form("Segment Charge vs Time slices Cup%2d Loop%2d", cup, loop), segments, 0, segments, timeslices, 0, timeslices,
+         "Segment", "Time Slice", "Q [C]");
+
+  hCupAccChargeSlice = MakeTH2('D', Form("%s/ChargeSum_Time_C%d_L%d", foldername.Data(), cup, loop),
+        Form("Segment Charge Sum vs Time slices accum Cup%2d Loop%2d", cup, loop), segments, 0, segments, timeslices, 0,
+        timeslices, "Segment", "Time Slice", "Q [C]");
+
 
   hSegmentRatio.clear();    // we do not delete histograms here, is handled by framework when recreating
   hAccSegmentRatio.clear();
   for (int seg = 0; seg < segments; ++seg)
   {
     hSegmentRatio.push_back(
-        MakeTH1('D', Form("Beam/Cup%2d/Loop%2d/SegmentRatio_C%d_L%d_S%d", cup, loop, cup, loop, seg),
+        MakeTH1('D', Form("%s/SegmentRatio_C%d_L%d_S%d", foldername.Data(), cup, loop, seg),
             Form("Charge Ratio Cup%2d Loop%2d Segment %2d", cup, loop, seg), 500, 0, 1, "Relative Charge"));
 
     hAccSegmentRatio.push_back(
-        MakeTH1('D', Form("Beam/Cup%2d/Loop%2d/SegmentRatioSum_C%d_L%d_S%d", cup, loop, cup, loop, seg),
+        MakeTH1('D', Form("%s/SegmentRatioSum_C%d_L%d_S%d", foldername.Data(), cup, loop, seg),
             Form("Charge Ratio Cup%2d Loop%2d Segment %2d Accumulated", cup, loop, seg), 500, 0, 1, "Relative Charge"));
   }
+
+  foldername.Form("Beam/Cup%2d/Current/Loop%2d/", cup,loop);
+
+  hCupLoopCurrent = MakeTH1('D', Form("%s/Current_C%d_L%d", foldername.Data(), cup, loop),
+       Form("Segment current Cup%2d Loop%2d", cup, loop), segments, 0, segments, "Segment", "I [A]");
+
+  hCupAveLoopCurrent = MakeTH1('D', Form("%s/CurrentAverage_C%d_L%d", foldername.Data(), cup, loop),
+        Form("Segment current average Cup%2d Loop%2d", cup, loop), segments, 0, segments, "Segment", "I [A]");
+
+
+  hCupCurrentSlice = MakeTH2('D', Form("%s/Current_Time_C%d_L%d", foldername.Data(), cup, loop),
+        Form("Segment Current vs Time slices Cup%2d Loop%2d", cup, loop), segments, 0, segments, timeslices, 0, timeslices,
+        "Segment", "Time Slice", "I [A]");
+
+  hCupAveCurrentSlice = MakeTH2('D', Form("%s/CurrentAverage_Time_C%d_L%d", foldername.Data(), cup, loop),
+       Form("Segment Average Current vs Time slices accum Cup%2d Loop%2d", cup, loop), segments, 0, segments, timeslices, 0,
+       timeslices, "Segment", "Time Slice", "I [A]");
 
 }
 
@@ -1165,7 +1211,13 @@ void TQFWCupLoopDisplay::AdjustDisplay(TQFWLoop* loopdata)
 // clear trace histograms:
   hCupSlice->Reset("");
   hCupSliceOffs->Reset("");
+  hCupChargeSlice->Reset("");
+  hCupCurrentSlice->Reset("");
+  hCupAveCurrentSlice->Reset("");
   hCupLoopScaler->Reset("");
+  hCupLoopCharge->Reset("");
+  hCupLoopCurrent->Reset("");
+  hCupAveLoopCurrent->Reset("");
 
   hCupSlice->SetTitle(mtitle.Data());
   for (unsigned seg = 0; seg < hSegmentRatio.size(); ++seg)
@@ -1209,7 +1261,7 @@ void TQFWCupDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
 {
   TQFWDisplay::InitDisplay(timeslices, replace);
 // TODO: put some scaler histograms here
-
+TString foldername;
   Int_t cup = GetDevId();
   Int_t segs = PEXOR_QFW_CUPSEGMENTS;
   if (fCupData)
@@ -1218,10 +1270,12 @@ void TQFWCupDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
     segs = fCupData->GetNumSegments();
   }
 
-  hCupScaler = MakeTH1('I', Form("Beam/Cup%2d/Scaler_C%d", cup, cup), Form("Segment scaler Cup%2d", cup), segs, 0, segs,
+  foldername.Form("Beam/Cup%2d/Raw", cup);
+
+  hCupScaler = MakeTH1('I', Form("%s/Scaler_C%d", foldername.Data(), cup), Form("Segment scaler Cup%2d", cup), segs, 0, segs,
       "Segment");
 
-  hCupAccScaler = MakeTH1('I', Form("Beam/Cup%2d/ScalerSum_C%d", cup, cup),
+  hCupAccScaler = MakeTH1('I', Form("%s/ScalerSum_C%d", foldername.Data(), cup),
       Form("Segment scaler accumulated Cup%2d", cup), segs, 0, segs, "Segment");
 
 }

@@ -161,7 +161,8 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
         std::vector<Int_t> & trace = loopData->fQfwTrace[xchan];
         Double_t sum = 0;
         Double_t CperCount = loopData->GetCoulombPerCount();    // unit C
-        Double_t TperLoop = 1.0e-6 * loopData->GetMicroSecsPerTimeSlice() * loopData->fQfwLoopSize;    // unit s
+        Double_t TperSlice=1.0e-6 * loopData->GetMicroSecsPerTimeSlice();
+        Double_t TperLoop = TperSlice * loopData->fQfwLoopSize;    // unit s
 
         for (unsigned t = 0; t < trace.size(); ++t)
         {
@@ -169,21 +170,56 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           {
             fParam->AddXOffsetMeasurement(g, l, x, trace[t]);
           }
-          loopDisplay->hBeamXSliceOffs->SetBinContent(1 + x, 1 + t, fParam->fQFWOffsetsX[g][l][x]);    // show current averaged offset
+          // new: since bin number does not correspond to wire number anymore, have to find out bin for wire
+          Int_t tracebin = loopDisplay->hBeamXSliceOffs->FindBin(x,t);
+          Int_t binx=0; Int_t bint=0; Int_t dummy=0;
+          loopDisplay->hBeamXSliceOffs->GetBinXYZ(tracebin, binx, bint, dummy);
+
+          loopDisplay->hBeamXSliceOffs->SetBinContent(binx, bint, fParam->fQFWOffsetsX[g][l][x]);    // show current averaged offset
+          //loopDisplay->hBeamXSliceOffs->Fill(x, t, fParam->fQFWOffsetsX[g][l][x]);
+
           Double_t value = fParam->GetCorrectedXValue(g, l, x, trace[t]);
           sum += value;
-          loopDisplay->hBeamXSlice->SetBinContent(1 + x, 1 + t, value);
+          //loopDisplay->hBeamXSlice->SetBinContent(1 + x, 1 + t, value);
+          loopDisplay->hBeamXSlice->SetBinContent(binx, bint, value); // assume all traces are scaled with same bindims
+          //loopDisplay->hBeamXSlice->Fill(x, t, value);
 
-          Double_t prev = loopDisplay->hBeamAccXSlice->GetBinContent(1 + x, 1 + t);
-          loopDisplay->hBeamAccXSlice->SetBinContent(1 + x, 1 + t, prev + value);
+
+          Double_t prev = loopDisplay->hBeamAccXSlice->GetBinContent(binx, bint);
+          loopDisplay->hBeamAccXSlice->SetBinContent(binx, bint, prev + value);
+//          Double_t prev = loopDisplay->hBeamAccXSlice->GetBinContent(1 + x, 1 + t);
+//          loopDisplay->hBeamAccXSlice->SetBinContent(1 + x, 1 + t, prev + value);
+
+
+          // charge and current traces:
+          Double_t slicecharge=CperCount * value;
+          Double_t slicecurrent=0;
+
+          if(TperSlice) slicecurrent=slicecharge / TperSlice;
+
 #ifdef QFW_STORECURRENTS
-          gridData->fXCurrent.push_back(value);
+          gridData->fXCurrent.push_back(slicecurrent);
 #endif
-//          sum += trace[t];
-//          loopDisplay->hBeamXSlice->SetBinContent(1 + x, 1 + t, trace[t]);
-//          prev = loopDisplay->hBeamAccXSlice->GetBinContent(1 + x, 1 + t);
-//          loopDisplay->hBeamAccXSlice->SetBinContent(1 + x, 1 + t, prev + trace[t]);
-//          //
+
+          // NOTE: we should not fill underflow/overflow bins for charge,
+          // otherwise we are not able to calculate average current correctly!
+          if (((fParam->fGridMinWire_X[gix] < 0) || (x >= fParam->fGridMinWire_X[gix]))
+              && ((fParam->fGridMaxWire_X[gix] < 0) || (x < fParam->fGridMaxWire_X[gix])))
+          {
+            loopDisplay->hBeamChargeXSlice->SetBinContent(binx, bint, slicecharge);
+            Double_t cprev = loopDisplay->hBeamAccChargeXSlice->GetBinContent(binx, bint);
+            loopDisplay->hBeamAccChargeXSlice->SetBinContent(binx, bint, cprev + slicecharge);
+
+            loopDisplay->hBeamCurrentXSlice->SetBinContent(binx, bint, slicecurrent);
+            Int_t numsamples = 1
+                + (Int_t) ((loopDisplay->hBeamAccChargeXSlice->GetEntries() - 1)
+                    / loopDisplay->hBeamAccChargeXSlice->GetNbinsX() / loopDisplay->hBeamAccChargeXSlice->GetNbinsY());    // divide number of entries by bins to get number of charge measurements per segment
+            Double_t chargesum = loopDisplay->hBeamAccChargeXSlice->GetBinContent(binx, bint);
+            Double_t currentaverage = chargesum / numsamples / TperSlice;
+            loopDisplay->hBeamAveCurrentXSlice->SetBinContent(binx, bint, currentaverage);
+
+          }
+
         }    // trace t
 
         loopDisplay->hBeamLoopX->Fill(x, sum);
@@ -274,7 +310,8 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
         std::vector<Int_t> & trace = loopData->fQfwTrace[ychan];
         Double_t sum = 0;
         Double_t CperCount = loopData->GetCoulombPerCount();    // unit C
-        Double_t TperLoop = 1.0e-6 * loopData->GetMicroSecsPerTimeSlice() * loopData->fQfwLoopSize;    // unit s
+        Double_t TperSlice= 1.0e-6 * loopData->GetMicroSecsPerTimeSlice();
+        Double_t TperLoop =  TperSlice * loopData->fQfwLoopSize;    // unit s
         for (unsigned t = 0; t < trace.size(); ++t)
         {
 
@@ -282,15 +319,47 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           {
             fParam->AddYOffsetMeasurement(g, l, y, trace[t]);
           }
-          loopDisplay->hBeamYSliceOffs->SetBinContent(1 + y, 1 + t, fParam->fQFWOffsetsY[g][l][y]);    // show current averaged offset
+
+          // new: since bin number does not correspond to wire number anymore, have to find out bin for wire
+          Int_t tracebin = loopDisplay->hBeamYSliceOffs->FindBin(y,t);
+          Int_t biny=0; Int_t bint=0; Int_t dummy=0;
+          loopDisplay->hBeamYSliceOffs->GetBinXYZ(tracebin, biny, bint, dummy);
+
+          loopDisplay->hBeamYSliceOffs->SetBinContent(biny, bint, fParam->fQFWOffsetsY[g][l][y]);    // show current averaged offset
           Double_t value = fParam->GetCorrectedYValue(g, l, y, trace[t]);
           sum += value;
-          loopDisplay->hBeamYSlice->SetBinContent(1 + y, 1 + t, value);
-#ifdef QFW_STORECURRENTS
-          gridData->fYCurrent.push_back(value);
-#endif
-          Double_t prev = loopDisplay->hBeamAccYSlice->GetBinContent(1 + y, 1 + t);
-          loopDisplay->hBeamAccYSlice->SetBinContent(1 + y, 1 + t, prev + value);
+          loopDisplay->hBeamYSlice->SetBinContent(biny, bint, value);
+
+          Double_t prev = loopDisplay->hBeamAccYSlice->GetBinContent(biny, bint);
+          loopDisplay->hBeamAccYSlice->SetBinContent(biny, bint, prev + value);
+
+
+          // charge and current traces:
+           Double_t slicecharge=CperCount * value;
+           Double_t slicecurrent=0;
+           if(TperSlice) slicecurrent=slicecharge / TperSlice;
+
+
+ #ifdef QFW_STORECURRENTS
+           gridData->fYCurrent.push_back(slicecurrent);
+ #endif
+
+
+           if (((fParam->fGridMinWire_Y[gix] < 0) || (y >= fParam->fGridMinWire_Y[gix]))
+              && ((fParam->fGridMaxWire_Y[gix] < 0) || (y < fParam->fGridMaxWire_Y[gix])))
+          {
+            loopDisplay->hBeamChargeYSlice->SetBinContent(biny, bint, slicecharge);
+            Double_t cprev = loopDisplay->hBeamAccChargeYSlice->GetBinContent(biny, bint);
+            loopDisplay->hBeamAccChargeYSlice->SetBinContent(biny, bint, cprev + slicecharge);
+            loopDisplay->hBeamCurrentYSlice->SetBinContent(biny, bint, slicecurrent);
+            Int_t numsamples = 1
+                + (Int_t) ((loopDisplay->hBeamAccChargeYSlice->GetEntries() - 1)
+                    / loopDisplay->hBeamAccChargeYSlice->GetNbinsX() / loopDisplay->hBeamAccChargeYSlice->GetNbinsY());    // divide number of entries by bins to get number of charge measurements per segment
+            Double_t chargesum = loopDisplay->hBeamAccChargeYSlice->GetBinContent(biny, bint);
+            Double_t currentaverage = chargesum / numsamples / TperSlice;
+            loopDisplay->hBeamAveCurrentYSlice->SetBinContent(biny, bint, currentaverage);
+          }
+
 
         }    // trace t
         loopDisplay->hBeamLoopY->Fill(y, sum);
@@ -489,6 +558,11 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           continue;    // skip non configured channels
         std::vector<Int_t> & trace = loopData->fQfwTrace[xchan];
         Double_t sum = 0;
+        Double_t CperCount = loopData->GetCoulombPerCount();    // unit C
+        Double_t TperSlice = 1.0e-6 * loopData->GetMicroSecsPerTimeSlice();
+        Double_t TperLoop = TperSlice * loopData->fQfwLoopSize;    // unit s
+
+
         for (unsigned t = 0; t < trace.size(); ++t)
         {
           if (fParam->fMeasureBackground)
@@ -497,19 +571,66 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           }
           loopDisplay->hCupSliceOffs->SetBinContent(1 + x, 1 + t, fParam->fQFWOffsetsCup[c][l][x]);    // show current averaged offset
           Double_t value = fParam->GetCorrectedCupValue(c, l, x, trace[t]);
+
           sum += value;
           loopDisplay->hCupSlice->SetBinContent(1 + x, 1 + t, value);
-
           Double_t prev = loopDisplay->hAccCupSlice->GetBinContent(1 + x, 1 + t);
           loopDisplay->hAccCupSlice->SetBinContent(1 + x, 1 + t, prev + value);
+          // charge and current traces:
+          Double_t slicecharge=CperCount * value;
+          Double_t slicecurrent=0;
+          if(TperSlice) slicecurrent=slicecharge / TperSlice;
+          loopDisplay->hCupChargeSlice->SetBinContent(1 + x, 1 + t, slicecharge);
+          Double_t cprev = loopDisplay->hCupAccChargeSlice->GetBinContent(1 + x, 1 + t);
+          loopDisplay->hCupAccChargeSlice->SetBinContent(1 + x, 1 + t, cprev + slicecharge);
+
+
+          loopDisplay->hCupCurrentSlice->SetBinContent(1 + x, 1 + t, slicecurrent);
+          Int_t numsamples = 1
+                              + (Int_t) (( loopDisplay->hCupAccChargeSlice->GetEntries() -1) / loopDisplay->hCupAccChargeSlice->GetNbinsX()/ loopDisplay->hCupAccChargeSlice->GetNbinsY());    // divide number of entries by bins to get number of charge measurements per segment
+          Double_t chargesum = loopDisplay->hCupAccChargeSlice->GetBinContent(1+x, 1+t);
+          Double_t currentaverage = chargesum / numsamples / TperSlice;
+          loopDisplay->hCupAveCurrentSlice->SetBinContent(1 + x, 1 + t, currentaverage);
+
+
+
+
+
 #ifdef QFW_STORECURRENTS
-          cupData->fCurrent.push_back(value);
+          cupData->fCurrent.push_back(slicecurrent);
 #endif
         }    // trace t
+
         cupDisplay->hCupScaler->AddBinContent(1 + x, sum);
         cupDisplay->hCupAccScaler->AddBinContent(1 + x, sum);
-        segmentcharge[x] = sum;
-        chargesum += sum;
+
+        Double_t charge = CperCount * sum;
+        Double_t current = 0;
+        if (TperLoop)
+                    current = charge / TperLoop;    // unit A
+
+
+        segmentcharge[x] = charge;
+        chargesum += charge;
+
+        cupDisplay->hCupScaler->AddBinContent(1 + x, sum); // TODO better use Fill here?
+        cupDisplay->hCupAccScaler->AddBinContent(1 + x, sum);
+
+
+        loopDisplay->hCupLoopScaler->Fill(x,sum);
+        loopDisplay->hCupAccLoopScaler->Fill(x,sum);
+        loopDisplay->hCupLoopCharge->Fill(x,charge);
+        loopDisplay->hCupAccLoopCharge->Fill(x,charge);
+        loopDisplay->hCupLoopCurrent->Fill(x,current);
+
+        // average current is accum. charge by number of samples by measurement time:
+
+        Int_t numsamples = 1
+                     + (Int_t) (( loopDisplay->hCupAccLoopCharge->GetEntries() -1) / loopDisplay->hCupAccLoopCharge->GetNbinsX());    // divide number of entries by bins to get number of charge measurements per wire
+
+        Double_t chargesum = loopDisplay->hCupAccLoopCharge->GetBinContent(x+1);
+        Double_t currentaverage = chargesum / numsamples / TperLoop;
+        loopDisplay->hCupAveLoopCurrent->Fill(x,currentaverage);
 
       }    // segments
 
