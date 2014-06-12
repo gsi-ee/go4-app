@@ -18,6 +18,26 @@
 
 #include "TGo4UserException.h"
 
+/* helper macro for BuildEvent to check if payload pointer is still inside delivered region:*/
+/* this one to be called at top data processing loop*/
+#define  QFWRAW_CHECK_PDATA                                    \
+if((pdata - pdatastart) > (opticlen/4)) \
+{ \
+  GO4_SKIP_EVENT_MESSAGE("############ unexpected end of payload for sfp:%d slave:%d with opticlen:0x%x, skip event\n",sfp_id, device_id, opticlen);\
+  continue; \
+}
+
+/* this one just to leave internal loops*/
+#define  QFWRAW_CHECK_PDATA_BREAK                                    \
+if((pdata - pdatastart) > (opticlen/4)) \
+{ \
+ break; \
+}
+
+
+//  printf("############ reached end of payload for sfp:%d slave:%d with opticlen:0x%x\n",sfp_id, device_id, opticlen);\
+
+
 //***********************************************************
 TQFWRawProc::TQFWRawProc() :
     TGo4EventProcessor()
@@ -121,7 +141,6 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
     Int_t lwords = psubevt->GetIntLen();
 
     // loop over single subevent data:
-
     while (pdata - psubevt->GetDataField() < lwords)
     {
 
@@ -157,16 +176,21 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
         }
         continue;
       }
+      else if (*pdata == 0xbad00bad)
+      {
+        GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: Found BAD mbs event (marked 0x%x), skip it.", (*pdata));
+      }
       else if ((*pdata & 0xff) != 0x34)    // regular channel data
       {
         //GO4_STOP_ANALYSIS_MESSAGE("Wrong optic format - 0x34 are expected0-7 bits not as expected");
         //TGo4Log::Error("Wrong optic format 0x%x - 0x34 are expected0-7 bits not as expected", (*pdata & 0xff));
-        GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: Wrong optic format 0x%x - 0x34 are expected0-7 bits not as expected",
-            (*pdata & 0xff));
+        GO4_SKIP_EVENT_MESSAGE(
+            "**** TQFWRawProc: Wrong optic format 0x%x - 0x34 are expected - 0-7 bits not as expected", (*pdata & 0xff));
         // avoid that we run second step on invalid raw event!
         //return kFALSE;
       }
 
+      Int_t* pdatastart = pdata;    // remember begin of optic payload data section
       // unsigned trig_type   = (*pdata & 0xf00) >> 8;
       unsigned sfp_id = (*pdata & 0xf000) >> 12;
       unsigned device_id = (*pdata & 0xff0000) >> 16;
@@ -182,6 +206,7 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
         // avoid that we run second step on invalid raw event!
         //return kFALSE;
       }
+      QFWRAW_CHECK_PDATA;
       int eventcounter = *pdata;
       //TGo4Log::Info("Internal Event number 0x%x", eventcounter);
       // board id calculated from SFP and device id:
@@ -202,9 +227,17 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
       }
 
       pdata += 1;
+      QFWRAW_CHECK_PDATA;
       theBoard->fQfwSetup = *pdata;
       //TGo4Log::Info("QFW SEtup %d", theBoard->fQfwSetup);
-      pdata += 4;
+      for (int j=0; j<4;++j)
+      {
+        QFWRAW_CHECK_PDATA_BREAK;
+        pdata++;
+
+      }
+      //pdata += 4;
+      QFWRAW_CHECK_PDATA;
       for (int loop = 0; loop < theBoard->getNElements(); loop++)
       {
         TQFWLoop* theLoop = theBoard->GetLoop(loop);
@@ -215,7 +248,7 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
         }
 
         theLoop->fQfwSetup = theBoard->fQfwSetup;    // propagate setup id to subevent
-
+        QFWRAW_CHECK_PDATA_BREAK;
         theLoop->fQfwLoopSize = *pdata++;
 
 //      if (theLoop->fQfwLoopSize >= PEXOR_QFWSLICES)
@@ -227,23 +260,31 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
 
       }    // first loop loop
 
-
+      QFWRAW_CHECK_PDATA;
       for (int loop = 0; loop < theBoard->getNElements(); loop++)
       {
         TQFWLoop* theLoop = theBoard->GetLoop(loop);
+        QFWRAW_CHECK_PDATA_BREAK;
         theLoop->fQfwLoopTime = *pdata++;
       }    // second loop loop
 
       // TODO: are here some useful fields
-      pdata += 21;
-      /** All loops X slices/loop X channels */
+      for (int j=0; j<21;++j)
+      {
+        QFWRAW_CHECK_PDATA_BREAK;
+        pdata++;
 
+      }
+      //pdata += 21; // need to check for each increment if we are outside this slave's payload!
+      QFWRAW_CHECK_PDATA;
+      /** All loops X slices/loop X channels */
       for (int loop = 0; loop < theBoard->getNElements(); loop++)
       {
         TQFWLoop* loopData = theBoard->GetLoop(loop);
         for (int sl = 0; sl < loopData->fQfwLoopSize; ++sl)
           for (int ch = 0; ch < PEXOR_QFWCHANS; ++ch)
           {
+            QFWRAW_CHECK_PDATA_BREAK;
             Int_t value = *pdata++;
             loopData->fQfwTrace[ch].push_back(value);
 
@@ -259,59 +300,70 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
           }
       }    //loop
 
+      QFWRAW_CHECK_PDATA;
       /* errorcount values: - per QFW CHIPS*/
       for (int qfw = 0; qfw < PEXOR_QFWNUM; ++qfw)
       {
+        QFWRAW_CHECK_PDATA_BREAK;
         theBoard->SetErrorScaler(qfw, (UInt_t) (*pdata++));
       }
+      QFWRAW_CHECK_PDATA;
 
-      // eventcounter is trailing word, if we find it we are done with this board:
-      while (*pdata != eventcounter)
+      // skip filler words at the end of gosip payload:
+      while (pdata - pdatastart <= (opticlen / 4))    // note that trailer is outside opticlen!
       {
+        //printf("######### skipping word 0x%x\n ",*pdata);
         pdata++;
-        //printf ("trailer : 0x%x\n",pdata);
-        if ((*pdata & 0xFFFF0000) == 0xadd00000)
-        {
-          TGo4Log::Error("already found padding word 0x%x before trailer!", pdata);
-          return kFALSE;    // leave subevent loop if no more data available
-        }
+      }
 
-        if (pdata > psubevt->GetDataField() + lwords)
-        {
-          TGo4Log::Error("Could not find trailing word 0x%x until end of subevent!", eventcounter);
-          return kFALSE;    // leave subevent loop if no more data available
-        }
+      // crosscheck if trailer word matches eventcounter header
+      if (*pdata != eventcounter)
+      {
+        TGo4Log::Error("Eventcounter 0x%x does not match trailing word 0x%x at position 0x%x!", eventcounter, *pdata,
+            (opticlen / 4));
+        pdata++;
+        continue;
+      }
 
-      }    // while
-
+      // OLD method, problem: if we have data word that has by chance value of eventcounter...
+      // eventcounter is trailing word, if we find it we are done with this board:
+//      while (*pdata != eventcounter)
+//      {
+//        pdata++;
+//        //printf ("trailer : 0x%x\n",pdata);
+//        if ((*pdata & 0xFFFF0000) == 0xadd00000)
+//        {
+//          TGo4Log::Error("already found padding word 0x%x before trailer!", pdata);
+//          return kFALSE;    // leave subevent loop if no more data available
+//        }
+//
+//        if (pdata > psubevt->GetDataField() + lwords)
+//        {
+//          TGo4Log::Error("Could not find trailing word 0x%x until end of subevent!", eventcounter);
+//          return kFALSE;    // leave subevent loop if no more data available
+//        }
+//
+//      }    // while
+//////////////////////////// EBD oild
       //TGo4Log::Info("!!!!!!!!!!! found  trailer 0x%x",*pdata);
       pdata++;
-      //printf("event counter 0x%x\n ",eventcounter);
       QFWRawEvent->fSequenceNumber = eventcounter;
-
-//    while(pdata < psubevt->GetDataField() + opticlen/4)
-//    {
-//      //printf("skipping word 0x%x\n ",*pdata);
-//      pdata++; // skip rest of payload, try next device data
-//
-//    }
-//
 
     }    // while pdata - psubevt->GetDataField() <lwords
 
   }    // while subevents
 
-
   if (fPar->fSelectTriggerEvents)
-         {
-            //TGo4Log::Info("Triggersum of event %d is %d", QFWRawEvent->fSequenceNumber, triggersum);
-            if((triggersum<fPar->fTriggerHighThreshold) && (triggersum> fPar->fTriggerLowThreshold))
-            {
-              GO4_SKIP_EVENT_MESSAGE("Skip event of seqnr %d with triggersum %d!", QFWRawEvent->fSequenceNumber, triggersum); // debug
-              // GO4_SKIP_EVENT; // no debug mode
-            }
-         }
-  FillDisplays(); // we only fill histograms for the events that are selected by trigger condition
+  {
+    //TGo4Log::Info("Triggersum of event %d is %d", QFWRawEvent->fSequenceNumber, triggersum);
+    if ((triggersum < fPar->fTriggerHighThreshold) && (triggersum > fPar->fTriggerLowThreshold))
+    {
+      GO4_SKIP_EVENT_MESSAGE("Skip event of seqnr %d with triggersum %d!", QFWRawEvent->fSequenceNumber, triggersum);
+      // debug
+      // GO4_SKIP_EVENT; // no debug mode
+    }
+  }
+  FillDisplays();    // we only fill histograms for the events that are selected by trigger condition
   QFWRawEvent->SetValid(kTRUE);    // to store
 
   return kTRUE;
