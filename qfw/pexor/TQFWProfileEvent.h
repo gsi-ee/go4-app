@@ -3,8 +3,8 @@
 
 
 
-#define PEXOR_QFW_GRIDS 2
-#define PEXOR_QFW_CUPS 5
+#define PEXOR_QFW_GRIDS 10
+#define PEXOR_QFW_CUPS 10
 
 /* default number of wires for first init:*/
 #define PEXOR_QFW_WIRES 32

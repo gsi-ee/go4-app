@@ -27,7 +27,7 @@
 // maximum number of sfp readout chains used:
 #define PEXOR_MAXSFP 4
 // maximum number of devices per sfpchain:
-#define PEXOR_MAXDEVS 3
+#define PEXOR_MAXDEVS 10
 
 // number of loops
 #define PEXOR_QFWLOOPS  3
