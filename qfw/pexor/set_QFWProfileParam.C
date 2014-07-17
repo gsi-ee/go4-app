@@ -48,18 +48,18 @@ int grid = 0;	// define grid variable
 
 // Grid 41
 // 1 x 60 wires air grid from Andreas Reiter,
-// connected to sfp0 (0-29) and sfp2 (30-59)
+// connected to sfp0 (0-29) and sfp1 (30-59)
    
    grid = 0;
-   for (int wire = 0; wire < 31; ++wire)
+   for (int wire = 0; wire < 30; ++wire)
    {
       param1->fGridBoardID_X[grid][wire] = 10;
-      param1->fGridBoardID_X[grid][wire+31] = 11;
+      param1->fGridBoardID_X[grid][wire+30] = 11;
       param1->fGridChannel_X[grid][wire] = wire;
-      param1->fGridChannel_X[grid][wire+31] = wire;
+      param1->fGridChannel_X[grid][wire+30] = wire;
 
-      param1->fGridPosition_X[grid][wire] = wire;
-      param1->fGridPosition_X[grid][wire+31] = wire+31;
+      param1->fGridPosition_X[grid][wire] = 2*wire;
+      param1->fGridPosition_X[grid][wire+30] = 2*(wire+30);
    }
 
    param1->fGridMinWire_X[grid] = -1;
@@ -70,24 +70,22 @@ int grid = 0;	// define grid variable
 
 // Grid 42
 // 1 x 31 wires SEM-grid (X) from Michael Witthaus,
-// connected to sfp1 (0-30)
+// connected to sfp2 (0-30)
 // SEM-grid (Y) was not connected
+// what is with channel 31 at POLAND
    
    grid = 1;
-   for (int wire = 0; wire < 32; ++wire)
+   for (int wire = 0; wire < 30; ++wire)
    {
       param1->fGridBoardID_X[grid][wire] = 12;
       param1->fGridChannel_X[grid][wire] = wire;
-
-      param1->fGridPosition_X[grid][wire] = wire;
-      param1->fGridPosition_X[grid][wire+31] = wire+31;
    }
 
    param1->fGridMinWire_X[grid] = -1;
-   param1->fGridMaxWire_X[grid] = 31;
+   param1->fGridMaxWire_X[grid] = 30;
    param1->fGridMinWire_Y[grid] = -1;
    param1->fGridMaxWire_Y[grid] = -1;
-x 
+ 
    param1->fGridPosition_X[grid][0]  = -45.000000;
    param1->fGridPosition_X[grid][1]  = -40.500000;
    param1->fGridPosition_X[grid][2]  = -36.000000;
