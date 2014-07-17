@@ -47,15 +47,14 @@ int grid = 0;	// define grid variable
 
 
 // Grid 41
-// 1 
-60 wires air grid from Andreas Reiter,
+// 1 x 60 wires air grid from Andreas Reiter,
 // connected to sfp0 (0-29) and sfp2 (30-59)
    
    grid = 0;
    for (int wire = 0; wire < 31; ++wire)
    {
       param1->fGridBoardID_X[grid][wire] = 10;
-      param1->fGridBoardID_X[grid][wire+31] = 12;
+      param1->fGridBoardID_X[grid][wire+31] = 11;
       param1->fGridChannel_X[grid][wire] = wire;
       param1->fGridChannel_X[grid][wire+31] = wire;
 
@@ -77,7 +76,7 @@ int grid = 0;	// define grid variable
    grid = 1;
    for (int wire = 0; wire < 32; ++wire)
    {
-      param1->fGridBoardID_X[grid][wire] = 11;
+      param1->fGridBoardID_X[grid][wire] = 12;
       param1->fGridChannel_X[grid][wire] = wire;
 
       param1->fGridPosition_X[grid][wire] = wire;
