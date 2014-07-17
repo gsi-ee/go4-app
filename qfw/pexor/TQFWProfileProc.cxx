@@ -91,7 +91,7 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
 
 //-----------------------------------------------------------
 // event function
-Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
+ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 {
   // called by framework from TQFWRawEvent to fill it
 
@@ -177,7 +177,8 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 
           loopDisplay->hBeamXSliceOffs->SetBinContent(binx, bint, fParam->fQFWOffsetsX[g][l][x]);    // show current averaged offset
           //loopDisplay->hBeamXSliceOffs->Fill(x, t, fParam->fQFWOffsetsX[g][l][x]);
-
+// 	  cout <<"BuildEvent: for g,l,x,t, trace[t]=("<<g<<","<<l<<","<<x<<","<<t<<",";
+// 	  cout <<trace[t] << endl; 
           Double_t value = fParam->GetCorrectedXValue(g, l, x, trace[t]);
           sum += value;
           //loopDisplay->hBeamXSlice->SetBinContent(1 + x, 1 + t, value);

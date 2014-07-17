@@ -21,435 +21,144 @@ void set_QFWProfileParam()
 // uncomment lines below to override stored defaults
 
 // CHANGE SETUF OF CUPS HERE:
-//   param1->fNumCups = 1;
-//   param1->fCupDeviceID[0] = 66;
-//   param1->fCupDeviceID[1] = -1;
-//   param1->fCupDeviceID[2] = -1;
-//   param1->fCupDeviceID[3] = -1;
-//   param1->fCupDeviceID[4] = -1;
+   param1->fNumCups = 1;
 
-//   param1->fCupBoardID[0][0] = 11;
-//   param1->fCupBoardID[0][1] = 11;
-//   param1->fCupBoardID[1][0] = -1;
-//   param1->fCupBoardID[1][1] = -1;
-//   param1->fCupBoardID[2][0] = -1;
-//   param1->fCupBoardID[2][1] = -1;
-//   param1->fCupBoardID[3][0] = -1;
-//   param1->fCupBoardID[3][1] = -1;
-//   param1->fCupBoardID[4][0] = -1;
-//   param1->fCupBoardID[4][1] = -1;
-//   param1->fCupChannel[0][0] = 0;
-//   param1->fCupChannel[0][1] = 1;
-//   param1->fCupChannel[1][0] = -1;
-//   param1->fCupChannel[1][1] = -1;
-//   param1->fCupChannel[2][0] = -1;
-//   param1->fCupChannel[2][1] = -1;
-//   param1->fCupChannel[3][0] = -1;
-//   param1->fCupChannel[3][1] = -1;
-//   param1->fCupChannel[4][0] = -1;
-//   param1->fCupChannel[4][1] = -1;
+   param1->fCupDeviceID[0] = 61;
 
-   // CHANGE SETUF OF GRIDS HERE:
-//   param1->fNumGrids = 1;
-//   param1->fGridDeviceID[0] = 42;
-//   param1->fGridDeviceID[1] = -1;
+   param1->fCupBoardID[0][0] = 13;
+   param1->fCupBoardID[0][1] = 13;
+
+   param1->fCupChannel[0][0] = 0;
+   param1->fCupChannel[0][1] = 1;
+
+// CHANGE SETUF OF GRIDS HERE:
+
+   param1->fNumGrids = 3;
+   param1->fGridDeviceID[0] = 41;
+   param1->fGridDeviceID[1] = 42;
+   param1->fGridDeviceID[2] = 51;
+//   param1->fGridDeviceID[3] = 52;          // not used at 16.7.2014
+
+
 
 // mapping grid/wire to frontends  [gridindex][wireindex]
-//   param1->fGridBoardID_X[0][0] = 10;
-//   param1->fGridBoardID_X[0][1] = 10;
-//   param1->fGridBoardID_X[0][2] = 10;
-//   param1->fGridBoardID_X[0][3] = 10;
-//   param1->fGridBoardID_X[0][4] = 10;
-//   param1->fGridBoardID_X[0][5] = 10;
-//   param1->fGridBoardID_X[0][6] = 10;
-//   param1->fGridBoardID_X[0][7] = 10;
-//   param1->fGridBoardID_X[0][8] = 10;
-//   param1->fGridBoardID_X[0][9] = 10;
-//   param1->fGridBoardID_X[0][10] = 10;
-//   param1->fGridBoardID_X[0][11] = 10;
-//   param1->fGridBoardID_X[0][12] = 10;
-//   param1->fGridBoardID_X[0][13] = 10;
-//   param1->fGridBoardID_X[0][14] = 10;
-//   param1->fGridBoardID_X[0][15] = 10;
-//   param1->fGridBoardID_X[0][16] = 10;
-//   param1->fGridBoardID_X[0][17] = 10;
-//   param1->fGridBoardID_X[0][18] = 10;
-//   param1->fGridBoardID_X[0][19] = 10;
-//   param1->fGridBoardID_X[0][20] = 10;
-//   param1->fGridBoardID_X[0][21] = 10;
-//   param1->fGridBoardID_X[0][22] = 10;
-//   param1->fGridBoardID_X[0][23] = 10;
-//   param1->fGridBoardID_X[0][24] = 10;
-//   param1->fGridBoardID_X[0][25] = 10;
-//   param1->fGridBoardID_X[0][26] = 10;
-//   param1->fGridBoardID_X[0][27] = 10;
-//   param1->fGridBoardID_X[0][28] = 10;
-//   param1->fGridBoardID_X[0][29] = 10;
-//   param1->fGridBoardID_X[0][30] = 10;
-//   param1->fGridBoardID_X[0][31] = 10;
-//   param1->fGridBoardID_X[1][0] = -1;
-//   param1->fGridBoardID_X[1][1] = -1;
-//   param1->fGridBoardID_X[1][2] = -1;
-//   param1->fGridBoardID_X[1][3] = -1;
-//   param1->fGridBoardID_X[1][4] = -1;
-//   param1->fGridBoardID_X[1][5] = -1;
-//   param1->fGridBoardID_X[1][6] = -1;
-//   param1->fGridBoardID_X[1][7] = -1;
-//   param1->fGridBoardID_X[1][8] = -1;
-//   param1->fGridBoardID_X[1][9] = -1;
-//   param1->fGridBoardID_X[1][10] = -1;
-//   param1->fGridBoardID_X[1][11] = -1;
-//   param1->fGridBoardID_X[1][12] = -1;
-//   param1->fGridBoardID_X[1][13] = -1;
-//   param1->fGridBoardID_X[1][14] = -1;
-//   param1->fGridBoardID_X[1][15] = -1;
-//   param1->fGridBoardID_X[1][16] = -1;
-//   param1->fGridBoardID_X[1][17] = -1;
-//   param1->fGridBoardID_X[1][18] = -1;
-//   param1->fGridBoardID_X[1][19] = -1;
-//   param1->fGridBoardID_X[1][20] = -1;
-//   param1->fGridBoardID_X[1][21] = -1;
-//   param1->fGridBoardID_X[1][22] = -1;
-//   param1->fGridBoardID_X[1][23] = -1;
-//   param1->fGridBoardID_X[1][24] = -1;
-//   param1->fGridBoardID_X[1][25] = -1;
-//   param1->fGridBoardID_X[1][26] = -1;
-//   param1->fGridBoardID_X[1][27] = -1;
-//   param1->fGridBoardID_X[1][28] = -1;
-//   param1->fGridBoardID_X[1][29] = -1;
-//   param1->fGridBoardID_X[1][30] = -1;
-//   param1->fGridBoardID_X[1][31] = -1;
-//   param1->fGridBoardID_Y[0][0] = 10;
-//   param1->fGridBoardID_Y[0][1] = 10;
-//   param1->fGridBoardID_Y[0][2] = 10;
-//   param1->fGridBoardID_Y[0][3] = 10;
-//   param1->fGridBoardID_Y[0][4] = 10;
-//   param1->fGridBoardID_Y[0][5] = 10;
-//   param1->fGridBoardID_Y[0][6] = 10;
-//   param1->fGridBoardID_Y[0][7] = 10;
-//   param1->fGridBoardID_Y[0][8] = 10;
-//   param1->fGridBoardID_Y[0][9] = 10;
-//   param1->fGridBoardID_Y[0][10] = 10;
-//   param1->fGridBoardID_Y[0][11] = 10;
-//   param1->fGridBoardID_Y[0][12] = 10;
-//   param1->fGridBoardID_Y[0][13] = 10;
-//   param1->fGridBoardID_Y[0][14] = 10;
-//   param1->fGridBoardID_Y[0][15] = 11;
-//   param1->fGridBoardID_Y[0][16] = 11;
-//   param1->fGridBoardID_Y[0][17] = 11;
-//   param1->fGridBoardID_Y[0][18] = 11;
-//   param1->fGridBoardID_Y[0][19] = 11;
-//   param1->fGridBoardID_Y[0][20] = 11;
-//   param1->fGridBoardID_Y[0][21] = 11;
-//   param1->fGridBoardID_Y[0][22] = 11;
-//   param1->fGridBoardID_Y[0][23] = 11;
-//   param1->fGridBoardID_Y[0][24] = 11;
-//   param1->fGridBoardID_Y[0][25] = 11;
-//   param1->fGridBoardID_Y[0][26] = 11;
-//   param1->fGridBoardID_Y[0][27] = 11;
-//   param1->fGridBoardID_Y[0][28] = 11;
-//   param1->fGridBoardID_Y[0][29] = 11;
-//   param1->fGridBoardID_Y[0][30] = 11;
-//   param1->fGridBoardID_Y[0][31] = 11;
-//   param1->fGridBoardID_Y[1][0] = -1;
-//   param1->fGridBoardID_Y[1][1] = -1;
-//   param1->fGridBoardID_Y[1][2] = -1;
-//   param1->fGridBoardID_Y[1][3] = -1;
-//   param1->fGridBoardID_Y[1][4] = -1;
-//   param1->fGridBoardID_Y[1][5] = -1;
-//   param1->fGridBoardID_Y[1][6] = -1;
-//   param1->fGridBoardID_Y[1][7] = -1;
-//   param1->fGridBoardID_Y[1][8] = -1;
-//   param1->fGridBoardID_Y[1][9] = -1;
-//   param1->fGridBoardID_Y[1][10] = -1;
-//   param1->fGridBoardID_Y[1][11] = -1;
-//   param1->fGridBoardID_Y[1][12] = -1;
-//   param1->fGridBoardID_Y[1][13] = -1;
-//   param1->fGridBoardID_Y[1][14] = -1;
-//   param1->fGridBoardID_Y[1][15] = -1;
-//   param1->fGridBoardID_Y[1][16] = -1;
-//   param1->fGridBoardID_Y[1][17] = -1;
-//   param1->fGridBoardID_Y[1][18] = -1;
-//   param1->fGridBoardID_Y[1][19] = -1;
-//   param1->fGridBoardID_Y[1][20] = -1;
-//   param1->fGridBoardID_Y[1][21] = -1;
-//   param1->fGridBoardID_Y[1][22] = -1;
-//   param1->fGridBoardID_Y[1][23] = -1;
-//   param1->fGridBoardID_Y[1][24] = -1;
-//   param1->fGridBoardID_Y[1][25] = -1;
-//   param1->fGridBoardID_Y[1][26] = -1;
-//   param1->fGridBoardID_Y[1][27] = -1;
-//   param1->fGridBoardID_Y[1][28] = -1;
-//   param1->fGridBoardID_Y[1][29] = -1;
-//   param1->fGridBoardID_Y[1][30] = -1;
-//   param1->fGridBoardID_Y[1][31] = -1;
-//   param1->fGridChannel_X[0][0] = 16;
-//   param1->fGridChannel_X[0][1] = 17;
-//   param1->fGridChannel_X[0][2] = 18;
-//   param1->fGridChannel_X[0][3] = 19;
-//   param1->fGridChannel_X[0][4] = 20;
-//   param1->fGridChannel_X[0][5] = 21;
-//   param1->fGridChannel_X[0][6] = 22;
-//   param1->fGridChannel_X[0][7] = 23;
-//   param1->fGridChannel_X[0][8] = 24;
-//   param1->fGridChannel_X[0][9] = 25;
-//   param1->fGridChannel_X[0][10] = 26;
-//   param1->fGridChannel_X[0][11] = 27;
-//   param1->fGridChannel_X[0][12] = 28;
-//   param1->fGridChannel_X[0][13] = 29;
-//   param1->fGridChannel_X[0][14] = 30;
-//   param1->fGridChannel_X[0][15] = 15;
-//   param1->fGridChannel_X[0][16] = 16;
-//   param1->fGridChannel_X[0][17] = 17;
-//   param1->fGridChannel_X[0][18] = 18;
-//   param1->fGridChannel_X[0][19] = 19;
-//   param1->fGridChannel_X[0][20] = 20;
-//   param1->fGridChannel_X[0][21] = 21;
-//   param1->fGridChannel_X[0][22] = 22;
-//   param1->fGridChannel_X[0][23] = 23;
-//   param1->fGridChannel_X[0][24] = 24;
-//   param1->fGridChannel_X[0][25] = 25;
-//   param1->fGridChannel_X[0][26] = 26;
-//   param1->fGridChannel_X[0][27] = 27;
-//   param1->fGridChannel_X[0][28] = 28;
-//   param1->fGridChannel_X[0][29] = 29;
-//   param1->fGridChannel_X[0][30] = 30;
-//   param1->fGridChannel_X[0][31] = 31;
-//   param1->fGridChannel_X[1][0] = -1;
-//   param1->fGridChannel_X[1][1] = -1;
-//   param1->fGridChannel_X[1][2] = -1;
-//   param1->fGridChannel_X[1][3] = -1;
-//   param1->fGridChannel_X[1][4] = -1;
-//   param1->fGridChannel_X[1][5] = -1;
-//   param1->fGridChannel_X[1][6] = -1;
-//   param1->fGridChannel_X[1][7] = -1;
-//   param1->fGridChannel_X[1][8] = -1;
-//   param1->fGridChannel_X[1][9] = -1;
-//   param1->fGridChannel_X[1][10] = -1;
-//   param1->fGridChannel_X[1][11] = -1;
-//   param1->fGridChannel_X[1][12] = -1;
-//   param1->fGridChannel_X[1][13] = -1;
-//   param1->fGridChannel_X[1][14] = -1;
-//   param1->fGridChannel_X[1][15] = -1;
-//   param1->fGridChannel_X[1][16] = -1;
-//   param1->fGridChannel_X[1][17] = -1;
-//   param1->fGridChannel_X[1][18] = -1;
-//   param1->fGridChannel_X[1][19] = -1;
-//   param1->fGridChannel_X[1][20] = -1;
-//   param1->fGridChannel_X[1][21] = -1;
-//   param1->fGridChannel_X[1][22] = -1;
-//   param1->fGridChannel_X[1][23] = -1;
-//   param1->fGridChannel_X[1][24] = -1;
-//   param1->fGridChannel_X[1][25] = -1;
-//   param1->fGridChannel_X[1][26] = -1;
-//   param1->fGridChannel_X[1][27] = -1;
-//   param1->fGridChannel_X[1][28] = -1;
-//   param1->fGridChannel_X[1][29] = -1;
-//   param1->fGridChannel_X[1][30] = -1;
-//   param1->fGridChannel_X[1][31] = -1;
-//   param1->fGridChannel_Y[0][0] = 0;
-//   param1->fGridChannel_Y[0][1] = 1;
-//   param1->fGridChannel_Y[0][2] = 2;
-//   param1->fGridChannel_Y[0][3] = 3;
-//   param1->fGridChannel_Y[0][4] = 4;
-//   param1->fGridChannel_Y[0][5] = 5;
-//   param1->fGridChannel_Y[0][6] = 6;
-//   param1->fGridChannel_Y[0][7] = 7;
-//   param1->fGridChannel_Y[0][8] = 8;
-//   param1->fGridChannel_Y[0][9] = 9;
-//   param1->fGridChannel_Y[0][10] = 10;
-//   param1->fGridChannel_Y[0][11] = 11;
-//   param1->fGridChannel_Y[0][12] = 12;
-//   param1->fGridChannel_Y[0][13] = 13;
-//   param1->fGridChannel_Y[0][14] = 14;
-//   param1->fGridChannel_Y[0][15] = 15;
-//   param1->fGridChannel_Y[0][16] = 16;
-//   param1->fGridChannel_Y[0][17] = 17;
-//   param1->fGridChannel_Y[0][18] = 18;
-//   param1->fGridChannel_Y[0][19] = 19;
-//   param1->fGridChannel_Y[0][20] = 20;
-//   param1->fGridChannel_Y[0][21] = 21;
-//   param1->fGridChannel_Y[0][22] = 22;
-//   param1->fGridChannel_Y[0][23] = 23;
-//   param1->fGridChannel_Y[0][24] = 24;
-//   param1->fGridChannel_Y[0][25] = 25;
-//   param1->fGridChannel_Y[0][26] = 26;
-//   param1->fGridChannel_Y[0][27] = 27;
-//   param1->fGridChannel_Y[0][28] = 28;
-//   param1->fGridChannel_Y[0][29] = 29;
-//   param1->fGridChannel_Y[0][30] = 30;
-//   param1->fGridChannel_Y[0][31] = 31;
-//   param1->fGridChannel_Y[1][0] = -1;
-//   param1->fGridChannel_Y[1][1] = -1;
-//   param1->fGridChannel_Y[1][2] = -1;
-//   param1->fGridChannel_Y[1][3] = -1;
-//   param1->fGridChannel_Y[1][4] = -1;
-//   param1->fGridChannel_Y[1][5] = -1;
-//   param1->fGridChannel_Y[1][6] = -1;
-//   param1->fGridChannel_Y[1][7] = -1;
-//   param1->fGridChannel_Y[1][8] = -1;
-//   param1->fGridChannel_Y[1][9] = -1;
-//   param1->fGridChannel_Y[1][10] = -1;
-//   param1->fGridChannel_Y[1][11] = -1;
-//   param1->fGridChannel_Y[1][12] = -1;
-//   param1->fGridChannel_Y[1][13] = -1;
-//   param1->fGridChannel_Y[1][14] = -1;
-//   param1->fGridChannel_Y[1][15] = -1;
-//   param1->fGridChannel_Y[1][16] = -1;
-//   param1->fGridChannel_Y[1][17] = -1;
-//   param1->fGridChannel_Y[1][18] = -1;
-//   param1->fGridChannel_Y[1][19] = -1;
-//   param1->fGridChannel_Y[1][20] = -1;
-//   param1->fGridChannel_Y[1][21] = -1;
-//   param1->fGridChannel_Y[1][22] = -1;
-//   param1->fGridChannel_Y[1][23] = -1;
-//   param1->fGridChannel_Y[1][24] = -1;
-//   param1->fGridChannel_Y[1][25] = -1;
-//   param1->fGridChannel_Y[1][26] = -1;
-//   param1->fGridChannel_Y[1][27] = -1;
-//   param1->fGridChannel_Y[1][28] = -1;
-//   param1->fGridChannel_Y[1][29] = -1;
-//   param1->fGridChannel_Y[1][30] = -1;
-//   param1->fGridChannel_Y[1][31] = -1;
 
-// GRID MINIMUM/MAXIMUM WIRE INDEX [gridindex]:
-//   param1->fGridMinWire_X[0] = 2;
-//   param1->fGridMinWire_X[1] = -1;
-//   param1->fGridMaxWire_X[0] = 30;
-//   param1->fGridMaxWire_X[1] = -1;
-//   param1->fGridMinWire_Y[0] = 3;
-//   param1->fGridMinWire_Y[1] = -1;
-//   param1->fGridMaxWire_Y[0] = 30;
-//   param1->fGridMaxWire_Y[1] = -1;
+int grid = 0;	// define grid variable
 
-   // GRID WIRE GEOMETRY (in millimeter): [gridindex][wireindex]
-//   param1->fGridPosition_X[0][0] = -45.000000;
-//   param1->fGridPosition_X[0][1] = -40.500000;
-//   param1->fGridPosition_X[0][2] = -36.000000;
-//   param1->fGridPosition_X[0][3] = -31.500000;
-//   param1->fGridPosition_X[0][4] = -27.000000;
-//   param1->fGridPosition_X[0][5] = -22.500000;
-//   param1->fGridPosition_X[0][6] = -19.500000;
-//   param1->fGridPosition_X[0][7] = -16.500000;
-//   param1->fGridPosition_X[0][8] = -13.500000;
-//   param1->fGridPosition_X[0][9] = -10.500000;
-//   param1->fGridPosition_X[0][10] = -7.500000;
-//   param1->fGridPosition_X[0][11] = -6.000000;
-//   param1->fGridPosition_X[0][12] = -4.500000;
-//   param1->fGridPosition_X[0][13] = -3.000000;
-//   param1->fGridPosition_X[0][14] = -1.500000;
-//   param1->fGridPosition_X[0][15] = 0.000000;
-//   param1->fGridPosition_X[0][16] = 1.500000;
-//   param1->fGridPosition_X[0][17] = 3.000000;
-//   param1->fGridPosition_X[0][18] = 4.500000;
-//   param1->fGridPosition_X[0][19] = 6.000000;
-//   param1->fGridPosition_X[0][20] = 7.500000;
-//   param1->fGridPosition_X[0][21] = 10.500000;
-//   param1->fGridPosition_X[0][22] = 13.500000;
-//   param1->fGridPosition_X[0][23] = 16.500000;
-//   param1->fGridPosition_X[0][24] = 19.500000;
-//   param1->fGridPosition_X[0][25] = 22.500000;
-//   param1->fGridPosition_X[0][26] = 27.000000;
-//   param1->fGridPosition_X[0][27] = 31.500000;
-//   param1->fGridPosition_X[0][28] = 36.000000;
-//   param1->fGridPosition_X[0][29] = 40.500000;
-//   param1->fGridPosition_X[0][30] = 45.000000;
-//   param1->fGridPosition_X[0][31] = 49.500000;
-//   param1->fGridPosition_X[1][0] = 0.000000;
-//   param1->fGridPosition_X[1][1] = 1.000000;
-//   param1->fGridPosition_X[1][2] = 2.000000;
-//   param1->fGridPosition_X[1][3] = 3.000000;
-//   param1->fGridPosition_X[1][4] = 4.000000;
-//   param1->fGridPosition_X[1][5] = 5.000000;
-//   param1->fGridPosition_X[1][6] = 6.000000;
-//   param1->fGridPosition_X[1][7] = 7.000000;
-//   param1->fGridPosition_X[1][8] = 8.000000;
-//   param1->fGridPosition_X[1][9] = 9.000000;
-//   param1->fGridPosition_X[1][10] = 10.000000;
-//   param1->fGridPosition_X[1][11] = 11.000000;
-//   param1->fGridPosition_X[1][12] = 12.000000;
-//   param1->fGridPosition_X[1][13] = 13.000000;
-//   param1->fGridPosition_X[1][14] = 14.000000;
-//   param1->fGridPosition_X[1][15] = 15.000000;
-//   param1->fGridPosition_X[1][16] = 16.000000;
-//   param1->fGridPosition_X[1][17] = 17.000000;
-//   param1->fGridPosition_X[1][18] = 18.000000;
-//   param1->fGridPosition_X[1][19] = 19.000000;
-//   param1->fGridPosition_X[1][20] = 20.000000;
-//   param1->fGridPosition_X[1][21] = 21.000000;
-//   param1->fGridPosition_X[1][22] = 22.000000;
-//   param1->fGridPosition_X[1][23] = 23.000000;
-//   param1->fGridPosition_X[1][24] = 24.000000;
-//   param1->fGridPosition_X[1][25] = 25.000000;
-//   param1->fGridPosition_X[1][26] = 26.000000;
-//   param1->fGridPosition_X[1][27] = 27.000000;
-//   param1->fGridPosition_X[1][28] = 28.000000;
-//   param1->fGridPosition_X[1][29] = 29.000000;
-//   param1->fGridPosition_X[1][30] = 30.000000;
-//   param1->fGridPosition_X[1][31] = 31.000000;
-//   param1->fGridPosition_Y[0][0] = -45.000000;
-//   param1->fGridPosition_Y[0][1] = -40.500000;
-//   param1->fGridPosition_Y[0][2] = -36.000000;
-//   param1->fGridPosition_Y[0][3] = -31.500000;
-//   param1->fGridPosition_Y[0][4] = -27.000000;
-//   param1->fGridPosition_Y[0][5] = -22.500000;
-//   param1->fGridPosition_Y[0][6] = -19.500000;
-//   param1->fGridPosition_Y[0][7] = -16.500000;
-//   param1->fGridPosition_Y[0][8] = -13.500000;
-//   param1->fGridPosition_Y[0][9] = -10.500000;
-//   param1->fGridPosition_Y[0][10] = -7.500000;
-//   param1->fGridPosition_Y[0][11] = -6.000000;
-//   param1->fGridPosition_Y[0][12] = -4.500000;
-//   param1->fGridPosition_Y[0][13] = -3.000000;
-//   param1->fGridPosition_Y[0][14] = -1.500000;
-//   param1->fGridPosition_Y[0][15] = 0.000000;
-//   param1->fGridPosition_Y[0][16] = 1.500000;
-//   param1->fGridPosition_Y[0][17] = 3.000000;
-//   param1->fGridPosition_Y[0][18] = 4.500000;
-//   param1->fGridPosition_Y[0][19] = 6.000000;
-//   param1->fGridPosition_Y[0][20] = 7.500000;
-//   param1->fGridPosition_Y[0][21] = 10.500000;
-//   param1->fGridPosition_Y[0][22] = 13.500000;
-//   param1->fGridPosition_Y[0][23] = 16.500000;
-//   param1->fGridPosition_Y[0][24] = 19.500000;
-//   param1->fGridPosition_Y[0][25] = 22.500000;
-//   param1->fGridPosition_Y[0][26] = 27.000000;
-//   param1->fGridPosition_Y[0][27] = 31.500000;
-//   param1->fGridPosition_Y[0][28] = 36.000000;
-//   param1->fGridPosition_Y[0][29] = 40.500000;
-//   param1->fGridPosition_Y[0][30] = 45.000000;
-//   param1->fGridPosition_Y[0][31] = 49.500000;
-//   param1->fGridPosition_Y[1][0] = 0.000000;
-//   param1->fGridPosition_Y[1][1] = 1.000000;
-//   param1->fGridPosition_Y[1][2] = 2.000000;
-//   param1->fGridPosition_Y[1][3] = 3.000000;
-//   param1->fGridPosition_Y[1][4] = 4.000000;
-//   param1->fGridPosition_Y[1][5] = 5.000000;
-//   param1->fGridPosition_Y[1][6] = 6.000000;
-//   param1->fGridPosition_Y[1][7] = 7.000000;
-//   param1->fGridPosition_Y[1][8] = 8.000000;
-//   param1->fGridPosition_Y[1][9] = 9.000000;
-//   param1->fGridPosition_Y[1][10] = 10.000000;
-//   param1->fGridPosition_Y[1][11] = 11.000000;
-//   param1->fGridPosition_Y[1][12] = 12.000000;
-//   param1->fGridPosition_Y[1][13] = 13.000000;
-//   param1->fGridPosition_Y[1][14] = 14.000000;
-//   param1->fGridPosition_Y[1][15] = 15.000000;
-//   param1->fGridPosition_Y[1][16] = 16.000000;
-//   param1->fGridPosition_Y[1][17] = 17.000000;
-//   param1->fGridPosition_Y[1][18] = 18.000000;
-//   param1->fGridPosition_Y[1][19] = 19.000000;
-//   param1->fGridPosition_Y[1][20] = 20.000000;
-//   param1->fGridPosition_Y[1][21] = 21.000000;
-//   param1->fGridPosition_Y[1][22] = 22.000000;
-//   param1->fGridPosition_Y[1][23] = 23.000000;
-//   param1->fGridPosition_Y[1][24] = 24.000000;
-//   param1->fGridPosition_Y[1][25] = 25.000000;
-//   param1->fGridPosition_Y[1][26] = 26.000000;
-//   param1->fGridPosition_Y[1][27] = 27.000000;
-//   param1->fGridPosition_Y[1][28] = 28.000000;
-//   param1->fGridPosition_Y[1][29] = 29.000000;
-//   param1->fGridPosition_Y[1][30] = 30.000000;
-//   param1->fGridPosition_Y[1][31] = 31.000000;
+
+// Grid 41
+// 1 
+60 wires air grid from Andreas Reiter,
+// connected to sfp0 (0-29) and sfp2 (30-59)
+   
+   grid = 0;
+   for (int wire = 0; wire < 31; ++wire)
+   {
+      param1->fGridBoardID_X[grid][wire] = 10;
+      param1->fGridBoardID_X[grid][wire+31] = 12;
+      param1->fGridChannel_X[grid][wire] = wire;
+      param1->fGridChannel_X[grid][wire+31] = wire;
+
+      param1->fGridPosition_X[grid][wire] = wire;
+      param1->fGridPosition_X[grid][wire+31] = wire+31;
+   }
+
+   param1->fGridMinWire_X[grid] = -1;
+   param1->fGridMaxWire_X[grid] = 60;
+   param1->fGridMinWire_Y[grid] = -1;
+   param1->fGridMaxWire_Y[grid] = -1;
+
+
+// Grid 42
+// 1 x 31 wires SEM-grid (X) from Michael Witthaus,
+// connected to sfp1 (0-30)
+// SEM-grid (Y) was not connected
+   
+   grid = 1;
+   for (int wire = 0; wire < 32; ++wire)
+   {
+      param1->fGridBoardID_X[grid][wire] = 11;
+      param1->fGridChannel_X[grid][wire] = wire;
+
+      param1->fGridPosition_X[grid][wire] = wire;
+      param1->fGridPosition_X[grid][wire+31] = wire+31;
+   }
+
+   param1->fGridMinWire_X[grid] = -1;
+   param1->fGridMaxWire_X[grid] = 31;
+   param1->fGridMinWire_Y[grid] = -1;
+   param1->fGridMaxWire_Y[grid] = -1;
+x 
+   param1->fGridPosition_X[grid][0]  = -45.000000;
+   param1->fGridPosition_X[grid][1]  = -40.500000;
+   param1->fGridPosition_X[grid][2]  = -36.000000;
+   param1->fGridPosition_X[grid][3]  = -31.500000;
+   param1->fGridPosition_X[grid][4]  = -27.000000;
+   param1->fGridPosition_X[grid][5]  = -22.500000;
+   param1->fGridPosition_X[grid][6]  = -19.500000;
+   param1->fGridPosition_X[grid][7]  = -16.500000;
+   param1->fGridPosition_X[grid][8]  = -13.500000;
+   param1->fGridPosition_X[grid][9]  = -10.500000;
+   param1->fGridPosition_X[grid][10] = -7.500000;
+   param1->fGridPosition_X[grid][11] = -6.000000;
+   param1->fGridPosition_X[grid][12] = -4.500000;
+   param1->fGridPosition_X[grid][13] = -3.000000;
+   param1->fGridPosition_X[grid][14] = -1.500000;
+   param1->fGridPosition_X[grid][15] = 0.000000;
+   param1->fGridPosition_X[grid][16] = 1.500000;
+   param1->fGridPosition_X[grid][17] = 3.000000;
+   param1->fGridPosition_X[grid][18] = 4.500000;
+   param1->fGridPosition_X[grid][19] = 6.000000;
+   param1->fGridPosition_X[grid][20] = 7.500000;
+   param1->fGridPosition_X[grid][21] = 10.500000;
+   param1->fGridPosition_X[grid][22] = 13.500000;
+   param1->fGridPosition_X[grid][23] = 16.500000;
+   param1->fGridPosition_X[grid][24] = 19.500000;
+   param1->fGridPosition_X[grid][25] = 22.500000;
+   param1->fGridPosition_X[grid][26] = 27.000000;
+   param1->fGridPosition_X[grid][27] = 31.500000;
+   param1->fGridPosition_X[grid][28] = 36.000000;
+   param1->fGridPosition_X[grid][29] = 40.500000;
+   param1->fGridPosition_X[grid][30] = 45.000000;
+   param1->fGridPosition_X[grid][31] = 49.500000;
+
+   
+// Grid 51
+// 1 x 2 wires air plate detector from Andreas Reiter,
+// connected to sfp3 (0-1)
+   
+   grid = 2;
+   for (int wire = 0; wire < 2; ++wire)
+   {
+      param1->fGridBoardID_X[grid][wire] = 13;
+      param1->fGridChannel_X[grid][wire] = wire;
+
+      param1->fGridPosition_X[grid][wire] = wire;
+   }
+
+   param1->fGridMinWire_X[grid] = -1;
+   param1->fGridMaxWire_X[grid] = 2;
+   param1->fGridMinWire_Y[grid] = -1;
+   param1->fGridMaxWire_Y[grid] = -1;
+
+
+// NOT USED FOR BEAMTIME 16.07.2014
+// Grid 52
+// 1 x 3 wires beam lost monitors,
+// connected to sfp2 (0-2)
+   
+//    grid = 3;
+//    for (int wire = 0; wire < 3; ++wire)
+//    {
+//       param1->fGridBoardID_X[grid][wire] = 12;
+//       param1->fGridChannel_X[grid][wire] = wire;
+// 
+//       param1->fGridPosition_X[grid][wire] = wire;
+//    }
+// 
+//    param1->fGridMinWire_X[grid] = -1;
+//    param1->fGridMaxWire_X[grid] = 3;
+//    param1->fGridMinWire_Y[grid] = -1;
+//    param1->fGridMaxWire_Y[grid] = -1;
 
 }

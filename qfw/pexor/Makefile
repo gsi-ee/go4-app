@@ -8,7 +8,7 @@ endif
 
 include $(GO4SYS)/Makefile.config
 
-#DOOPTIMIZATION=false
+DOOPTIMIZATION=false
 
 ## normally should be like this for every module, but can be specific
 

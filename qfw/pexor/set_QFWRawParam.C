@@ -17,23 +17,18 @@ void set_QFWRawParam()
 // uncomment lines below to override comiled/stored defaults:
 
 // mapping of qfw frontend boards to gosip optical connections [sfpid][devid]
-//   param0->fBoardID[0][0] = 10;
-//   param0->fBoardID[0][1] = -1;
-//   param0->fBoardID[0][2] = -1;
-//   param0->fBoardID[1][0] = 11;
-//   param0->fBoardID[1][1] = -1;
-//   param0->fBoardID[1][2] = -1;
-//   param0->fBoardID[2][0] = 12;
-//   param0->fBoardID[2][1] = -1;
-//   param0->fBoardID[2][2] = -1;
-//   param0->fBoardID[3][0] = -1;
-//   param0->fBoardID[3][1] = -1;
-//   param0->fBoardID[3][2] = -1;
+
+   param0->fBoardID[0][0] = 10;
+   param0->fBoardID[1][0] = 11;
+   param0->fBoardID[2][0] = 12;
+   param0->fBoardID[3][0] = 13;
+
    param0->fSimpleCompensation = kFALSE;
    param0->fSelectTriggerEvents = kFALSE;
+
    param0->fTriggerHighThreshold = 5000000;
    param0->fTriggerLowThreshold = 4000000;
-   param0->fTriggerBoardID = 12;
+   param0->fTriggerBoardID = 13;
    param0->fTriggerFirstChannel = 0;
    param0->fTriggerLastChannel = 1;
 

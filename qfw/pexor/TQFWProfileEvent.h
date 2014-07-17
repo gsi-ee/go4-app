@@ -7,7 +7,7 @@
 #define PEXOR_QFW_CUPS 10
 
 /* default number of wires for first init:*/
-#define PEXOR_QFW_WIRES 32
+#define PEXOR_QFW_WIRES 64
 //32
 
 /* default number of wires for first init:*/
