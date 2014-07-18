@@ -59,10 +59,10 @@ int grid = 0;	// define grid variable
       param1->fGridChannel_X[grid][wire+30] = wire;
 
       param1->fGridPosition_X[grid][wire] = 2*wire;
-      param1->fGridPosition_X[grid][wire+30] = 2*(wire+30);
+      param1->fGridPosition_X[grid][wire+30] = 2*(wire +30);
    }
 
-   param1->fGridMinWire_X[grid] = -1;
+   param1->fGridMinWire_X[grid] = 0;
    param1->fGridMaxWire_X[grid] = 60;
    param1->fGridMinWire_Y[grid] = -1;
    param1->fGridMaxWire_Y[grid] = -1;
@@ -81,7 +81,7 @@ int grid = 0;	// define grid variable
       param1->fGridChannel_X[grid][wire] = wire;
    }
 
-   param1->fGridMinWire_X[grid] = -1;
+   param1->fGridMinWire_X[grid] = 0;
    param1->fGridMaxWire_X[grid] = 30;
    param1->fGridMinWire_Y[grid] = -1;
    param1->fGridMaxWire_Y[grid] = -1;
@@ -153,7 +153,7 @@ int grid = 0;	// define grid variable
 //       param1->fGridPosition_X[grid][wire] = wire;
 //    }
 // 
-//    param1->fGridMinWire_X[grid] = -1;
+//    param1->fGridMinWire_X[grid] = 0;
 //    param1->fGridMaxWire_X[grid] = 3;
 //    param1->fGridMinWire_Y[grid] = -1;
 //    param1->fGridMaxWire_Y[grid] = -1;
