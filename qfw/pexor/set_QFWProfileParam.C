@@ -61,6 +61,7 @@ int grid = 0;	// define grid variable
       param1->fGridPosition_X[grid][wire] = 2*wire;
       param1->fGridPosition_X[grid][wire+30] = 2*(wire +30);
    }
+   param1->fGridPosition_X[grid][60] = 120; // need to specify one more wire to get upper edge of histograms right JAM
 
    param1->fGridMinWire_X[grid] = 0;
    param1->fGridMaxWire_X[grid] = 60;
