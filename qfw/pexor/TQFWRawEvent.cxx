@@ -106,7 +106,11 @@ TQFWBoard::TQFWBoard(const char* name, UInt_t unid, Short_t index) :
     modname.Form("Board%02d_Loop%02d", fUniqueId, i);
     addEventElement(new TQFWLoop(modname.Data(), i));
   }
-
+  // initialize frontend offsets:
+  for (int c = 0; c < PEXOR_QFWCHANS; ++c)
+     {
+        fQfwOffsets[c]=0;
+     }
 }
 
 TQFWBoard::~TQFWBoard()
@@ -120,7 +124,7 @@ void TQFWBoard::Clear(Option_t *t)
   TGo4CompositeEvent::Clear();
   fQfwSetup=0;
 
-  for (int q = 0; q > PEXOR_QFWNUM; ++q)
+  for (int q = 0; q < PEXOR_QFWNUM; ++q)
    {
       fQfwErr[q]=0;
    }

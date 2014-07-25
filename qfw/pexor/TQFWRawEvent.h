@@ -122,6 +122,17 @@ class TQFWBoard : public TGo4CompositeEvent {
             if(qfwid<PEXOR_QFWNUM) fQfwErr[qfwid]=value;
          }
 
+      Int_t GetOffset(UInt_t ch)
+      {
+        if(ch>=PEXOR_QFWCHANS) return 0;
+        return fQfwOffsets[ch];
+      }
+      void SetOffset(UInt_t ch, UInt_t value)
+      {
+        if(ch<PEXOR_QFWCHANS) fQfwOffsets[ch]=value;
+      }
+
+
       /** Method called by the framework to clear the event element. */
       void Clear(Option_t *t="");
 
@@ -143,10 +154,11 @@ class TQFWBoard : public TGo4CompositeEvent {
       /* error scaler for each qfw on the board*/
       UInt_t fQfwErr[PEXOR_QFWNUM];
 
+      /* Offset values as measured by last frontend trigger*/
+      Int_t fQfwOffsets[PEXOR_QFWCHANS];
 
 
-
-      ClassDef(TQFWBoard,1)
+      ClassDef(TQFWBoard,2)
 };
 
 

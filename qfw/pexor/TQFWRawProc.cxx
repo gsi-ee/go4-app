@@ -35,7 +35,7 @@ if((pdata - pdatastart) > (opticlen/4)) \
 }
 
 
-//  printf("############ reached end of payload for sfp:%d slave:%d with opticlen:0x%x\n",sfp_id, device_id, opticlen);\
+//  printf("############ reached end of payload for sfp:%d slave:%d with opticlen:0x%x\n",sfp_id, device_id, opticlen);
 
 
 //***********************************************************
@@ -119,12 +119,17 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
     cout << "AnlProc: no input event !" << endl;
     return kFALSE;
   }
-  if (source->GetTrigger() > 11)
-  {
-    cout << "**** TQFWRawProc: Skip trigger event" << endl;
+  UShort_t triggertype=source->GetTrigger();
 
-    return kFALSE;
+  if ((triggertype != fPar->fFrontendOffsetTrigger) && (triggertype > 11))
+  {
+    // frontend offset trigger can be one of these, we let it through to unpacking loop
+    //cout << "**** TQFWRawProc: Skip trigger event" << endl;
+    GO4_SKIP_EVENT_MESSAGE( "**** TQFWRawProc: Skip event of trigger type 0x%x",
+                                     triggertype);
+    //return kFALSE; // this would let the second step execute!
   }
+
 // first we fill the TQFWRawEvent with data from MBS source
 // we have up to two subevents, crate 1 and 2
 // Note that one has to loop over all subevents and select them by
@@ -143,6 +148,64 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
     // loop over single subevent data:
     while (pdata - psubevt->GetDataField() < lwords)
     {
+
+
+      if (triggertype == fPar->fFrontendOffsetTrigger)
+       {
+           // get update of qfw offsets as measured by frontends
+         cout << "**** TQFWRawProc: Use frontend offset trigger "<< source->GetTrigger() << endl;
+         if ((*pdata & 0xff) != 0x42)    // regular channel data
+             {
+               GO4_SKIP_EVENT_MESSAGE(
+                   "**** TQFWRawProc: Wrong frontend offset format 0x%x - 0x42 are expected", (*pdata & 0xff));
+               // avoid that we run second step on invalid raw event!
+             }
+            //Int_t* pdatastart = pdata;    // remember begin of optic payload data section
+             unsigned trig_type   = (*pdata & 0xf00) >> 8;
+             unsigned sfp_id = (*pdata & 0xf000) >> 12;
+             unsigned device_id = (*pdata & 0xff0000) >> 16;
+             cout << "**** TQFWRawProc: Found trigger type "<< trig_type<<", sfp:"<<sfp_id<<", slave:"<<device_id << endl;
+             if(trig_type !=triggertype)
+             {
+               GO4_SKIP_EVENT_MESSAGE(
+                                  "**** TQFWRawProc: Offset header trigger type 0x%x does not match MBS trigger 0x%x",
+                                    trig_type, triggertype);
+               // just in case, but never come here!
+             }
+             pdata++;
+             UInt_t brdid = fPar->fBoardID[sfp_id][device_id];
+             TQFWBoard* theBoard = QFWRawEvent->GetBoard(brdid);
+             if (theBoard == 0)
+             {
+               GO4_SKIP_EVENT_MESSAGE(
+                   "Configuration error: Board id %d does not exist as subevent, sfp:%d device:%d", brdid, sfp_id, device_id);
+
+               return kFALSE;
+             }
+             TQFWBoardDisplay* boardDisplay = GetBoardDisplay(brdid);
+             if (boardDisplay == 0)
+             {
+               GO4_SKIP_EVENT_MESSAGE("Configuration error: Board id %d does not exist as histogram display set!", brdid);
+               return kFALSE;
+             }
+             boardDisplay->hQFWOffsets->Reset("");
+             // now copy to board offset values:
+               for(unsigned int c=0; c<PEXOR_QFWCHANS; ++c)
+               {
+                 Int_t value=*pdata++;
+                 cout << "**** TQFWRawProc: Got frontend offset "<< value <<" for channel "<<c << endl;
+                 theBoard->SetOffset(c,value);
+                 //boardDisplay->hQFWOffsets->Fill(c,value);
+               }
+               // no check at end of payload, either we find new correct header or subevent is over
+             continue;
+       } // end  if (source->GetTrigger() == fPar->fFrontendOffsetTrigger)
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+/// Here begin regular qfw data from token readout:
+
 
       if ((*pdata & 0xffff0000) == 0xadd00000)    // we have padding word (initial data of sfp, skip it:)
       {
@@ -176,7 +239,7 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
         }
         continue;
       }
-      else if (*pdata == 0xbad00bad)
+      else if ((unsigned) *pdata == 0xbad00bad)
       {
         GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: Found BAD mbs event (marked 0x%x), skip it.", (*pdata));
       }
@@ -286,6 +349,17 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
           {
             QFWRAW_CHECK_PDATA_BREAK;
             Int_t value = *pdata++;
+
+            if(fPar->fUseFrontendOffsets)
+            {
+                // we account frontend measured offset already here
+                // this emulates future mode where offset is corrected already in poland
+                Double_t correction=theBoard->GetOffset(ch) * loopData->GetMicroSecsPerTimeSlice()/1.0e+6;
+                // <- offset is measured for 1 second, evaluate for actual time slice period
+
+                value -= correction;
+            }
+
             loopData->fQfwTrace[ch].push_back(value);
 
             if (fPar->fSelectTriggerEvents && ((UInt_t) fPar->fTriggerBoardID == brdid))
@@ -324,27 +398,6 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
         pdata++;
         continue;
       }
-
-      // OLD method, problem: if we have data word that has by chance value of eventcounter...
-      // eventcounter is trailing word, if we find it we are done with this board:
-//      while (*pdata != eventcounter)
-//      {
-//        pdata++;
-//        //printf ("trailer : 0x%x\n",pdata);
-//        if ((*pdata & 0xFFFF0000) == 0xadd00000)
-//        {
-//          TGo4Log::Error("already found padding word 0x%x before trailer!", pdata);
-//          return kFALSE;    // leave subevent loop if no more data available
-//        }
-//
-//        if (pdata > psubevt->GetDataField() + lwords)
-//        {
-//          TGo4Log::Error("Could not find trailing word 0x%x until end of subevent!", eventcounter);
-//          return kFALSE;    // leave subevent loop if no more data available
-//        }
-//
-//      }    // while
-//////////////////////////// EBD oild
       //TGo4Log::Info("!!!!!!!!!!! found  trailer 0x%x",*pdata);
       pdata++;
       QFWRawEvent->fSequenceNumber = eventcounter;
@@ -433,6 +486,10 @@ Bool_t TQFWRawProc::FillDisplays()
             loopDisplay->hQFWRaw->AddBinContent(ch + 1 + sl * PEXOR_QFWCHANS, value);
             boardDisplay->hQFWRaw2D->Fill(loopoffset + sl, ch, value);
             //printf("      loopoffset= %d\n", loopoffset);
+
+
+
+
           }
         }
       if (fPar->fSimpleCompensation)
@@ -470,6 +527,10 @@ Bool_t TQFWRawProc::FillDisplays()
       boardDisplay->hQFWRawErr->SetBinContent(1 + qfw, theBoard->GetErrorScaler(qfw));
       boardDisplay->hQFWRawErrTr->AddBinContent(1 + qfw, theBoard->GetErrorScaler(qfw));
     }
+    // need to update this here, since histograms are initialized after offset is retrieved!
+    for (int c = 0; c < PEXOR_QFWCHANS; ++c)
+      boardDisplay->hQFWOffsets->SetBinContent(c+1,theBoard->GetOffset(c));
+
 
   }    // i board
   return kTRUE;

@@ -13,7 +13,7 @@
 
 ---------------------------------------------
 // Readout of QFW beam diagnostic board via PEXOR family optical receiver.
-// V 1.1 28-Mar-2014
+// V 1.2 25-Jul-2014
 // Joern Adamczewski-Musch, CSEE, GSI Darmstadt
 // j.adamczewski@gsi.de
 ---------------------------------------------
@@ -237,7 +237,31 @@ Durchgelassen werden hier nur die beam events (Summe der Ladung ist oberhalb von
 GO4-*> Skip event of seqnr 9327 with triggersum 4466225!
 (mit QFW event sequenznummer und Ladungssumme der Triggerkanäle)
 
+
+
+D) NEU NEU: Benutzung der von den POLAND units selbst gemessenen Offset Werte
+
+Die Messung der offsets erfolgt per Skript bzw. durch Verwendung des Knopfes "ScanOffset" im poland gui.
+Die Werte sind in bestimmten Registern des POLAND gespeichert und werden vom MBS mit einem bestimmten Triggertyp ausgelesen
+Der Triggertyp ist frei konfigurierbar mittels Parameter Parameters/QFWRawParam:
+fFrontendOffsetTrigger - 
+Typ 14  ist voreingstellt, d.h. bei jedem "start acquisition" des mbs werden die aktuellen
+offsetwerte zum Go4 geschickt. Später kann je nach setup ein anderer triggertyp per Pulser eingspeist werden.
+Die aktuellen Offsetwerte können für jedes board mittels Histogram
+BoardXY/BrdXY-Offsets
+angeschaut werden.
+Achtung: Dies sind counterwerte für jeweils 1 Sekunde Messdauer!
+
+Ob diese offsets zur Korrektur verwendet werden wird per flag
+Parameters/QFWRawParam: fUseFrontendOffsets
+eingeschaltet. 
+Die Offsetkorrektur wird schon bei den Rohdaten auf die jeweilige Messdauer der Timeslice umgerechnet und
+wirkt auf alle gemappten Grids/Cups sofort.
+Eine weitere Offsetmessung und -korrektur im Go4 wie unter A) beschrieben sollte dann nicht mehr erforderlich sein!
+
+
+
 ************************************************************************ 
 
 
-JAM 28-Mar-2014
+JAM 25-Jul-2014

@@ -255,6 +255,7 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
               && ((fParam->fGridMaxWire_X[gix] < 0) || (x < fParam->fGridMaxWire_X[gix])))
           {
             // only fill these if inside wire range or if full wire range is selected
+
             loopDisplay->hPosQLoopX->Fill(xpos, charge);
             loopDisplay->hPosQAccLoopX->Fill(xpos, charge);
             gridDisplay->hPosQ_X->Fill(xpos, charge);

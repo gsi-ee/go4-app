@@ -323,11 +323,14 @@ void TQFWBoardDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
 
 //
 
-  hQFWRawErr = MakeTH1('I', Form("Board%d/Brd%dErr", brd, brd), Form("QFW errors in board %d", brd), PEXOR_QFWNUM, 0,
+  hQFWRawErr = MakeTH1('I', Form("Board%d/Brd%d-Err", brd, brd), Form("QFW errors in board %d", brd), PEXOR_QFWNUM, 0,
       PEXOR_QFWNUM);
 
-  hQFWRawErrTr = MakeTH1('I', Form("Board%d/Brd%dErrTr", brd, brd), Form("QFW errors in board %d (snap shot)", brd),
+  hQFWRawErrTr = MakeTH1('I', Form("Board%d/Brd%d-ErrTr", brd, brd), Form("QFW errors in board %d (snap shot)", brd),
       PEXOR_QFWNUM, 0, PEXOR_QFWNUM);
+
+  hQFWOffsets= MakeTH1('I', Form("Board%d/Brd%d-Offsets", brd, brd), Form("QFW frontend measured channel offsets in board %d", brd),
+      PEXOR_QFWCHANS, 0, PEXOR_QFWCHANS);
 
   obname.Form("QFW_Rawscalers_Brd%d", brd);
   pPexorQfws = GetPicture(obname.Data());
@@ -907,7 +910,7 @@ void TQFWGridDisplay::InitDisplay(int timeslices, Bool_t replace)
       if (ix == 0)
         xposition[ix] = fParam->fGridPosition_X[gix][jx] - binwidth / 2;
       xposition[ix + 1] = fParam->fGridPosition_X[gix][jx] + binwidth / 2;
-      //printf("XXXXXXXXX grid %d index %d:lowedge:%f centre:%f upedge:%f \n",grid, ix,xposition[ix], fParam->fGridPosition_X[gix][jx], xposition[ix+1]);
+      //printf("XXXXXXXXX grid %d index i=%d: j=%d: lowedge:%f centre:%f upedge:%f \n",grid, ix, jx, xposition[ix], fParam->fGridPosition_X[gix][jx], xposition[ix+1]);
     }
 
     foldername.Form("Beam/Grid%2d/Counts", grid);

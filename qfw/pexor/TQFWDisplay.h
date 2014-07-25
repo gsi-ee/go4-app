@@ -177,7 +177,7 @@ class TQFWBoardDisplay: public TQFWDisplay
 
 public:
   TQFWBoardDisplay() :
-      TQFWDisplay(), hQFWRaw2D(0), hQFWRaw2DTrace(0), hQFWRawErr(0), hQFWRawErrTr(0), pPexorQfws(0), pPexorQfwsTrace(0)
+      TQFWDisplay(), hQFWRaw2D(0), hQFWRaw2DTrace(0), hQFWRawErr(0), hQFWRawErrTr(0), hQFWOffsets(0), pPexorQfws(0), pPexorQfwsTrace(0)
   {
     ;
   }
@@ -201,6 +201,11 @@ public:
 
   /** Trace histogram of errors per QFW */
   TH1* hQFWRawErrTr;
+
+  /** Most recent channel offsets as measuered by frontends
+   * This information is delivered by special trigger event from mbs */
+  TH1* hQFWOffsets;
+
 
   TGo4Picture *pPexorQfws;
   TGo4Picture *pPexorQfwsTrace;

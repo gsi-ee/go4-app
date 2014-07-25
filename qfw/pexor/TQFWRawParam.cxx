@@ -47,6 +47,9 @@ void TQFWRawParam::InitBoardMapping()
    fTriggerFirstChannel=0; // lower boundary of trigger channel region
    fTriggerLastChannel=1;
 
+   fFrontendOffsetTrigger=14; // per default use start trigger
+   fUseFrontendOffsets=kFALSE;
+
 
 }
 
@@ -90,6 +93,8 @@ Bool_t TQFWRawParam::UpdateFrom(TGo4Parameter *pp)
    fTriggerBoardID=from->fTriggerBoardID;
    fTriggerFirstChannel=from->fTriggerFirstChannel;
    fTriggerLastChannel=from->fTriggerLastChannel;
+   fFrontendOffsetTrigger=from->fFrontendOffsetTrigger;
+   fUseFrontendOffsets=from->fUseFrontendOffsets;
 
 
    SetConfigBoards();
