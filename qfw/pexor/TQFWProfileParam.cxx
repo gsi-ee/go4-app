@@ -176,7 +176,7 @@ Bool_t TQFWProfileParam::SetEventConfig()
   return kTRUE;
 }
 
-Bool_t TQFWProfileParam::AddXOffsetMeasurement(Int_t grid, Int_t loop, Int_t wire, UInt_t value)
+Bool_t TQFWProfileParam::AddXOffsetMeasurement(Int_t grid, Int_t loop, Int_t wire, Double_t value)
 {
   if (!CheckGridBoundaries(grid, loop, wire))
   {
@@ -193,7 +193,7 @@ Bool_t TQFWProfileParam::AddXOffsetMeasurement(Int_t grid, Int_t loop, Int_t wir
   return kTRUE;
 }
 
-Bool_t TQFWProfileParam::AddYOffsetMeasurement(Int_t grid, Int_t loop, Int_t wire, UInt_t value)
+Bool_t TQFWProfileParam::AddYOffsetMeasurement(Int_t grid, Int_t loop, Int_t wire, Double_t value)
 {
   if (!CheckGridBoundaries(grid, loop, wire))
   {
@@ -211,7 +211,7 @@ Bool_t TQFWProfileParam::AddYOffsetMeasurement(Int_t grid, Int_t loop, Int_t wir
 }
 
 
-Bool_t TQFWProfileParam::AddCupOffsetMeasurement(Int_t cup, Int_t loop, Int_t seg, UInt_t value)
+Bool_t TQFWProfileParam::AddCupOffsetMeasurement(Int_t cup, Int_t loop, Int_t seg, Double_t value)
 {
   if (!CheckCupBoundaries(cup, loop, seg))
   {
@@ -262,7 +262,7 @@ void TQFWProfileParam::ResetOffsetMeasurement()
   }
 }
 
-Double_t TQFWProfileParam::GetCorrectedXValue(Int_t grid, Int_t loop, Int_t wire, UInt_t count)
+Double_t TQFWProfileParam::GetCorrectedXValue(Int_t grid, Int_t loop, Int_t wire, Double_t count)
 {
 //    cout << "**** TQFWProfileParam::GetCorrectedXValue for (grid, loop wire) =(" << grid << "," << loop << "," << wire
 //         << ")" << "do correct:"<<fCorrectBackground<< endl; 
@@ -282,7 +282,7 @@ Double_t TQFWProfileParam::GetCorrectedXValue(Int_t grid, Int_t loop, Int_t wire
 
 }
 
-Double_t TQFWProfileParam::GetCorrectedYValue(Int_t grid, Int_t loop, Int_t wire, UInt_t count)
+Double_t TQFWProfileParam::GetCorrectedYValue(Int_t grid, Int_t loop, Int_t wire, Double_t count)
 {
   if (!fCorrectBackground)
     return count;
@@ -297,7 +297,7 @@ Double_t TQFWProfileParam::GetCorrectedYValue(Int_t grid, Int_t loop, Int_t wire
   return ((Double_t) count - fQFWOffsetsY[grid][loop][wire]);
 }
 
-Double_t TQFWProfileParam::GetCorrectedCupValue(Int_t cup, Int_t loop, Int_t segment, UInt_t count)
+Double_t TQFWProfileParam::GetCorrectedCupValue(Int_t cup, Int_t loop, Int_t segment, Double_t count)
 {
   if (!fCorrectBackground)
     return count;
