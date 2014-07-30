@@ -424,7 +424,7 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
       // evaluate here mean value and sigma of profile counts
       //first x direction:
       Int_t cmax = loopDisplay->cBeamXSliceCond->GetCMax(loopDisplay->hBeamXSlice);
-      TH1I haux("temp", "temp", cmax, 0, cmax);    // auxiliary histogram to calculate mean and rms of counts
+      TH1I haux("temp", "temp", 2*cmax, -cmax, cmax);    // auxiliary histogram to calculate mean and rms of counts
       for (int wire = 0; wire < gridData->GetNumXWires(); ++wire)
       {
         for (int time = 0; time < loopDisplay->GetTimeSlices(); ++time)
@@ -444,7 +444,7 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
 //      // y direction:
 
       Int_t cmay = loopDisplay->cBeamYSliceCond->GetCMax(loopDisplay->hBeamYSlice);
-      TH1I hauy("temp2", "temp2", cmay, 0, cmay);    // auxiliary histogram to calculate mean and rms of counts
+      TH1I hauy("temp2", "temp2", 2*cmay, -cmay, cmay);    // auxiliary histogram to calculate mean and rms of counts
       for (int wire = 0; wire < gridData->GetNumYWires(); ++wire)
       {
         for (int time = 0; time < loopDisplay->GetTimeSlices(); ++time)

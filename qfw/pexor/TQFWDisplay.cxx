@@ -326,8 +326,8 @@ void TQFWBoardDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
   hQFWRawErr = MakeTH1('I', Form("Board%d/Brd%d-Err", brd, brd), Form("QFW errors in board %d", brd), PEXOR_QFWNUM, 0,
       PEXOR_QFWNUM);
 
-  hQFWRawErrTr = MakeTH1('I', Form("Board%d/Brd%d-ErrTr", brd, brd), Form("QFW errors in board %d (snap shot)", brd),
-      PEXOR_QFWNUM, 0, PEXOR_QFWNUM);
+//  hQFWRawErrTr = MakeTH1('I', Form("Board%d/Brd%d-ErrTr", brd, brd), Form("QFW errors in board %d (snap shot)", brd),
+//      PEXOR_QFWNUM, 0, PEXOR_QFWNUM);
 
   hQFWOffsets= MakeTH1('I', Form("Board%d/Brd%d-Offsets", brd, brd), Form("QFW frontend measured channel offsets in board %d", brd),
       PEXOR_QFWCHANS, 0, PEXOR_QFWCHANS);
@@ -507,10 +507,10 @@ void TQFWGridLoopDisplay::InitDisplay(int timeslices, Bool_t replace)
       hBeamYSlice->GetName());
 
   hBeamMeanCountsX = MakeTH1('I', Form("%s/Mean_Counts_X_G%d_L%d", foldername.Data(), grid, loop),
-      Form("X Counts Mean Grid%2d Loop%2d", grid, loop), 1000, 0, 100, "Mean counts");
+      Form("X Counts Mean Grid%2d Loop%2d", grid, loop), 2000, -100, 100, "Mean counts");
 
   hBeamMeanCountsY = MakeTH1('I', Form("%s/Mean_Counts_Y_G%d_L%d", foldername.Data(), grid, loop),
-      Form("Y Counts Mean Grid%2d Loop%2d", grid, loop), 1000, 0, 100, "Mean counts");
+      Form("Y Counts Mean Grid%2d Loop%2d", grid, loop), 2000, -100, 100, "Mean counts");
 
   hBeamRMSCountsX = MakeTH1('I', Form("%s/RMS_Counts_X_G%d_L%d", foldername.Data(), grid, loop),
       Form("X Counts RMS Grid%2d Loop%2d", grid, loop), 1000, 0, 100, "RMS counts");

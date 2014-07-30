@@ -380,6 +380,7 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
       {
         QFWRAW_CHECK_PDATA_BREAK;
         theBoard->SetErrorScaler(qfw, (UInt_t) (*pdata++));
+        //printf("EEEEEE Error counter qfw %d =0x%x\n", qfw , *(pdata-1));
       }
       QFWRAW_CHECK_PDATA;
 
@@ -520,12 +521,14 @@ Bool_t TQFWRawProc::FillDisplays()
       loopoffset += loopData->fQfwLoopSize;
     }    //loop
 
-    boardDisplay->hQFWRawErrTr->Reset("");
+    //boardDisplay->hQFWRawErrTr->Reset("");
     /* errorcount values: - per QFW CHIPS*/
     for (int qfw = 0; qfw < PEXOR_QFWNUM; ++qfw)
     {
       boardDisplay->hQFWRawErr->SetBinContent(1 + qfw, theBoard->GetErrorScaler(qfw));
-      boardDisplay->hQFWRawErrTr->AddBinContent(1 + qfw, theBoard->GetErrorScaler(qfw));
+      //boardDisplay->hQFWRawErrTr->SetBinContent(1 + qfw, theBoard->GetErrorScaler(qfw));
+      //printf("FFFFFF Fill Error counter qfw %d with 0x%x\n", qfw , theBoard->GetErrorScaler(qfw));
+
     }
     // need to update this here, since histograms are initialized after offset is retrieved!
     for (int c = 0; c < PEXOR_QFWCHANS; ++c)
