@@ -422,8 +422,12 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
     {
       TQFWGridLoopDisplay* loopDisplay = gridDisplay->GetLoopDisplay(l);
       // evaluate here mean value and sigma of profile counts
+
+      Double_t MeanCountsX = 0, RMSCountsX = 0,  MeanCountsY = 0, RMSCountsY = 0 ;
       //first x direction:
       Int_t cmax = loopDisplay->cBeamXSliceCond->GetCMax(loopDisplay->hBeamXSlice);
+      if(cmax>0)
+      {
       TH1I haux("temp", "temp", 2*cmax, -cmax, cmax);    // auxiliary histogram to calculate mean and rms of counts
       for (int wire = 0; wire < gridData->GetNumXWires(); ++wire)
       {
@@ -436,14 +440,25 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
         }
 
       }
-      Double_t MeanCountsX = haux.GetMean();
-      Double_t RMSCountsX = haux.GetRMS();
+
+      MeanCountsX = haux.GetMean();
+      RMSCountsX = haux.GetRMS();
+      }
+      else
+      {
+        // optionally show debug
+        //printf("XXXXXXXX: cmax=%d <0, do not evaluate profile stats \n", cmax);
+
+      }
+
       mtitle.Form("%s mean=%.2E sigma=%.2E", loopDisplay->hBeamXSlice->GetTitle(), MeanCountsX, RMSCountsX);
       loopDisplay->hBeamXSlice->SetTitle(mtitle.Data());
 //
 //      // y direction:
 
       Int_t cmay = loopDisplay->cBeamYSliceCond->GetCMax(loopDisplay->hBeamYSlice);
+      if(cmay>0)
+      {
       TH1I hauy("temp2", "temp2", 2*cmay, -cmay, cmay);    // auxiliary histogram to calculate mean and rms of counts
       for (int wire = 0; wire < gridData->GetNumYWires(); ++wire)
       {
@@ -456,8 +471,16 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
         }
 
       }
-      Double_t MeanCountsY = hauy.GetMean();
-      Double_t RMSCountsY = hauy.GetRMS();
+        MeanCountsY = hauy.GetMean();
+        RMSCountsY =  hauy.GetRMS();
+      }
+      else
+      {
+                // optionally
+                //printf("YYYYYYY: cmay=%d <=0, do not evaluate profile stats \n", cmay);
+      }
+
+
       mtitle.Form("%s mean=%.2E sigma=%.2E", loopDisplay->hBeamYSlice->GetTitle(), MeanCountsY, RMSCountsY);
       loopDisplay->hBeamYSlice->SetTitle(mtitle.Data());
 
