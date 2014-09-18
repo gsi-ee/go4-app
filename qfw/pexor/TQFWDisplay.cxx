@@ -507,29 +507,29 @@ void TQFWGridLoopDisplay::InitDisplay(int timeslices, Bool_t replace)
       hBeamYSlice->GetName());
 
   hBeamMeanCountsX = MakeTH1('D', Form("%s/Mean_Counts_X_G%d_L%d", foldername.Data(), grid, loop),
-      Form("X Counts Mean Grid%2d Loop%2d", grid, loop), 21000, -100, 2000, "Mean counts");
+      Form("X Counts Mean Grid%2d Loop%2d", grid, loop), 80000, -100, 40000, "Mean counts");
 
   hBeamMeanCountsY = MakeTH1('D', Form("%s/Mean_Counts_Y_G%d_L%d", foldername.Data(), grid, loop),
-      Form("Y Counts Mean Grid%2d Loop%2d", grid, loop), 21000, -100, 2000, "Mean counts");
+      Form("Y Counts Mean Grid%2d Loop%2d", grid, loop), 80000, -100, 40000, "Mean counts");
 
   hBeamRMSCountsX = MakeTH1('D', Form("%s/RMS_Counts_X_G%d_L%d", foldername.Data(), grid, loop),
-      Form("X Counts RMS Grid%2d Loop%2d", grid, loop), 10000, 0, 1000, "RMS counts");
+      Form("X Counts RMS Grid%2d Loop%2d", grid, loop), 12000, 0, 6000, "RMS counts");
 
   hBeamRMSCountsY = MakeTH1('D', Form("%s/RMS_Counts_Y_G%d_L%d", foldername.Data(), grid, loop),
-      Form("Y Counts RMS Grid%2d Loop%2d", grid, loop), 10000, 0, 1000, "RMS counts");
+      Form("Y Counts RMS Grid%2d Loop%2d", grid, loop), 12000, 0, 6000, "RMS counts");
 
 
   // mean/rms count histogram per wire/qfw channel:
     for(int w=0; w< PEXOR_QFW_WIRES; ++w)
     {
       hBeamMeanCountsGridX[w] = MakeTH1('D', Form("%s/Wire_%d/Mean_Counts_X_G%d_L%d_W%d", foldername.Data(), w, grid, loop, w),
-           Form("X Counts Mean Grid%2d Loop%2d Wire%2d", grid, loop, w), 21000, -100, 2000, "Mean counts");
+           Form("X Counts Mean Grid%2d Loop%2d Wire%2d", grid, loop, w), 80000, -100, 40000, "Mean counts");
       hBeamMeanCountsGridY[w] = MakeTH1('D', Form("%s/Wire_%d/Mean_Counts_Y_G%d_L%d_W%d", foldername.Data(), w, grid, loop, w),
-           Form("Y Counts Mean Grid%2d Loop%2d Wire%2d", grid, loop, w), 21000, -100, 2000, "Mean counts");
+           Form("Y Counts Mean Grid%2d Loop%2d Wire%2d", grid, loop, w), 80000, -100, 40000, "Mean counts");
       hBeamRMSCountsGridX[w] = MakeTH1('D', Form("%s/Wire_%d/RMS_Counts_X_G%d_L%d_W%d", foldername.Data(), w,grid, loop, w),
-            Form("X Counts RMS Grid%2d Loop%2d Wire%2d", grid, loop, w), 10000, 0, 1000, "RMS counts");
+            Form("X Counts RMS Grid%2d Loop%2d Wire%2d", grid, loop, w), 12000, 0, 6000, "RMS counts");
       hBeamRMSCountsGridY[w] = MakeTH1('D', Form("%s/Wire_%d/RMS_Counts_Y_G%d_L%d_W%d", foldername.Data(), w,grid, loop, w),
-                 Form("Y Counts RMS Grid%2d Loop%2d Wire%2d", grid, loop, w), 10000, 0, 1000, "RMS counts");
+                 Form("Y Counts RMS Grid%2d Loop%2d Wire%2d", grid, loop, w), 12000, 0, 6000, "RMS counts");
     }
 
 
