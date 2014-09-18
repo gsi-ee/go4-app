@@ -32,4 +32,7 @@ void set_QFWRawParam()
    param0->fTriggerFirstChannel = 0;
    param0->fTriggerLastChannel = 1;
 
+// param0->fUseFrontendOffsets=true;
+   param0->fFrontendOffsetTrigger=14;
+
 }

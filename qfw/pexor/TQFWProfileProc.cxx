@@ -473,13 +473,13 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
       if(cmax>0)
       {
       TH1I haux("temp", "temp", 2*cmax, -cmax, cmax);    // auxiliary histogram to calculate mean and rms of counts
+      TH1I hauxWire("tempwire", "tempwire", 2*cmax, -cmax, cmax); // per wire calculation of 
       for (int wire = 0; wire < gridData->GetNumXWires(); ++wire)
       {
         MeanCountsWireY[wire] = 0;
         RMSCountsWireY[wire]=0;
-        TH1I hauxWire("tempwire", "tempwire", 2*cmax, -cmax, cmax); // per wire calculation of background
 
-
+	hauxWire.Reset("");
         for (int time = 0; time < loopDisplay->GetTimeSlices(); ++time)
         {
           if (loopDisplay->cBeamXSliceCond->Test(wire, time))
@@ -511,11 +511,12 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
       if(cmay>0)
       {
       TH1I hauy("temp2", "temp2", 2*cmay, -cmay, cmay);    // auxiliary histogram to calculate mean and rms of counts
+      TH1I hauyWire("temp2wire", "temp2wire", 2*cmay, -cmay, cmay); // per wire calculation of 
       for (int wire = 0; wire < gridData->GetNumYWires(); ++wire)
       {
         MeanCountsWireY[wire] = 0;
         RMSCountsWireY[wire]=0;
-        TH1I hauyWire("temp2wire", "temp2wire", 2*cmay, -cmay, cmay); // per wire calculation of background
+	hauyWire.Reset("");
         for (int time = 0; time < loopDisplay->GetTimeSlices(); ++time)
         {
           if (loopDisplay->cBeamYSliceCond->Test(wire, time))
