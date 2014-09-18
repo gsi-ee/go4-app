@@ -58,6 +58,49 @@ TQFWProfileProc::TQFWProfileProc(const char* name) :
 TQFWProfileProc::~TQFWProfileProc()
 {
   TGo4Log::Info("TQFWProfileProc: Delete instance");
+
+  // here we try to dump the mean wire statistics for Michael W.:
+
+  for (unsigned g = 0; g < fGrids.size(); ++g)
+   {
+     // mind the different indices!
+     TQFWGridDisplay* gridDisplay = fGrids[g];    // g      =vector index of display component
+     Int_t gridid = gridDisplay->GetDevId();    // gridid =unique hardware id
+     //TQFWGrid* gridData = fOutput->GetGrid(gridid);
+     printf("#******** Grid %d \n",gridid);
+     for (int l = 0; l < gridDisplay->GetNumLoops(); ++l)
+     {
+       TQFWGridLoopDisplay* loopDisplay = gridDisplay->GetLoopDisplay(l);
+       printf("\tLoop %d\n",l);
+       printf("\t\tX-Direction:\n");
+       printf("\t\t\tTotal \tMean:%f \tSigma:%f\n",loopDisplay->hBeamMeanCountsX->GetMean(), loopDisplay->hBeamRMSCountsX->GetRMS());
+       //for (int x = 0; x < gridData->GetNumXWires(); ++x)
+       for (int x = 0; x < PEXOR_QFW_WIRES; ++x)
+           {
+             Double_t deltaS=0;
+             if(loopDisplay->hBeamMeanCountsGridX[x]->GetMean()!=0) deltaS=loopDisplay->hBeamRMSCountsGridX[x]->GetRMS()/loopDisplay->hBeamMeanCountsGridX[x]->GetMean();
+             printf("\t\t\tWire:%d \tMean:%f \tSigma:%f\t dSigma/Mean=%f\n",x, loopDisplay->hBeamMeanCountsGridX[x]->GetMean(), loopDisplay->hBeamRMSCountsGridX[x]->GetRMS(),deltaS);
+           }
+       printf("\t\tY-Direction:\n");
+       printf("\t\t\tTotal: \tMean:%f \tSigma:%f\n",loopDisplay->hBeamMeanCountsY->GetMean(), loopDisplay->hBeamRMSCountsY->GetRMS());
+
+       //for (int y = 0; y < gridData->GetNumYWires(); ++y)
+       for (int y = 0; y < PEXOR_QFW_WIRES; ++y)
+       {
+         Double_t deltaS=0;
+         if(loopDisplay->hBeamMeanCountsGridY[y]->GetMean()!=0) deltaS=loopDisplay->hBeamRMSCountsGridY[y]->GetRMS()/loopDisplay->hBeamMeanCountsGridY[y]->GetMean();
+
+
+
+         printf("\t\t\tWire:%d \tMean:%f \tSigma:%f, dSigma/Mean=%f\n",y, loopDisplay->hBeamMeanCountsGridY[y]->GetMean(), loopDisplay->hBeamRMSCountsGridY[y]->GetRMS(),deltaS);
+       }
+
+     }
+   }
+
+  cout << endl;
+
+  //////////////////
   for (unsigned i = 0; i < fGrids.size(); ++i)
   {
     delete fGrids[i];
@@ -424,6 +467,7 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
       // evaluate here mean value and sigma of profile counts
 
       Double_t MeanCountsX = 0, RMSCountsX = 0,  MeanCountsY = 0, RMSCountsY = 0 ;
+      Double_t MeanCountsWireX[PEXOR_QFW_WIRES],  RMSCountsWireX[PEXOR_QFW_WIRES],  MeanCountsWireY[PEXOR_QFW_WIRES],  RMSCountsWireY[PEXOR_QFW_WIRES];
       //first x direction:
       Int_t cmax = loopDisplay->cBeamXSliceCond->GetCMax(loopDisplay->hBeamXSlice);
       if(cmax>0)
@@ -431,14 +475,21 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
       TH1I haux("temp", "temp", 2*cmax, -cmax, cmax);    // auxiliary histogram to calculate mean and rms of counts
       for (int wire = 0; wire < gridData->GetNumXWires(); ++wire)
       {
+        MeanCountsWireY[wire] = 0;
+        RMSCountsWireY[wire]=0;
+        TH1I hauxWire("tempwire", "tempwire", 2*cmax, -cmax, cmax); // per wire calculation of background
+
+
         for (int time = 0; time < loopDisplay->GetTimeSlices(); ++time)
         {
           if (loopDisplay->cBeamXSliceCond->Test(wire, time))
           {
             haux.Fill(loopDisplay->hBeamXSlice->GetBinContent(wire + 1, time + 1));
+            hauxWire.Fill(loopDisplay->hBeamXSlice->GetBinContent(wire + 1, time + 1));
           }
         }
-
+        MeanCountsWireX[wire] = hauxWire.GetMean();
+        RMSCountsWireX[wire] =  hauxWire.GetRMS();
       }
 
       MeanCountsX = haux.GetMean();
@@ -462,14 +513,20 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
       TH1I hauy("temp2", "temp2", 2*cmay, -cmay, cmay);    // auxiliary histogram to calculate mean and rms of counts
       for (int wire = 0; wire < gridData->GetNumYWires(); ++wire)
       {
+        MeanCountsWireY[wire] = 0;
+        RMSCountsWireY[wire]=0;
+        TH1I hauyWire("temp2wire", "temp2wire", 2*cmay, -cmay, cmay); // per wire calculation of background
         for (int time = 0; time < loopDisplay->GetTimeSlices(); ++time)
         {
           if (loopDisplay->cBeamYSliceCond->Test(wire, time))
           {
             hauy.Fill(loopDisplay->hBeamYSlice->GetBinContent(wire + 1, time + 1));
+            hauyWire.Fill(loopDisplay->hBeamYSlice->GetBinContent(wire + 1, time + 1));
           }
         }
 
+        MeanCountsWireY[wire] = hauyWire.GetMean();
+        RMSCountsWireY[wire] =  hauyWire.GetRMS();
       }
         MeanCountsY = hauy.GetMean();
         RMSCountsY =  hauy.GetRMS();
@@ -488,6 +545,19 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
       loopDisplay->hBeamMeanCountsY->Fill(MeanCountsY);
       loopDisplay->hBeamRMSCountsX->Fill(RMSCountsX);
       loopDisplay->hBeamRMSCountsY->Fill(RMSCountsY);
+
+      for(int w=0; w< PEXOR_QFW_WIRES; ++w)
+         {
+            loopDisplay->hBeamMeanCountsGridX[w]->Fill(MeanCountsWireX[w]);
+            loopDisplay->hBeamMeanCountsGridY[w]->Fill(MeanCountsWireY[w]);
+            loopDisplay->hBeamRMSCountsGridX[w]->Fill(RMSCountsWireX[w]);
+            loopDisplay->hBeamRMSCountsGridY[w]->Fill(RMSCountsWireY[w]);
+         }
+
+
+
+
+
 
     }    // loops
     

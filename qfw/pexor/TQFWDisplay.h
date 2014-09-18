@@ -317,6 +317,11 @@ public:
   TH1* hBeamRMSCountsX;
   TH1* hBeamRMSCountsY;
 
+  TH1* hBeamMeanCountsGridX[PEXOR_QFW_WIRES];
+    TH1* hBeamMeanCountsGridY[PEXOR_QFW_WIRES];
+    TH1* hBeamRMSCountsGridX[PEXOR_QFW_WIRES];
+    TH1* hBeamRMSCountsGridY[PEXOR_QFW_WIRES];
+
   TGo4WinCond* cBeamXSliceCond;
   TGo4WinCond* cBeamYSliceCond;
 
