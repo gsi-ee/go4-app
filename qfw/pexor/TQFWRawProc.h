@@ -34,20 +34,25 @@ public:
 
 protected:
 
-  /* Fill all display histograms here*/
+  /** Fill all display histograms here*/
   Bool_t FillDisplays();
 
-  /* access to histogram set for current board id*/
+  /** access to histogram set for current board id*/
   TQFWBoardDisplay* GetBoardDisplay(Int_t uniqueid);
 
-  /* recreate histograms using the given number of time slice*/
+  /** recreate histograms using the given number of time slice*/
   void InitDisplay(int timeslices, Bool_t replace = kFALSE);
 
-  /* parameter for runtime settings*/
+  /** parameter for runtime settings*/
   TQFWRawParam* fPar;
 
-  /* reference to output data*/
+  /** reference to output data*/
   TQFWRawEvent* QFWRawEvent;  //!
+
+  /** if true, use dynamic rebin of timeslices from input data.
+   * Otherwise keep previous display dimensions. Used to switch off reinit of display
+   * after special or empty events*/
+  Bool_t fDynamicDimensions;
 
 private:
 

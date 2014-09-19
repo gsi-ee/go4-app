@@ -47,7 +47,7 @@ TQFWRawProc::TQFWRawProc() :
 //***********************************************************
 // this one is used in standard factory
 TQFWRawProc::TQFWRawProc(const char* name) :
-    TGo4EventProcessor(name)
+    TGo4EventProcessor(name),fDynamicDimensions(kTRUE)
 {
   TGo4Log::Info("TQFWRawProc: Create instance %s", name);
 
@@ -110,6 +110,8 @@ void TQFWRawProc::InitDisplay(int timeslices, Bool_t replace)
 Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
 {
 // called by framework from TQFWRawEvent to fill it
+
+  fDynamicDimensions=kFALSE; // disable histogram rebinning by default (suppress special events!)
   QFWRawEvent = (TQFWRawEvent*) target;
   QFWRawEvent->SetValid(kFALSE);    // not store
   Int_t triggersum = 0;    // sums up all "software trigger" channels (for free running acquired data)
@@ -152,6 +154,7 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
 
       if (triggertype == fPar->fFrontendOffsetTrigger)
        {
+
            // get update of qfw offsets as measured by frontends
          cout << "**** TQFWRawProc: Use frontend offset trigger "<< source->GetTrigger() << endl;
          if ((*pdata & 0xff) != 0x42)    // regular channel data
@@ -322,6 +325,7 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
 //      }
 
       }    // first loop loop
+      fDynamicDimensions=kTRUE; // dynamic rebinning of timeslices only if we really have valid event with all loopsizes!
 
       QFWRAW_CHECK_PDATA;
       for (int loop = 0; loop < theBoard->getNElements(); loop++)
@@ -454,7 +458,7 @@ Bool_t TQFWRawProc::FillDisplays()
       }
       TQFWLoop* theLoop = theBoard->GetLoop(loop);
       // optionally rescale histograms of this loop:
-      if (loopDisplay->GetTimeSlices() != theLoop->fQfwLoopSize)
+      if (fDynamicDimensions && (loopDisplay->GetTimeSlices() != theLoop->fQfwLoopSize))
       {
         loopDisplay->InitDisplay(theLoop->fQfwLoopSize, kTRUE);
         rebinned = kTRUE;
