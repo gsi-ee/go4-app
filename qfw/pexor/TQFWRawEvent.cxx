@@ -28,7 +28,7 @@ void TQFWLoop::Clear(Option_t *t)
 {
   fQfwLoopSize=0;
   fQfwLoopTime=0;
-
+  fHasData=kFALSE;
   for (int ch = 0; ch < PEXOR_QFWCHANS; ++ch)
   {
     fQfwTrace[ch].clear();

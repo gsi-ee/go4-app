@@ -713,7 +713,7 @@ void TQFWGridLoopDisplay::InitDisplay(int timeslices, Bool_t replace)
 void TQFWGridLoopDisplay::AdjustDisplay(TQFWLoop* loopdata)
 {
   // check if we have different timeslices:
-  if (loopdata->fQfwLoopSize != GetTimeSlices())
+  if (loopdata->fHasData && (loopdata->fQfwLoopSize != GetTimeSlices()))
   {
     InitDisplay(loopdata->fQfwLoopSize, kTRUE);
   }

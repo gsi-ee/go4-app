@@ -49,10 +49,6 @@ protected:
   /** reference to output data*/
   TQFWRawEvent* QFWRawEvent;  //!
 
-  /** if true, use dynamic rebin of timeslices from input data.
-   * Otherwise keep previous display dimensions. Used to switch off reinit of display
-   * after special or empty events*/
-  Bool_t fDynamicDimensions;
 
 private:
 

@@ -83,7 +83,11 @@ class TQFWLoop : public TGo4EventElement {
       /* setup number (only one byte used!)*/
         UChar_t fQfwSetup;
 
-      ClassDef(TQFWLoop,1)
+      /** true if loop was filled with new data*/
+      Bool_t fHasData; //!
+
+
+      ClassDef(TQFWLoop,2)
 };
 
 
