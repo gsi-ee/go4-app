@@ -59,8 +59,10 @@ TQFWProfileProc::~TQFWProfileProc()
 {
   TGo4Log::Info("TQFWProfileProc: Delete instance");
 
-  // here we try to dump the mean wire statistics for Michael W.:
 
+if(fParam->fDoCountStatistics)
+{
+   // here we optionally dump the mean wire statistics for Michael W.:
   for (unsigned g = 0; g < fGrids.size(); ++g)
    {
      // mind the different indices!
@@ -71,6 +73,7 @@ TQFWProfileProc::~TQFWProfileProc()
      for (int l = 0; l < gridDisplay->GetNumLoops(); ++l)
      {
        TQFWGridLoopDisplay* loopDisplay = gridDisplay->GetLoopDisplay(l);
+       if(loopDisplay->hBeamMeanCountsX==0) continue; // catch case that fDoCountStatistics was enabled during run.
        printf("#\tLoop %d\n",l);
        printf("#\t\tX-Direction:\n");
        Double_t deltaS=0;
@@ -104,7 +107,7 @@ TQFWProfileProc::~TQFWProfileProc()
    }
 
   cout << endl;
-
+}
   //////////////////
   for (unsigned i = 0; i < fGrids.size(); ++i)
   {
@@ -465,107 +468,108 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
 
     }    // loops
     
-    // second loop loop to get mean values of traces:
-    for (int l = 0; l < gridDisplay->GetNumLoops(); ++l)
+
+    if (fParam->fDoCountStatistics)
     {
-      TQFWGridLoopDisplay* loopDisplay = gridDisplay->GetLoopDisplay(l);
-      // evaluate here mean value and sigma of profile counts
-
-      Double_t MeanCountsX = 0, RMSCountsX = 0,  MeanCountsY = 0, RMSCountsY = 0 ;
-      Double_t MeanCountsWireX[PEXOR_QFW_WIRES],  RMSCountsWireX[PEXOR_QFW_WIRES],  MeanCountsWireY[PEXOR_QFW_WIRES],  RMSCountsWireY[PEXOR_QFW_WIRES];
-      //first x direction:
-      Int_t cmax = loopDisplay->cBeamXSliceCond->GetCMax(loopDisplay->hBeamXSlice);
-      if(cmax>0)
+      // second loop loop to get mean values of traces:
+      for (int l = 0; l < gridDisplay->GetNumLoops(); ++l)
       {
-      TH1I haux("temp", "temp", 2*cmax, -cmax, cmax);    // auxiliary histogram to calculate mean and rms of counts
-      TH1I hauxWire("tempwire", "tempwire", 2*cmax, -cmax, cmax); // per wire calculation of 
-      for (int wire = 0; wire < gridData->GetNumXWires(); ++wire)
-      {
-        MeanCountsWireY[wire] = 0;
-        RMSCountsWireY[wire]=0;
-
-	hauxWire.Reset("");
-        for (int time = 0; time < loopDisplay->GetTimeSlices(); ++time)
+        TQFWGridLoopDisplay* loopDisplay = gridDisplay->GetLoopDisplay(l);
+        // evaluate here mean value and sigma of profile counts
+        if(loopDisplay->hBeamMeanCountsX==0) continue; // catch case that fDoCountStatistics was enabled during run.
+        Double_t MeanCountsX = 0, RMSCountsX = 0, MeanCountsY = 0, RMSCountsY = 0;
+        Double_t MeanCountsWireX[PEXOR_QFW_WIRES], RMSCountsWireX[PEXOR_QFW_WIRES], MeanCountsWireY[PEXOR_QFW_WIRES],
+            RMSCountsWireY[PEXOR_QFW_WIRES];
+        //first x direction:
+        Int_t cmax = loopDisplay->cBeamXSliceCond->GetCMax(loopDisplay->hBeamXSlice);
+        if (cmax > 0)
         {
-          if (loopDisplay->cBeamXSliceCond->Test(wire, time))
+          TH1I haux("temp", "temp", 2 * cmax, -cmax, cmax);    // auxiliary histogram to calculate mean and rms of counts
+          TH1I hauxWire("tempwire", "tempwire", 2 * cmax, -cmax, cmax);    // per wire calculation of
+          for (int wire = 0; wire < gridData->GetNumXWires(); ++wire)
           {
-            haux.Fill(loopDisplay->hBeamXSlice->GetBinContent(wire + 1, time + 1));
-            hauxWire.Fill(loopDisplay->hBeamXSlice->GetBinContent(wire + 1, time + 1));
+            MeanCountsWireY[wire] = 0;
+            RMSCountsWireY[wire] = 0;
+
+            hauxWire.Reset("");
+            for (int time = 0; time < loopDisplay->GetTimeSlices(); ++time)
+            {
+              if (loopDisplay->cBeamXSliceCond->Test(wire, time))
+              {
+                haux.Fill(loopDisplay->hBeamXSlice->GetBinContent(wire + 1, time + 1));
+                hauxWire.Fill(loopDisplay->hBeamXSlice->GetBinContent(wire + 1, time + 1));
+              }
+            }
+            MeanCountsWireX[wire] = hauxWire.GetMean();
+            RMSCountsWireX[wire] = hauxWire.GetRMS();
           }
+
+          MeanCountsX = haux.GetMean();
+          RMSCountsX = haux.GetRMS();
         }
-        MeanCountsWireX[wire] = hauxWire.GetMean();
-        RMSCountsWireX[wire] =  hauxWire.GetRMS();
-      }
+        else
+        {
+          // optionally show debug
+          //printf("XXXXXXXX: cmax=%d <0, do not evaluate profile stats \n", cmax);
 
-      MeanCountsX = haux.GetMean();
-      RMSCountsX = haux.GetRMS();
-      }
-      else
-      {
-        // optionally show debug
-        //printf("XXXXXXXX: cmax=%d <0, do not evaluate profile stats \n", cmax);
+        }
 
-      }
-
-      mtitle.Form("%s mean=%.2E sigma=%.2E", loopDisplay->hBeamXSlice->GetTitle(), MeanCountsX, RMSCountsX);
-      loopDisplay->hBeamXSlice->SetTitle(mtitle.Data());
+        mtitle.Form("%s mean=%.2E sigma=%.2E", loopDisplay->hBeamXSlice->GetTitle(), MeanCountsX, RMSCountsX);
+        loopDisplay->hBeamXSlice->SetTitle(mtitle.Data());
 //
 //      // y direction:
 
-      Int_t cmay = loopDisplay->cBeamYSliceCond->GetCMax(loopDisplay->hBeamYSlice);
-      if(cmay>0)
-      {
-      TH1I hauy("temp2", "temp2", 2*cmay, -cmay, cmay);    // auxiliary histogram to calculate mean and rms of counts
-      TH1I hauyWire("temp2wire", "temp2wire", 2*cmay, -cmay, cmay); // per wire calculation of 
-      for (int wire = 0; wire < gridData->GetNumYWires(); ++wire)
-      {
-        MeanCountsWireY[wire] = 0;
-        RMSCountsWireY[wire]=0;
-	hauyWire.Reset("");
-        for (int time = 0; time < loopDisplay->GetTimeSlices(); ++time)
+        Int_t cmay = loopDisplay->cBeamYSliceCond->GetCMax(loopDisplay->hBeamYSlice);
+        if (cmay > 0)
         {
-          if (loopDisplay->cBeamYSliceCond->Test(wire, time))
+          TH1I hauy("temp2", "temp2", 2 * cmay, -cmay, cmay);    // auxiliary histogram to calculate mean and rms of counts
+          TH1I hauyWire("temp2wire", "temp2wire", 2 * cmay, -cmay, cmay);    // per wire calculation of
+          for (int wire = 0; wire < gridData->GetNumYWires(); ++wire)
           {
-            hauy.Fill(loopDisplay->hBeamYSlice->GetBinContent(wire + 1, time + 1));
-            hauyWire.Fill(loopDisplay->hBeamYSlice->GetBinContent(wire + 1, time + 1));
+            MeanCountsWireY[wire] = 0;
+            RMSCountsWireY[wire] = 0;
+            hauyWire.Reset("");
+            for (int time = 0; time < loopDisplay->GetTimeSlices(); ++time)
+            {
+              if (loopDisplay->cBeamYSliceCond->Test(wire, time))
+              {
+                hauy.Fill(loopDisplay->hBeamYSlice->GetBinContent(wire + 1, time + 1));
+                hauyWire.Fill(loopDisplay->hBeamYSlice->GetBinContent(wire + 1, time + 1));
+              }
+            }
+
+            MeanCountsWireY[wire] = hauyWire.GetMean();
+            RMSCountsWireY[wire] = hauyWire.GetRMS();
           }
+          MeanCountsY = hauy.GetMean();
+          RMSCountsY = hauy.GetRMS();
+        }
+        else
+        {
+          // optionally
+          //printf("YYYYYYY: cmay=%d <=0, do not evaluate profile stats \n", cmay);
         }
 
-        MeanCountsWireY[wire] = hauyWire.GetMean();
-        RMSCountsWireY[wire] =  hauyWire.GetRMS();
-      }
-        MeanCountsY = hauy.GetMean();
-        RMSCountsY =  hauy.GetRMS();
-      }
-      else
-      {
-                // optionally
-                //printf("YYYYYYY: cmay=%d <=0, do not evaluate profile stats \n", cmay);
-      }
+        mtitle.Form("%s mean=%.2E sigma=%.2E", loopDisplay->hBeamYSlice->GetTitle(), MeanCountsY, RMSCountsY);
+        loopDisplay->hBeamYSlice->SetTitle(mtitle.Data());
+
+        loopDisplay->hBeamMeanCountsX->Fill(MeanCountsX);
+        loopDisplay->hBeamMeanCountsY->Fill(MeanCountsY);
+        loopDisplay->hBeamRMSCountsX->Fill(RMSCountsX);
+        loopDisplay->hBeamRMSCountsY->Fill(RMSCountsY);
+
+        for (int w = 0; w < PEXOR_QFW_WIRES; ++w)
+        {
+          loopDisplay->hBeamMeanCountsGridX[w]->Fill(MeanCountsWireX[w]);
+          loopDisplay->hBeamMeanCountsGridY[w]->Fill(MeanCountsWireY[w]);
+          loopDisplay->hBeamRMSCountsGridX[w]->Fill(RMSCountsWireX[w]);
+          loopDisplay->hBeamRMSCountsGridY[w]->Fill(RMSCountsWireY[w]);
+        }
+
+      }    // loops
+    }    //if(fParam->fDoCountStatistics)
 
 
-      mtitle.Form("%s mean=%.2E sigma=%.2E", loopDisplay->hBeamYSlice->GetTitle(), MeanCountsY, RMSCountsY);
-      loopDisplay->hBeamYSlice->SetTitle(mtitle.Data());
-
-      loopDisplay->hBeamMeanCountsX->Fill(MeanCountsX);
-      loopDisplay->hBeamMeanCountsY->Fill(MeanCountsY);
-      loopDisplay->hBeamRMSCountsX->Fill(RMSCountsX);
-      loopDisplay->hBeamRMSCountsY->Fill(RMSCountsY);
-
-      for(int w=0; w< PEXOR_QFW_WIRES; ++w)
-         {
-            loopDisplay->hBeamMeanCountsGridX[w]->Fill(MeanCountsWireX[w]);
-            loopDisplay->hBeamMeanCountsGridY[w]->Fill(MeanCountsWireY[w]);
-            loopDisplay->hBeamRMSCountsGridX[w]->Fill(RMSCountsWireX[w]);
-            loopDisplay->hBeamRMSCountsGridY[w]->Fill(RMSCountsWireY[w]);
-         }
-
-
-
-
-
-
-    }    // loops
     
 // put here mean value calculations and profiles:
 

@@ -44,22 +44,12 @@ public:
 protected:
 
 
-   /* use raw qfw data to fill the xy display histograms*/
- //  void FillGrids();
 
-
-
-  /* here the geometry of the grids is set*/
- // void MapGrids();
-
-  /* use raw qfw data to fill the xy display histograms*/
-//  void FillGrids(TQFWRawEvent* out);
 
   /* recreate histograms using the given number of time slice*/
   void InitDisplay(int timeslices, Bool_t replace = kFALSE);
 
-  /* parameter for runtime settings*/
-//  TQFWProfileParam* fPar;
+
 
 private:
 

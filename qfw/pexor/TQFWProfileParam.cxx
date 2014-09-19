@@ -27,6 +27,7 @@ TQFWProfileParam::TQFWProfileParam(const char* name) :
   ResetOffsetMeasurement();
   fMeasureBackground = kFALSE;
   fCorrectBackground = kTRUE;
+  fDoCountStatistics = kFALSE;
 }
 
 void TQFWProfileParam::InitProfileMapping()
@@ -361,6 +362,7 @@ Bool_t TQFWProfileParam::UpdateFrom(TGo4Parameter *pp)
   }
   fMeasureBackground = from->fMeasureBackground;
   fCorrectBackground = from->fCorrectBackground;
+  fDoCountStatistics= from->fDoCountStatistics;
   fSlowMotionStart = from->fSlowMotionStart;
 
   // configuration objects are here
