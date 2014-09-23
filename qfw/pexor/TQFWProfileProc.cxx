@@ -232,15 +232,15 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
 // 	  cout <<trace[t] << endl; 
           Double_t value = fParam->GetCorrectedXValue(g, l, x, trace[t]);
           sum += value;
-          //loopDisplay->hBeamXSlice->SetBinContent(1 + x, 1 + t, value);
           loopDisplay->hBeamXSlice->SetBinContent(binx, bint, value); // assume all traces are scaled with same bindims
-          //loopDisplay->hBeamXSlice->Fill(x, t, value);
+
+          loopDisplay->hBeamTimeX->SetBinContent(t+1, value); // time slice is always direct index of trace
 
 
           Double_t prev = loopDisplay->hBeamAccXSlice->GetBinContent(binx, bint);
           loopDisplay->hBeamAccXSlice->SetBinContent(binx, bint, prev + value);
-//          Double_t prev = loopDisplay->hBeamAccXSlice->GetBinContent(1 + x, 1 + t);
-//          loopDisplay->hBeamAccXSlice->SetBinContent(1 + x, 1 + t, prev + value);
+          loopDisplay->hBeamAccTimeX->AddBinContent(t+1, value); // time slice is always direct index of trace
+
 
 
           // charge and current traces:
@@ -382,9 +382,12 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
           Double_t value = fParam->GetCorrectedYValue(g, l, y, trace[t]);
           sum += value;
           loopDisplay->hBeamYSlice->SetBinContent(biny, bint, value);
+          loopDisplay->hBeamTimeY->SetBinContent(t+1, value); // time slice is always direct index of trace
+
 
           Double_t prev = loopDisplay->hBeamAccYSlice->GetBinContent(biny, bint);
           loopDisplay->hBeamAccYSlice->SetBinContent(biny, bint, prev + value);
+          loopDisplay->hBeamAccTimeY->AddBinContent(t+1, value); // time slice is always direct index of trace
 
 
           // charge and current traces:

@@ -227,8 +227,9 @@ public:
           hBeamAccYSlice(0),
           hBeamChargeXSlice(0), hBeamChargeYSlice(0), hBeamAccChargeXSlice(0), hBeamAccChargeYSlice(0),
           hBeamCurrentXSlice(0), hBeamCurrentYSlice(0), hBeamAveCurrentXSlice(0), hBeamAveCurrentYSlice(0),
-          hBeamLoopX(0), hBeamLoopY(0), hBeamAccLoopX(0), hBeamAccLoopY(0), hPosLoopX(0),
-          hPosLoopY(0), hPosAccLoopX(0), hPosAccLoopY(0), hPosQLoopX(0), hPosQLoopY(0), hPosQAccLoopX(0), hPosQAccLoopY(0),
+          hBeamLoopX(0), hBeamLoopY(0), hBeamAccLoopX(0), hBeamAccLoopY(0),
+          hBeamTimeX(0), hBeamTimeY(0), hBeamAccTimeX(0),hBeamAccTimeY(0),
+          hPosLoopX(0), hPosLoopY(0), hPosAccLoopX(0), hPosAccLoopY(0), hPosQLoopX(0), hPosQLoopY(0), hPosQAccLoopX(0), hPosQAccLoopY(0),
           hPosILoopX(0), hPosILoopY(0), hPosIAveLoopX(0), hPosIAveLoopY(0),
           hBeamMeanCountsX(0), hBeamMeanCountsY(0), hBeamRMSCountsX(0),
           hBeamRMSCountsY(0), cBeamXSliceCond(0), cBeamYSliceCond(0), fGridData(0), fParam(0)
@@ -287,6 +288,15 @@ public:
   /* xy projections loopwise profiles accum*/
   TH1* hBeamAccLoopX;
   TH1* hBeamAccLoopY;
+
+  /** loopwise time projections of different grid directions*/
+  TH1* hBeamTimeX;
+  TH1* hBeamTimeY;
+
+  /** loopwise accumulated time projections of different grid directions*/
+  TH1* hBeamAccTimeX;
+  TH1* hBeamAccTimeY;
+
 
   /* xy counts projections loopwise mapped to grid absolute positions (mm)*/
   TH1* hPosLoopX;

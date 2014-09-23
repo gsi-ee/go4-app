@@ -76,7 +76,7 @@ Double_t TQFWLoop::GetCoulombPerCount()
 
 Double_t TQFWLoop::GetMicroSecsPerTimeSlice()
 {
-  return (fQfwLoopTime * 20 / 1000);
+  return ((Double_t) (fQfwLoopTime) * 20.0 / 1000.0);
 }
 
 TString TQFWLoop::GetSetupString()

@@ -499,6 +499,15 @@ void TQFWGridLoopDisplay::InitDisplay(int timeslices, Bool_t replace)
   hBeamAccLoopY = MakeTH1('D', Form("%s/ProfileSum_Y_G%d_L%d", foldername.Data(), grid, loop),
       Form("Y Profile accumulated Grid%2d Loop%2d", grid, loop), binsY, minY, maxY, "Wire");
 
+  hBeamTimeX = MakeTH1('D', Form("%s/Time_X_G%d_L%d", foldername.Data(), grid, loop),
+       Form("Time Profile X Grid%2d Loop%2d", grid, loop), timeslices, 0, timeslices, "Time Slice");
+  hBeamTimeY = MakeTH1('D', Form("%s/Time_Y_G%d_L%d", foldername.Data(), grid, loop),
+        Form("Time Profile Y Grid%2d Loop%2d", grid, loop), timeslices, 0, timeslices, "Time Slice");
+  hBeamAccTimeX = MakeTH1('D', Form("%s/TimeSum_X_G%d_L%d", foldername.Data(), grid, loop),
+         Form("Time Profile accumulated X Grid%2d Loop%2d", grid, loop), timeslices, 0, timeslices, "Time Slice");
+  hBeamAccTimeY = MakeTH1('D', Form("%s/TimeSum_Y_G%d_L%d", foldername.Data(), grid, loop),
+          Form("Time Profile accumulated Y Grid%2d Loop%2d", grid, loop), timeslices, 0, timeslices, "Time Slice");
+
   /* mean count of beam profile part: */
 
   cBeamXSliceCond = MakeWinCond(Form("%s/XSliceCond_G%d_L%d", foldername.Data(), grid, loop), minX, maxX, 0, timeslices,
@@ -747,6 +756,11 @@ void TQFWGridLoopDisplay::AdjustDisplay(TQFWLoop* loopdata)
   hBeamYSliceOffs->Reset("");
   hBeamXSlice->SetTitle(mtitle.Data());
   hBeamYSlice->SetTitle(mtitle.Data());
+
+  hBeamTimeX->Reset("");
+  hBeamTimeY->Reset("");
+  hBeamTimeX->SetTitle(mtitle.Data());
+  hBeamTimeY->SetTitle(mtitle.Data());
 
   hBeamChargeXSlice->Reset("");
   hBeamChargeYSlice->Reset("");
