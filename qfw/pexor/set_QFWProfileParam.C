@@ -17,6 +17,8 @@ void set_QFWProfileParam()
    //param1->fSlowMotionStart = 0;
    //param1->fMeasureBackground = kFALSE;
    //param1->fCorrectBackground = kFALSE;
+    //param1->fDoCountStatistics = kTRUE;  
+    // evaluate mean and sigma of counts with per wire histograms
 
 // uncomment lines below to override stored defaults
 
@@ -94,7 +96,7 @@ int grid = 0;	// define grid variable
    param1->fGridPosition_X[grid][28] = 36.000000;
    param1->fGridPosition_X[grid][29] = 40.500000;
    param1->fGridPosition_X[grid][30] = 45.000000;
-//   param1->fGridPosition_X[grid][31] = 49.500000;
+   param1->fGridPosition_X[grid][31] = 49.500000;
    
    param1->fGridMinWire_X[grid] = 0;
    param1->fGridMaxWire_X[grid] = 31;
@@ -149,7 +151,7 @@ int grid = 0;	// define grid variable
    param1->fGridPosition_X[grid][28] = 36.000000;
    param1->fGridPosition_X[grid][29] = 40.500000;
    param1->fGridPosition_X[grid][30] = 45.000000;
-//   param1->fGridPosition_X[grid][31] = 49.500000;
+   param1->fGridPosition_X[grid][31] = 49.500000;	// need for a proper position diagram
 
    param1->fGridPosition_Y[grid][0]  = -45.000000;
    param1->fGridPosition_Y[grid][1]  = -40.500000;
@@ -182,7 +184,7 @@ int grid = 0;	// define grid variable
    param1->fGridPosition_Y[grid][28] = 36.000000;
    param1->fGridPosition_Y[grid][29] = 40.500000;
    param1->fGridPosition_Y[grid][30] = 45.000000;
-//   param1->fGridPosition_Y[grid][31] = 49.500000;
+   param1->fGridPosition_Y[grid][31] = 49.500000;	// need for a proper position diagram
    
    param1->fGridMinWire_X[grid] = 0;
    param1->fGridMaxWire_X[grid] = 31;
@@ -201,6 +203,7 @@ int grid = 0;	// define grid variable
 
       param1->fGridPosition_X[grid][wire] = wire;
    }
+   param1->fGridPosition_X[grid][2] = 2;	// need for a proper position diagram
 
    param1->fGridMinWire_X[grid] = 0;
    param1->fGridMaxWire_X[grid] = 2;
@@ -224,7 +227,9 @@ int grid = 0;	// define grid variable
       param1->fGridPosition_X[grid][wire] = wire;
       param1->fGridPosition_Y[grid][wire] = wire;
    }
-
+   param1->fGridPosition_X[grid][32] = 32;	// need for a proper position diagram
+   param1->fGridPosition_Y[grid][32] = 32;	// need for a proper position diagram
+   
    param1->fGridMinWire_X[grid] = 0;
    param1->fGridMaxWire_X[grid] = 32;
    param1->fGridMinWire_Y[grid] = 0;
@@ -246,7 +251,10 @@ int grid = 0;	// define grid variable
       param1->fGridPosition_X[grid][wire] = wire;
       param1->fGridPosition_Y[grid][wire] = wire;
    }
-
+   
+   param1->fGridPosition_X[grid][32] = 32;	// need for a proper position diagram
+   param1->fGridPosition_Y[grid][32] = 32;	// need for a proper position diagram
+   
    param1->fGridMinWire_X[grid] = 0;
    param1->fGridMaxWire_X[grid] = 32;
    param1->fGridMinWire_Y[grid] = 0;
