@@ -16,7 +16,7 @@ class TQFWRawParam : public TGo4Parameter {
       Bool_t   fSimpleCompensation; // if true, simple compensation with average per channel/series value will be done
       Bool_t   fUseFrontendOffsets; // if true, substract offset values as acquired by poland frontends
       UShort_t    fFrontendOffsetTrigger; // mbs trigger type that contains frontend offset values
-
+      Short_t fFrontendOffsetLoop; //  for dynamic frontend offset correction: set offset from first timeslice of selected loop (0..3). -1 to switch this off
       Bool_t fSelectTriggerEvents; // switch triggering of good and background events for free running daq
       Int_t fTriggerHighThreshold; // selects good event if integral of trigger channel counts is above
       Int_t fTriggerLowThreshold; // selects background events if integral of trigger channel counts is below

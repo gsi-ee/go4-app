@@ -43,6 +43,9 @@ protected:
   /** recreate histograms using the given number of time slice*/
   void InitDisplay(int timeslices, Bool_t replace = kFALSE);
 
+  /** refresh board frontend offset values from first timeslice of loop (0,1, or 2). */
+  Bool_t RefreshOffsetFromLoop(UInt_t loop);
+
   /** parameter for runtime settings*/
   TQFWRawParam* fPar;
 

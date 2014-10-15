@@ -355,12 +355,16 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
 
             if(fPar->fUseFrontendOffsets)
             {
+                if(fPar->fFrontendOffsetLoop!=loop) // supress correction of frontend offset raw data if dynamic mode is set!
+                {
+                  //cout <<"supress correction for loop"<<loop<<" slice:"<<sl<<" channel:"<<ch << endl;
                 // we account frontend measured offset already here
                 // this emulates future mode where offset is corrected already in poland
                 Double_t correction=theBoard->GetOffset(ch) * loopData->GetMicroSecsPerTimeSlice()/1.0e+6;
                 // <- offset is measured for 1 second, evaluate for actual time slice period
 
                 value -= correction;
+                }
             }
 
             loopData->fQfwTrace[ch].push_back(value);
@@ -421,6 +425,15 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
     }
   }
   FillDisplays();    // we only fill histograms for the events that are selected by trigger condition
+
+  // here refresh dynamic offsets from defined loop
+  // this is done _after_ displaying the previous offset and the data corrected from this
+  if(fPar->fFrontendOffsetLoop>=0)
+  {
+    //cout << "**** TQFWRawProc: RefreshOffsetFromLoop for loop"<< fPar->fFrontendOffsetLoop<< endl;
+    RefreshOffsetFromLoop(fPar->fFrontendOffsetLoop);
+  }
+
   QFWRawEvent->SetValid(kTRUE);    // to store
 
   return kTRUE;
@@ -540,5 +553,40 @@ Bool_t TQFWRawProc::FillDisplays()
 
   }    // i board
   return kTRUE;
+}
+
+Bool_t TQFWRawProc::RefreshOffsetFromLoop(UInt_t loop)
+{
+  if (loop >= PEXOR_QFWLOOPS)
+    return kFALSE;
+  for (unsigned i = 0; i < TQFWRawEvent::fgConfigQFWBoards.size(); ++i)
+  {
+    UInt_t brdid = TQFWRawEvent::fgConfigQFWBoards[i];
+    TQFWBoard* theBoard = QFWRawEvent->GetBoard(brdid);
+    if (theBoard == 0)
+    {
+      GO4_SKIP_EVENT_MESSAGE("UpdateOffsetFromLoop Configuration error: Board id %d does not exist!", brdid);
+      return kFALSE;
+    }
+
+    for (int l = 0; l < theBoard->getNElements(); l++)
+    {
+      if (loop == (unsigned) l)
+      {
+        TQFWLoop* loopData = theBoard->GetLoop(loop);
+        int sl = 0;    // always use first slice of loop only
+        for (int ch = 0; ch < PEXOR_QFWCHANS; ++ch)
+        {
+          Int_t value = loopData->fQfwTrace[ch].at(sl);
+          Double_t offset=value * 1.0e+6 /loopData->GetMicroSecsPerTimeSlice();
+                         // <- offset is normalized here to 1 seconds measurement time!
+          theBoard->SetOffset(ch, offset);
+          //cout << "**** TQFWRawProc: Refreshed from slice frontend offset " << offset << " for channel " << ch << endl;
+        }
+        break;
+      }
+    }
+  }
+return kTRUE;
 }
 
