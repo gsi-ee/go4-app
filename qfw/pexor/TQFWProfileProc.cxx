@@ -1,6 +1,8 @@
 #include "TQFWProfileProc.h"
 
 #include "Riostream.h"
+#include <stdio.h>
+#include <errno.h>
 
 #include "TH1.h"
 #include "TH2.h"
@@ -29,7 +31,7 @@ TQFWProfileProc::TQFWProfileProc(const char* name) :
 {
   TGo4Log::Info("TQFWProfileProc: Create instance %s", name);
 
-  SetMakeWithAutosave(kTRUE);
+  SetMakeWithAutosave (kTRUE);
   //// init user analysis objects:
 
   fParam =
@@ -51,6 +53,24 @@ TQFWProfileProc::TQFWProfileProc(const char* name) :
     fCups.push_back(new TQFWCupDisplay(uniqueid));
   }
 
+
+//  if (fParam->fFileOutputCountStatistics)
+//    {
+      // evaluate name of optional statistic count file here
+      // in dtor its too late, then event input is already cleaned up :(
+
+//      const char* infilename = TGo4Analysis::Instance()->GetInputFileName();    // get lmd file name!
+//      // the above works only when using multiple input files!
+//      if(infilename)
+//        fCountStatfile=infilename;
+//      else
+      fCountStatfile = TGo4Analysis::Instance()->GetInputEvent("Raw")->GetEventSource()->GetName(); // will also work with event servers!
+
+      fCountStatfile+="_offset.txt";
+//    }
+      printf("Will Write count statstics to file:%s .\n", fCountStatfile.Data());
+      cout << endl;
+
   //InitDisplay(PEXOR_QFWSLICES);
 }
 
@@ -59,56 +79,91 @@ TQFWProfileProc::~TQFWProfileProc()
 {
   TGo4Log::Info("TQFWProfileProc: Delete instance");
 
+  if (fParam->fDoCountStatistics)
+  {
+    // here we optionally dump the mean wire statistics for Michael W.:
+    FILE* fp = 0;
+    if (fParam->fFileOutputCountStatistics)
+    {
 
-if(fParam->fDoCountStatistics)
-{
-   // here we optionally dump the mean wire statistics for Michael W.:
-  for (unsigned g = 0; g < fGrids.size(); ++g)
-   {
-     // mind the different indices!
-     TQFWGridDisplay* gridDisplay = fGrids[g];    // g      =vector index of display component
-     Int_t gridid = gridDisplay->GetDevId();    // gridid =unique hardware id
-     //TQFWGrid* gridData = fOutput->GetGrid(gridid);
-     printf("############# Grid %d \n",gridid);
-     for (int l = 0; l < gridDisplay->GetNumLoops(); ++l)
-     {
-       TQFWGridLoopDisplay* loopDisplay = gridDisplay->GetLoopDisplay(l);
-       if(loopDisplay->hBeamMeanCountsX==0) continue; // catch case that fDoCountStatistics was enabled during run.
-       printf("#\tLoop %d\n",l);
-       printf("#\t\tX-Direction:\n");
-       Double_t deltaS=0;
-       if(loopDisplay->hBeamMeanCountsX->GetMean()!=0) deltaS=loopDisplay->hBeamRMSCountsX->GetRMS()/loopDisplay->hBeamMeanCountsX->GetMean();
-       printf("#\t\t\tTotal - \tMean:%f \tSigma:%f \tdSigma/Mean:%f\n",loopDisplay->hBeamMeanCountsX->GetMean(), loopDisplay->hBeamRMSCountsX->GetRMS(),deltaS);
-       //for (int x = 0; x < gridData->GetNumXWires(); ++x)
-       printf("#\t\t\tWire: \tMean: \t\tSigma: \tdSigma/Mean\n");
-       printf("#--------------------------------------------------------\n");
-       for (int x = 0; x < PEXOR_QFW_WIRES; ++x)
-           {
-             Double_t deltaS=0;
-             if(loopDisplay->hBeamMeanCountsGridX[x]->GetMean()!=0) deltaS=loopDisplay->hBeamRMSCountsGridX[x]->GetRMS()/loopDisplay->hBeamMeanCountsGridX[x]->GetMean();
-             printf("\t\t\t%d\t%f\t%f\t%f\n",x, loopDisplay->hBeamMeanCountsGridX[x]->GetMean(), loopDisplay->hBeamRMSCountsGridX[x]->GetRMS(),deltaS);
-           }
-       printf("#\t\tY-Direction:\n");
-       deltaS=0;
-       if(loopDisplay->hBeamMeanCountsY->GetMean()!=0) deltaS=loopDisplay->hBeamRMSCountsY->GetRMS()/loopDisplay->hBeamMeanCountsY->GetMean();
+      fp = fopen(fCountStatfile.Data(), "w+");
+      if (fp == NULL)
+      {
+        int er = errno;
+        printf("!!!! Error %d opening wire count statstics file:%s - %s, using standard output!\n", er,
+            fCountStatfile.Data(), strerror(er));
+        fp = stdout;
+      }
+      else
+      {
+        printf("Writing count statstics to file:%s .\n", fCountStatfile.Data());
+      }
 
-       printf("#\t\t\tTotal: \tMean:%f \tSigma:%f\tdSigma/Mean:%f\n",loopDisplay->hBeamMeanCountsY->GetMean(), loopDisplay->hBeamRMSCountsY->GetRMS(),deltaS);
-       printf("#\t\t\tWire: \tMean: \t\tSigma: \tdSigma/Mean\n");
-       printf("#--------------------------------------------------------\n");
-           //for (int y = 0; y < gridData->GetNumYWires(); ++y)
-       for (int y = 0; y < PEXOR_QFW_WIRES; ++y)
-       {
-         Double_t deltaS=0;
-         if(loopDisplay->hBeamMeanCountsGridY[y]->GetMean()!=0) deltaS=loopDisplay->hBeamRMSCountsGridY[y]->GetRMS()/loopDisplay->hBeamMeanCountsGridY[y]->GetMean();
-         printf("\t\t\t%d\t%f\t%f\t%f\n",y, loopDisplay->hBeamMeanCountsGridY[y]->GetMean(), loopDisplay->hBeamRMSCountsGridY[y]->GetRMS(),deltaS);
-       }
+    }
+    else
+    {
+      fp = stdout;
+    }
 
-     }
-   }
 
-  cout << endl;
-}
-  //////////////////
+    for (unsigned g = 0; g < fGrids.size(); ++g)
+    {
+      // mind the different indices!
+      TQFWGridDisplay* gridDisplay = fGrids[g];    // g      =vector index of display component
+      Int_t gridid = gridDisplay->GetDevId();    // gridid =unique hardware id
+      //TQFWGrid* gridData = fOutput->GetGrid(gridid);
+
+      fprintf(fp, "############# Grid %d \n", gridid);
+      for (int l = 0; l < gridDisplay->GetNumLoops(); ++l)
+      {
+        TQFWGridLoopDisplay* loopDisplay = gridDisplay->GetLoopDisplay(l);
+        if (loopDisplay->hBeamMeanCountsX == 0)
+          continue;    // catch case that fDoCountStatistics was enabled during run.
+        fprintf(fp, "#\tLoop %d\n", l);
+        fprintf(fp, "#\t\tX-Direction:\n");
+        Double_t deltaS = 0;
+        if (loopDisplay->hBeamMeanCountsX->GetMean() != 0)
+          deltaS = loopDisplay->hBeamRMSCountsX->GetRMS() / loopDisplay->hBeamMeanCountsX->GetMean();
+        fprintf(fp, "#\t\t\tTotal - \tMean:%f \tSigma:%f \tdSigma/Mean:%f\n", loopDisplay->hBeamMeanCountsX->GetMean(),
+            loopDisplay->hBeamRMSCountsX->GetRMS(), deltaS);
+        //for (int x = 0; x < gridData->GetNumXWires(); ++x)
+        fprintf(fp, "#\t\t\tWire: \tMean: \t\tSigma: \tdSigma/Mean\n");
+        fprintf(fp, "#--------------------------------------------------------\n");
+        for (int x = 0; x < PEXOR_QFW_WIRES; ++x)
+        {
+          Double_t deltaS = 0;
+          if (loopDisplay->hBeamMeanCountsGridX[x]->GetMean() != 0)
+            deltaS = loopDisplay->hBeamRMSCountsGridX[x]->GetRMS() / loopDisplay->hBeamMeanCountsGridX[x]->GetMean();
+          fprintf(fp, "\t\t\t%d\t%f\t%f\t%f\n", x, loopDisplay->hBeamMeanCountsGridX[x]->GetMean(),
+              loopDisplay->hBeamRMSCountsGridX[x]->GetRMS(), deltaS);
+        }
+        fprintf(fp, "#\t\tY-Direction:\n");
+        deltaS = 0;
+        if (loopDisplay->hBeamMeanCountsY->GetMean() != 0)
+          deltaS = loopDisplay->hBeamRMSCountsY->GetRMS() / loopDisplay->hBeamMeanCountsY->GetMean();
+
+        fprintf(fp, "#\t\t\tTotal: \tMean:%f \tSigma:%f\tdSigma/Mean:%f\n", loopDisplay->hBeamMeanCountsY->GetMean(),
+            loopDisplay->hBeamRMSCountsY->GetRMS(), deltaS);
+        fprintf(fp, "#\t\t\tWire: \tMean: \t\tSigma: \tdSigma/Mean\n");
+        fprintf(fp, "#--------------------------------------------------------\n");
+        //for (int y = 0; y < gridData->GetNumYWires(); ++y)
+        for (int y = 0; y < PEXOR_QFW_WIRES; ++y)
+        {
+          Double_t deltaS = 0;
+          if (loopDisplay->hBeamMeanCountsGridY[y]->GetMean() != 0)
+            deltaS = loopDisplay->hBeamRMSCountsGridY[y]->GetRMS() / loopDisplay->hBeamMeanCountsGridY[y]->GetMean();
+          fprintf(fp, "\t\t\t%d\t%f\t%f\t%f\n", y, loopDisplay->hBeamMeanCountsGridY[y]->GetMean(),
+              loopDisplay->hBeamRMSCountsGridY[y]->GetRMS(), deltaS);
+        }
+
+      }
+    }
+    if (fParam->fFileOutputCountStatistics)
+      fclose(fp);
+    cout << endl;
+
+  }    // if do count statistics
+       //////////////////
   for (unsigned i = 0; i < fGrids.size(); ++i)
   {
     delete fGrids[i];
@@ -124,7 +179,7 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
 {
   cout << "**** TQFWProfileProc: Init Display for " << timeslices << " time slices. " << endl;
   if (replace)    //TGo4Analysis::Instance()->
-    SetMakeWithAutosave(kFALSE);
+    SetMakeWithAutosave (kFALSE);
 
   for (unsigned i = 0; i < fGrids.size(); ++i)
   {
@@ -142,7 +197,7 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
 
 //-----------------------------------------------------------
 // event function
- Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
+Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 {
   // called by framework from TQFWRawEvent to fill it
 
@@ -209,10 +264,10 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
         //   xmap.fBoardID, xchan, gridid, x);
         if (xchan < 0)
           continue;    // skip non configured channels
-        std::vector<Int_t> & trace = loopData->fQfwTrace[xchan];
+        std::vector < Int_t > &trace = loopData->fQfwTrace[xchan];
         Double_t sum = 0;
         Double_t CperCount = loopData->GetCoulombPerCount();    // unit C
-        Double_t TperSlice=1.0e-6 * loopData->GetMicroSecsPerTimeSlice();
+        Double_t TperSlice = 1.0e-6 * loopData->GetMicroSecsPerTimeSlice();
         Double_t TperLoop = TperSlice * loopData->fQfwLoopSize;    // unit s
 
         for (unsigned t = 0; t < trace.size(); ++t)
@@ -222,8 +277,10 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
             fParam->AddXOffsetMeasurement(g, l, x, trace[t]);
           }
           // new: since bin number does not correspond to wire number anymore, have to find out bin for wire
-          Int_t tracebin = loopDisplay->hBeamXSliceOffs->FindBin(x,t);
-          Int_t binx=0; Int_t bint=0; Int_t dummy=0;
+          Int_t tracebin = loopDisplay->hBeamXSliceOffs->FindBin(x, t);
+          Int_t binx = 0;
+          Int_t bint = 0;
+          Int_t dummy = 0;
           loopDisplay->hBeamXSliceOffs->GetBinXYZ(tracebin, binx, bint, dummy);
 
           loopDisplay->hBeamXSliceOffs->SetBinContent(binx, bint, fParam->fQFWOffsetsX[g][l][x]);    // show current averaged offset
@@ -232,22 +289,20 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
 // 	  cout <<trace[t] << endl; 
           Double_t value = fParam->GetCorrectedXValue(g, l, x, trace[t]);
           sum += value;
-          loopDisplay->hBeamXSlice->SetBinContent(binx, bint, value); // assume all traces are scaled with same bindims
+          loopDisplay->hBeamXSlice->SetBinContent(binx, bint, value);    // assume all traces are scaled with same bindims
 
-          loopDisplay->hBeamTimeX->SetBinContent(t+1, value); // time slice is always direct index of trace
-
+          loopDisplay->hBeamTimeX->SetBinContent(t + 1, value);    // time slice is always direct index of trace
 
           Double_t prev = loopDisplay->hBeamAccXSlice->GetBinContent(binx, bint);
           loopDisplay->hBeamAccXSlice->SetBinContent(binx, bint, prev + value);
-          loopDisplay->hBeamAccTimeX->AddBinContent(t+1, value); // time slice is always direct index of trace
-
-
+          loopDisplay->hBeamAccTimeX->AddBinContent(t + 1, value);    // time slice is always direct index of trace
 
           // charge and current traces:
-          Double_t slicecharge=CperCount * value;
-          Double_t slicecurrent=0;
+          Double_t slicecharge = CperCount * value;
+          Double_t slicecurrent = 0;
 
-          if(TperSlice) slicecurrent=slicecharge / TperSlice;
+          if (TperSlice)
+            slicecurrent = slicecharge / TperSlice;
 
 #ifdef QFW_STORECURRENTS
           gridData->fXCurrent.push_back(slicecurrent);
@@ -264,8 +319,10 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
 
             loopDisplay->hBeamCurrentXSlice->SetBinContent(binx, bint, slicecurrent);
             Int_t numsamples = 1
-                + (Int_t) ((loopDisplay->hBeamAccChargeXSlice->GetEntries() - 1)
-                    / loopDisplay->hBeamAccChargeXSlice->GetNbinsX() / loopDisplay->hBeamAccChargeXSlice->GetNbinsY());    // divide number of entries by bins to get number of charge measurements per segment
+                + (Int_t)(
+                    (loopDisplay->hBeamAccChargeXSlice->GetEntries() - 1)
+                        / loopDisplay->hBeamAccChargeXSlice->GetNbinsX()
+                        / loopDisplay->hBeamAccChargeXSlice->GetNbinsY());    // divide number of entries by bins to get number of charge measurements per segment
             Double_t chargesum = loopDisplay->hBeamAccChargeXSlice->GetBinContent(binx, bint);
             Double_t currentaverage = chargesum / numsamples / TperSlice;
             loopDisplay->hBeamAveCurrentXSlice->SetBinContent(binx, bint, currentaverage);
@@ -316,7 +373,7 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
 
             // average current is bin content of accumulated charge by number of samples by loop time
             Int_t numsamples = 1
-                + (Int_t) (( loopDisplay->hPosQAccLoopX->GetEntries() -1) / loopDisplay->hPosQAccLoopX->GetNbinsX());    // divide number of entries by bins to get number of charge measurements per wire
+                + (Int_t)((loopDisplay->hPosQAccLoopX->GetEntries() - 1) / loopDisplay->hPosQAccLoopX->GetNbinsX());    // divide number of entries by bins to get number of charge measurements per wire
             Int_t xposbin = loopDisplay->hPosQAccLoopX->FindBin(xpos);
 //            printf("XXXXXXXX I- grid %d loop%d xpos:%f xposbin:%d, entries:%f bins:%d numsamples=%d \n", g, l, xpos, xposbin,
 //                loopDisplay->hPosQAccLoopX->GetEntries(), loopDisplay->hPosQAccLoopX->GetNbinsX(), numsamples);
@@ -360,11 +417,11 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
         //           ymap.fBoardID, ychan, gridid, y);
         if (ychan < 0)
           continue;    // skip non configured channels
-        std::vector<Int_t> & trace = loopData->fQfwTrace[ychan];
+        std::vector < Int_t > &trace = loopData->fQfwTrace[ychan];
         Double_t sum = 0;
         Double_t CperCount = loopData->GetCoulombPerCount();    // unit C
-        Double_t TperSlice= 1.0e-6 * loopData->GetMicroSecsPerTimeSlice();
-        Double_t TperLoop =  TperSlice * loopData->fQfwLoopSize;    // unit s
+        Double_t TperSlice = 1.0e-6 * loopData->GetMicroSecsPerTimeSlice();
+        Double_t TperLoop = TperSlice * loopData->fQfwLoopSize;    // unit s
         for (unsigned t = 0; t < trace.size(); ++t)
         {
 
@@ -374,34 +431,33 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
           }
 
           // new: since bin number does not correspond to wire number anymore, have to find out bin for wire
-          Int_t tracebin = loopDisplay->hBeamYSliceOffs->FindBin(y,t);
-          Int_t biny=0; Int_t bint=0; Int_t dummy=0;
+          Int_t tracebin = loopDisplay->hBeamYSliceOffs->FindBin(y, t);
+          Int_t biny = 0;
+          Int_t bint = 0;
+          Int_t dummy = 0;
           loopDisplay->hBeamYSliceOffs->GetBinXYZ(tracebin, biny, bint, dummy);
 
           loopDisplay->hBeamYSliceOffs->SetBinContent(biny, bint, fParam->fQFWOffsetsY[g][l][y]);    // show current averaged offset
           Double_t value = fParam->GetCorrectedYValue(g, l, y, trace[t]);
           sum += value;
           loopDisplay->hBeamYSlice->SetBinContent(biny, bint, value);
-          loopDisplay->hBeamTimeY->SetBinContent(t+1, value); // time slice is always direct index of trace
-
+          loopDisplay->hBeamTimeY->SetBinContent(t + 1, value);    // time slice is always direct index of trace
 
           Double_t prev = loopDisplay->hBeamAccYSlice->GetBinContent(biny, bint);
           loopDisplay->hBeamAccYSlice->SetBinContent(biny, bint, prev + value);
-          loopDisplay->hBeamAccTimeY->AddBinContent(t+1, value); // time slice is always direct index of trace
-
+          loopDisplay->hBeamAccTimeY->AddBinContent(t + 1, value);    // time slice is always direct index of trace
 
           // charge and current traces:
-           Double_t slicecharge=CperCount * value;
-           Double_t slicecurrent=0;
-           if(TperSlice) slicecurrent=slicecharge / TperSlice;
+          Double_t slicecharge = CperCount * value;
+          Double_t slicecurrent = 0;
+          if (TperSlice)
+            slicecurrent = slicecharge / TperSlice;
 
+#ifdef QFW_STORECURRENTS
+          gridData->fYCurrent.push_back(slicecurrent);
+#endif
 
- #ifdef QFW_STORECURRENTS
-           gridData->fYCurrent.push_back(slicecurrent);
- #endif
-
-
-           if (((fParam->fGridMinWire_Y[gix] < 0) || (y >= fParam->fGridMinWire_Y[gix]))
+          if (((fParam->fGridMinWire_Y[gix] < 0) || (y >= fParam->fGridMinWire_Y[gix]))
               && ((fParam->fGridMaxWire_Y[gix] < 0) || (y < fParam->fGridMaxWire_Y[gix])))
           {
             loopDisplay->hBeamChargeYSlice->SetBinContent(biny, bint, slicecharge);
@@ -409,13 +465,14 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
             loopDisplay->hBeamAccChargeYSlice->SetBinContent(biny, bint, cprev + slicecharge);
             loopDisplay->hBeamCurrentYSlice->SetBinContent(biny, bint, slicecurrent);
             Int_t numsamples = 1
-                + (Int_t) ((loopDisplay->hBeamAccChargeYSlice->GetEntries() - 1)
-                    / loopDisplay->hBeamAccChargeYSlice->GetNbinsX() / loopDisplay->hBeamAccChargeYSlice->GetNbinsY());    // divide number of entries by bins to get number of charge measurements per segment
+                + (Int_t)(
+                    (loopDisplay->hBeamAccChargeYSlice->GetEntries() - 1)
+                        / loopDisplay->hBeamAccChargeYSlice->GetNbinsX()
+                        / loopDisplay->hBeamAccChargeYSlice->GetNbinsY());    // divide number of entries by bins to get number of charge measurements per segment
             Double_t chargesum = loopDisplay->hBeamAccChargeYSlice->GetBinContent(biny, bint);
             Double_t currentaverage = chargesum / numsamples / TperSlice;
             loopDisplay->hBeamAveCurrentYSlice->SetBinContent(biny, bint, currentaverage);
           }
-
 
         }    // trace t
         loopDisplay->hBeamLoopY->Fill(y, sum);
@@ -453,7 +510,7 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
 
             // average current is bin content of accumulated charge by number of samples by loop time
             Int_t numsamples = 1
-                + (Int_t) ((loopDisplay->hPosQAccLoopY->GetEntries()-1) / loopDisplay->hPosQAccLoopY->GetNbinsX());    // divide number of entries by bins to get number of charge measurements per wire
+                + (Int_t)((loopDisplay->hPosQAccLoopY->GetEntries() - 1) / loopDisplay->hPosQAccLoopY->GetNbinsX());    // divide number of entries by bins to get number of charge measurements per wire
             Int_t yposbin = loopDisplay->hPosQAccLoopY->FindBin(ypos);
 //            printf("YYYYYYYY I- grid %d loop%d ypos:%f yposbin:%d, entries:%f bins:%d numsamples=%d \n", g, l, ypos, yposbin,
 //                loopDisplay->hPosQAccLoopY->GetEntries(), loopDisplay->hPosQAccLoopY->GetNbinsX(), numsamples);
@@ -471,7 +528,6 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
 
     }    // loops
     
-
     if (fParam->fDoCountStatistics)
     {
       // second loop loop to get mean values of traces:
@@ -479,7 +535,8 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
       {
         TQFWGridLoopDisplay* loopDisplay = gridDisplay->GetLoopDisplay(l);
         // evaluate here mean value and sigma of profile counts
-        if(loopDisplay->hBeamMeanCountsX==0) continue; // catch case that fDoCountStatistics was enabled during run.
+        if (loopDisplay->hBeamMeanCountsX == 0)
+          continue;    // catch case that fDoCountStatistics was enabled during run.
         Double_t MeanCountsX = 0, RMSCountsX = 0, MeanCountsY = 0, RMSCountsY = 0;
         Double_t MeanCountsWireX[PEXOR_QFW_WIRES], RMSCountsWireX[PEXOR_QFW_WIRES], MeanCountsWireY[PEXOR_QFW_WIRES],
             RMSCountsWireY[PEXOR_QFW_WIRES];
@@ -571,8 +628,6 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
 
       }    // loops
     }    //if(fParam->fDoCountStatistics)
-
-
     
 // put here mean value calculations and profiles:
 
@@ -664,12 +719,11 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
         //   xmap.fBoardID, xchan, gridid, x);
         if (xchan < 0)
           continue;    // skip non configured channels
-        std::vector<Int_t> & trace = loopData->fQfwTrace[xchan];
+        std::vector < Int_t > &trace = loopData->fQfwTrace[xchan];
         Double_t sum = 0;
         Double_t CperCount = loopData->GetCoulombPerCount();    // unit C
         Double_t TperSlice = 1.0e-6 * loopData->GetMicroSecsPerTimeSlice();
         Double_t TperLoop = TperSlice * loopData->fQfwLoopSize;    // unit s
-
 
         for (unsigned t = 0; t < trace.size(); ++t)
         {
@@ -685,24 +739,22 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
           Double_t prev = loopDisplay->hAccCupSlice->GetBinContent(1 + x, 1 + t);
           loopDisplay->hAccCupSlice->SetBinContent(1 + x, 1 + t, prev + value);
           // charge and current traces:
-          Double_t slicecharge=CperCount * value;
-          Double_t slicecurrent=0;
-          if(TperSlice) slicecurrent=slicecharge / TperSlice;
+          Double_t slicecharge = CperCount * value;
+          Double_t slicecurrent = 0;
+          if (TperSlice)
+            slicecurrent = slicecharge / TperSlice;
           loopDisplay->hCupChargeSlice->SetBinContent(1 + x, 1 + t, slicecharge);
           Double_t cprev = loopDisplay->hCupAccChargeSlice->GetBinContent(1 + x, 1 + t);
           loopDisplay->hCupAccChargeSlice->SetBinContent(1 + x, 1 + t, cprev + slicecharge);
 
-
           loopDisplay->hCupCurrentSlice->SetBinContent(1 + x, 1 + t, slicecurrent);
           Int_t numsamples = 1
-                              + (Int_t) (( loopDisplay->hCupAccChargeSlice->GetEntries() -1) / loopDisplay->hCupAccChargeSlice->GetNbinsX()/ loopDisplay->hCupAccChargeSlice->GetNbinsY());    // divide number of entries by bins to get number of charge measurements per segment
-          Double_t chargesum = loopDisplay->hCupAccChargeSlice->GetBinContent(1+x, 1+t);
+              + (Int_t)(
+                  (loopDisplay->hCupAccChargeSlice->GetEntries() - 1) / loopDisplay->hCupAccChargeSlice->GetNbinsX()
+                      / loopDisplay->hCupAccChargeSlice->GetNbinsY());    // divide number of entries by bins to get number of charge measurements per segment
+          Double_t chargesum = loopDisplay->hCupAccChargeSlice->GetBinContent(1 + x, 1 + t);
           Double_t currentaverage = chargesum / numsamples / TperSlice;
           loopDisplay->hCupAveCurrentSlice->SetBinContent(1 + x, 1 + t, currentaverage);
-
-
-
-
 
 #ifdef QFW_STORECURRENTS
           cupData->fCurrent.push_back(slicecurrent);
@@ -715,30 +767,28 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
         Double_t charge = CperCount * sum;
         Double_t current = 0;
         if (TperLoop)
-                    current = charge / TperLoop;    // unit A
-
+          current = charge / TperLoop;    // unit A
 
         segmentcharge[x] = charge;
         chargesum += charge;
 
-        cupDisplay->hCupScaler->AddBinContent(1 + x, sum); // TODO better use Fill here?
+        cupDisplay->hCupScaler->AddBinContent(1 + x, sum);    // TODO better use Fill here?
         cupDisplay->hCupAccScaler->AddBinContent(1 + x, sum);
 
-
-        loopDisplay->hCupLoopScaler->Fill(x,sum);
-        loopDisplay->hCupAccLoopScaler->Fill(x,sum);
-        loopDisplay->hCupLoopCharge->Fill(x,charge);
-        loopDisplay->hCupAccLoopCharge->Fill(x,charge);
-        loopDisplay->hCupLoopCurrent->Fill(x,current);
+        loopDisplay->hCupLoopScaler->Fill(x, sum);
+        loopDisplay->hCupAccLoopScaler->Fill(x, sum);
+        loopDisplay->hCupLoopCharge->Fill(x, charge);
+        loopDisplay->hCupAccLoopCharge->Fill(x, charge);
+        loopDisplay->hCupLoopCurrent->Fill(x, current);
 
         // average current is accum. charge by number of samples by measurement time:
 
         Int_t numsamples = 1
-                     + (Int_t) (( loopDisplay->hCupAccLoopCharge->GetEntries() -1) / loopDisplay->hCupAccLoopCharge->GetNbinsX());    // divide number of entries by bins to get number of charge measurements per wire
+            + (Int_t)((loopDisplay->hCupAccLoopCharge->GetEntries() - 1) / loopDisplay->hCupAccLoopCharge->GetNbinsX());    // divide number of entries by bins to get number of charge measurements per wire
 
-        Double_t chargesum = loopDisplay->hCupAccLoopCharge->GetBinContent(x+1);
+        Double_t chargesum = loopDisplay->hCupAccLoopCharge->GetBinContent(x + 1);
         Double_t currentaverage = chargesum / numsamples / TperLoop;
-        loopDisplay->hCupAveLoopCurrent->Fill(x,currentaverage);
+        loopDisplay->hCupAveLoopCurrent->Fill(x, currentaverage);
 
       }    // segments
 
@@ -767,8 +817,8 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
 
   if (fParam->fSlowMotionStart > 0)
     if (QFWRawEvent->fSequenceNumber > (Int_t) fParam->fSlowMotionStart)
-      GO4_STOP_ANALYSIS_MESSAGE(
-          "Stopped for slow motion mode at event of sequence number %d", QFWRawEvent->fSequenceNumber);
+      GO4_STOP_ANALYSIS_MESSAGE("Stopped for slow motion mode at event of sequence number %d",
+          QFWRawEvent->fSequenceNumber);
 
   return kTRUE;
 }

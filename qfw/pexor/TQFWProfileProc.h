@@ -32,6 +32,9 @@ protected:
   std::vector<TQFWGridDisplay*> fGrids;
   std::vector<TQFWCupDisplay*> fCups;
 
+  /** remember output name of statistic file*/
+  TString fCountStatfile; //!
+
 public:
   TQFWProfileProc();
   TQFWProfileProc(const char* name);

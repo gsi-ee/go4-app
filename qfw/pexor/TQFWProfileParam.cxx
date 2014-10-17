@@ -17,7 +17,10 @@
 TQFWProfileParam::TQFWProfileParam() :
     TGo4Parameter()
 {
-
+   fMeasureBackground = kFALSE;
+   fCorrectBackground = kTRUE;
+   fDoCountStatistics = kFALSE;
+   fFileOutputCountStatistics=kFALSE;
 }
 
 TQFWProfileParam::TQFWProfileParam(const char* name) :
@@ -28,6 +31,7 @@ TQFWProfileParam::TQFWProfileParam(const char* name) :
   fMeasureBackground = kFALSE;
   fCorrectBackground = kTRUE;
   fDoCountStatistics = kFALSE;
+  fFileOutputCountStatistics=kFALSE;
 }
 
 void TQFWProfileParam::InitProfileMapping()
@@ -363,6 +367,7 @@ Bool_t TQFWProfileParam::UpdateFrom(TGo4Parameter *pp)
   fMeasureBackground = from->fMeasureBackground;
   fCorrectBackground = from->fCorrectBackground;
   fDoCountStatistics= from->fDoCountStatistics;
+  fFileOutputCountStatistics= from->fFileOutputCountStatistics;
   fSlowMotionStart = from->fSlowMotionStart;
 
   // configuration objects are here

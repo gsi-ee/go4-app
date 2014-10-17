@@ -26,6 +26,7 @@ class TQFWProfileParam : public TGo4Parameter {
       Bool_t   fMeasureBackground;  // switches background measurement on/off
       Bool_t   fCorrectBackground;  // apply background correction to qfw on/off
       Bool_t   fDoCountStatistics;  // evaluate mean and sigma of counts with per wire histograms
+      Bool_t   fFileOutputCountStatistics;  // dump mean sigma values to file
 
       // configuration objects are here
 
