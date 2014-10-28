@@ -123,37 +123,45 @@ TQFWProfileProc::~TQFWProfileProc()
         fprintf(fp, "#\t\tX-Direction:\n");
         Double_t deltaS = 0;
         if (loopDisplay->hBeamMeanCountsX->GetMean() != 0)
-          deltaS = loopDisplay->hBeamRMSCountsX->GetRMS() / loopDisplay->hBeamMeanCountsX->GetMean();
-        fprintf(fp, "#\t\t\tTotal - \tMean:%f \tSigma:%f \tdSigma/Mean:%f\n", loopDisplay->hBeamMeanCountsX->GetMean(),
-            loopDisplay->hBeamRMSCountsX->GetRMS(), deltaS);
+          deltaS = loopDisplay->hBeamMeanCountsX->GetRMS() / loopDisplay->hBeamMeanCountsX->GetMean();
+        fprintf(fp, "#\t\t\tTotal - \tMean:%f \tSigma:%f \tdSigma/Mean:%f\tMean of Sigmas:%f\n",
+            loopDisplay->hBeamMeanCountsX->GetMean(),
+            loopDisplay->hBeamMeanCountsX->GetRMS(),
+            deltaS,
+            loopDisplay->hBeamRMSCountsX->GetMean());
         //for (int x = 0; x < gridData->GetNumXWires(); ++x)
-        fprintf(fp, "#\t\t\tWire: \tMean: \t\tSigma: \tdSigma/Mean\n");
-        fprintf(fp, "#--------------------------------------------------------\n");
+        fprintf(fp, "#\t\t\tWire: \tMean: \t\tSigma: \t\tdSigma/Mean\t Mean of Sigmas\n");
+        fprintf(fp, "#------------------------------------------------------------------------------\n");
         for (int x = 0; x < PEXOR_QFW_WIRES; ++x)
         {
           Double_t deltaS = 0;
           if (loopDisplay->hBeamMeanCountsGridX[x]->GetMean() != 0)
-            deltaS = loopDisplay->hBeamRMSCountsGridX[x]->GetRMS() / loopDisplay->hBeamMeanCountsGridX[x]->GetMean();
-          fprintf(fp, "\t\t\t%d\t%f\t%f\t%f\n", x, loopDisplay->hBeamMeanCountsGridX[x]->GetMean(),
-              loopDisplay->hBeamRMSCountsGridX[x]->GetRMS(), deltaS);
+            deltaS = loopDisplay->hBeamMeanCountsGridX[x]->GetRMS() / loopDisplay->hBeamMeanCountsGridX[x]->GetMean();
+          fprintf(fp, "\t\t\t%d\t%f\t%f\t%f\t%f\n", x, loopDisplay->hBeamMeanCountsGridX[x]->GetMean(),
+              loopDisplay->hBeamMeanCountsGridX[x]->GetRMS(), deltaS,
+              loopDisplay->hBeamRMSCountsGridX[x]->GetMean());
         }
         fprintf(fp, "#\t\tY-Direction:\n");
         deltaS = 0;
         if (loopDisplay->hBeamMeanCountsY->GetMean() != 0)
-          deltaS = loopDisplay->hBeamRMSCountsY->GetRMS() / loopDisplay->hBeamMeanCountsY->GetMean();
+          deltaS = loopDisplay->hBeamMeanCountsY->GetRMS() / loopDisplay->hBeamMeanCountsY->GetMean();
 
-        fprintf(fp, "#\t\t\tTotal: \tMean:%f \tSigma:%f\tdSigma/Mean:%f\n", loopDisplay->hBeamMeanCountsY->GetMean(),
-            loopDisplay->hBeamRMSCountsY->GetRMS(), deltaS);
-        fprintf(fp, "#\t\t\tWire: \tMean: \t\tSigma: \tdSigma/Mean\n");
-        fprintf(fp, "#--------------------------------------------------------\n");
+        fprintf(fp, "#\t\t\tTotal: \tMean:%f \tSigma:%f\tdSigma/Mean:%f\tMean of Sigmas:%f\n",
+            loopDisplay->hBeamMeanCountsY->GetMean(),
+            loopDisplay->hBeamMeanCountsY->GetRMS(),
+            deltaS,
+            loopDisplay->hBeamRMSCountsY->GetMean()            );
+        fprintf(fp, "#\t\t\tWire: \tMean: \t\tSigma: \tdSigma/Mean\t Mean of Sigmas\n");
+        fprintf(fp, "#------------------------------------------------------------------------------\n");
         //for (int y = 0; y < gridData->GetNumYWires(); ++y)
         for (int y = 0; y < PEXOR_QFW_WIRES; ++y)
         {
           Double_t deltaS = 0;
           if (loopDisplay->hBeamMeanCountsGridY[y]->GetMean() != 0)
-            deltaS = loopDisplay->hBeamRMSCountsGridY[y]->GetRMS() / loopDisplay->hBeamMeanCountsGridY[y]->GetMean();
-          fprintf(fp, "\t\t\t%d\t%f\t%f\t%f\n", y, loopDisplay->hBeamMeanCountsGridY[y]->GetMean(),
-              loopDisplay->hBeamRMSCountsGridY[y]->GetRMS(), deltaS);
+            deltaS = loopDisplay->hBeamMeanCountsGridY[y]->GetRMS() / loopDisplay->hBeamMeanCountsGridY[y]->GetMean();
+          fprintf(fp, "\t\t\t%d\t%f\t%f\t%f\t%f\n", y, loopDisplay->hBeamMeanCountsGridY[y]->GetMean(),
+              loopDisplay->hBeamMeanCountsGridY[y]->GetRMS(), deltaS,
+              loopDisplay->hBeamRMSCountsGridY[y]->GetMean());
         }
 
       }
