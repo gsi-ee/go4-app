@@ -132,6 +132,11 @@ TQFWProfileProc::~TQFWProfileProc()
         //for (int x = 0; x < gridData->GetNumXWires(); ++x)
         fprintf(fp, "#\t\t\tWire: \tMean: \t\tSigma: \t\tdSigma/Mean\t Mean of Sigmas\n");
         fprintf(fp, "#------------------------------------------------------------------------------\n");
+        TArrayD meanX(PEXOR_QFW_WIRES);
+        TArrayD sigmaX(PEXOR_QFW_WIRES);
+        TArrayD dsigmaMeanX(PEXOR_QFW_WIRES);
+        TArrayD meanSigmaX(PEXOR_QFW_WIRES);
+        Double_t minMeanX=0, maxMeanX=0, minSigmaX=0, maxSigmaX=0, minDsigmaMeanX=0, maxDsigmaMeanX=0, minMeanSigmaX=0,maxMeanSigmaX=0;
         for (int x = 0; x < PEXOR_QFW_WIRES; ++x)
         {
           Double_t deltaS = 0;
@@ -140,7 +145,43 @@ TQFWProfileProc::~TQFWProfileProc()
           fprintf(fp, "\t\t\t%d\t%f\t%f\t%f\t%f\n", x, loopDisplay->hBeamMeanCountsGridX[x]->GetMean(),
               loopDisplay->hBeamMeanCountsGridX[x]->GetRMS(), deltaS,
               loopDisplay->hBeamRMSCountsGridX[x]->GetMean());
+          // remember each column for mean/sigma calculation below;
+          meanX[x]=loopDisplay->hBeamMeanCountsGridX[x]->GetMean();
+          sigmaX[x]=loopDisplay->hBeamMeanCountsGridX[x]->GetRMS();
+          dsigmaMeanX[x]=deltaS;
+          meanSigmaX[x]=loopDisplay->hBeamRMSCountsGridX[x]->GetMean();
+          // evaluate boundaries of aux histograms for columns mean and sigma:
+          if(meanX[x]>maxMeanX) maxMeanX=meanX[x];
+          if(meanX[x]<minMeanX)  minMeanX=meanX[x];
+          if(sigmaX[x]>maxSigmaX) maxSigmaX=sigmaX[x];
+          if(sigmaX[x]<minSigmaX)  minSigmaX=sigmaX[x];
+          if(dsigmaMeanX[x]>maxDsigmaMeanX) maxDsigmaMeanX=dsigmaMeanX[x];
+          if(dsigmaMeanX[x]<minDsigmaMeanX)  minDsigmaMeanX=dsigmaMeanX[x];
+          if(meanSigmaX[x]>maxMeanSigmaX) maxMeanSigmaX=meanSigmaX[x];
+          if(meanSigmaX[x]<minMeanSigmaX) minMeanSigmaX=meanSigmaX[x];
         }
+        // put here average and sigma of above values:
+        TH1D hauxMeanX("meanx","meanx",500, minMeanX, maxMeanX);
+        TH1D hauxSigmaX("sigmax","sigmax",500, minSigmaX, maxSigmaX);
+        TH1D hauxDSigmaX("dsigmax","dsigmax",500, minDsigmaMeanX, maxDsigmaMeanX);
+        TH1D hauxMeanSigmaX("meansigmax","meansigmax",500, minMeanSigmaX, maxMeanSigmaX);
+        for (int x = 0; x < PEXOR_QFW_WIRES; ++x)
+                {
+                  if(sigmaX[x]==0.0) continue; // suppress unused wires by this
+                  hauxMeanX.Fill(meanX[x]);
+                  hauxSigmaX.Fill(sigmaX[x]);
+                  hauxDSigmaX.Fill(dsigmaMeanX[x]);
+                  hauxMeanSigmaX.Fill(meanSigmaX[x]);
+                }
+        fprintf(fp, "#------------------------------------------------------------------------------\n");
+        fprintf(fp, "#\t\t\tAverage - Mean:(%f +-%f) \n#\t\t\t\t  Sigma:(%f +- %f) \n#\t\t\t\t  dSigma/Mean:(%f +- %f) \n#\t\t\t\t  Mean of Sigmas:(%f +- %f)\n",
+                    hauxMeanX.GetMean(),hauxMeanX.GetRMS(),
+                    hauxSigmaX.GetMean(),hauxSigmaX.GetRMS(),
+                    hauxDSigmaX.GetMean(),hauxDSigmaX.GetRMS(),
+                    hauxMeanSigmaX.GetMean(),hauxMeanSigmaX.GetRMS());
+        fprintf(fp, "#------------------------------------------------------------------------------\n");
+
+
         fprintf(fp, "#\t\tY-Direction:\n");
         deltaS = 0;
         if (loopDisplay->hBeamMeanCountsY->GetMean() != 0)
@@ -153,7 +194,14 @@ TQFWProfileProc::~TQFWProfileProc()
             loopDisplay->hBeamRMSCountsY->GetMean()            );
         fprintf(fp, "#\t\t\tWire: \tMean: \t\tSigma: \tdSigma/Mean\t Mean of Sigmas\n");
         fprintf(fp, "#------------------------------------------------------------------------------\n");
-        //for (int y = 0; y < gridData->GetNumYWires(); ++y)
+
+        TArrayD meanY(PEXOR_QFW_WIRES);
+        TArrayD sigmaY(PEXOR_QFW_WIRES);
+        TArrayD dsigmaMeanY(PEXOR_QFW_WIRES);
+        TArrayD meanSigmaY(PEXOR_QFW_WIRES);
+        Double_t minMeanY=0, maxMeanY=0, minSigmaY=0, maxSigmaY=0, minDsigmaMeanY=0, maxDsigmaMeanY=0, minMeanSigmaY=0,maxMeanSigmaY=0;
+
+
         for (int y = 0; y < PEXOR_QFW_WIRES; ++y)
         {
           Double_t deltaS = 0;
@@ -162,7 +210,44 @@ TQFWProfileProc::~TQFWProfileProc()
           fprintf(fp, "\t\t\t%d\t%f\t%f\t%f\t%f\n", y, loopDisplay->hBeamMeanCountsGridY[y]->GetMean(),
               loopDisplay->hBeamMeanCountsGridY[y]->GetRMS(), deltaS,
               loopDisplay->hBeamRMSCountsGridY[y]->GetMean());
+          // remember each column for mean/sigma calculation below;
+                    meanY[y]=loopDisplay->hBeamMeanCountsGridY[y]->GetMean();
+                    sigmaY[y]=loopDisplay->hBeamMeanCountsGridY[y]->GetRMS();
+                    dsigmaMeanY[y]=deltaS;
+                    meanSigmaY[y]=loopDisplay->hBeamRMSCountsGridY[y]->GetMean();
+                    // evaluate boundaries of aux histograms for columns mean and sigma:
+                    if(meanY[y]>maxMeanY) maxMeanY=meanY[y];
+                    if(meanY[y]<minMeanY)  minMeanY=meanY[y];
+                    if(sigmaY[y]>maxSigmaY) maxSigmaY=sigmaY[y];
+                    if(sigmaY[y]<minSigmaY)  minSigmaY=sigmaY[y];
+                    if(dsigmaMeanY[y]>maxDsigmaMeanY) maxDsigmaMeanY=dsigmaMeanY[y];
+                    if(dsigmaMeanY[y]<minDsigmaMeanY)  minDsigmaMeanY=dsigmaMeanY[y];
+                    if(meanSigmaY[y]>maxMeanSigmaY) maxMeanSigmaY=meanSigmaY[y];
+                    if(meanSigmaY[y]<minMeanSigmaY) minMeanSigmaY=meanSigmaY[y];
         }
+        // put here average and sigma of above values:
+        TH1D hauxMeanY("meany","meany",500, minMeanY, maxMeanY);
+               TH1D hauxSigmaY("sigmay","sigmay",500, minSigmaY, maxSigmaY);
+               TH1D hauxDSigmaY("dsigmay","dsigmay",500, minDsigmaMeanY, maxDsigmaMeanY);
+               TH1D hauxMeanSigmaY("meansigmay","meansigmay",500, minMeanSigmaY, maxMeanSigmaY);
+               for (int y = 0; y < PEXOR_QFW_WIRES; ++y)
+                       {
+                         if(sigmaY[y]==0.0) continue; // suppress unused wires by this
+                         hauxMeanY.Fill(meanY[y]);
+                         hauxSigmaY.Fill(sigmaY[y]);
+                         hauxDSigmaY.Fill(dsigmaMeanY[y]);
+                         hauxMeanSigmaY.Fill(meanSigmaY[y]);
+                       }
+               fprintf(fp, "#------------------------------------------------------------------------------\n");
+               fprintf(fp, "#\t\t\tAverage - Mean:(%f +-%f) \n#\t\t\t\t  Sigma:(%f +- %f) \n#\t\t\t\t  dSigma/Mean:(%f +- %f) \n#\t\t\t\t  Mean of Sigmas:(%f +- %f)\n",
+                           hauxMeanY.GetMean(),hauxMeanY.GetRMS(),
+                           hauxSigmaY.GetMean(),hauxSigmaY.GetRMS(),
+                           hauxDSigmaY.GetMean(),hauxDSigmaY.GetRMS(),
+                           hauxMeanSigmaY.GetMean(),hauxMeanSigmaY.GetRMS());
+               fprintf(fp, "#------------------------------------------------------------------------------\n");
+
+
+
 
       }
     }
