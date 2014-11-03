@@ -633,16 +633,34 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
         Double_t MeanCountsX = 0, RMSCountsX = 0, MeanCountsY = 0, RMSCountsY = 0;
         Double_t MeanCountsWireX[PEXOR_QFW_WIRES], RMSCountsWireX[PEXOR_QFW_WIRES], MeanCountsWireY[PEXOR_QFW_WIRES],
             RMSCountsWireY[PEXOR_QFW_WIRES];
+        for(int w=0; w<PEXOR_QFW_WIRES;++w)
+          {
+          MeanCountsWireX[w]=0.;
+          MeanCountsWireY[w]=0.;
+          RMSCountsWireX[w]=0.;
+          RMSCountsWireY[w]=0.;
+          } // avoid using uninitialized fields...
+
+
+
         //first x direction:
         Int_t cmax = loopDisplay->cBeamXSliceCond->GetCMax(loopDisplay->hBeamXSlice);
         if (cmax > 0)
         {
-          TH1I haux("temp", "temp", 2 * cmax, -cmax, cmax);    // auxiliary histogram to calculate mean and rms of counts
-          TH1I hauxWire("tempwire", "tempwire", 2 * cmax, -cmax, cmax);    // per wire calculation of
-          for (int wire = 0; wire < gridData->GetNumXWires(); ++wire)
+          TH1I haux("temp", "temp", 4 * cmax, -2*cmax, 2*cmax);    // auxiliary histogram to calculate mean and rms of counts
+          TH1I hauxWire("tempwire", "tempwire", 4 * cmax, -2*cmax, 2*cmax);    // per wire calculation of
+          // note: upper boundary must be larger than cmax, otherwise this point will be excluded!
+          for (int wire = 0; wire < gridData->GetNumXWires(); wire++)
           {
-            MeanCountsWireY[wire] = 0;
-            RMSCountsWireY[wire] = 0;
+            TQFWChannelMap xmap = gridData->GetXChannelMap(wire);
+            Int_t xchan = xmap.fQFWChannel;
+            if(xchan<0) continue; // skip non configured channels
+            //// DEBUG DEBUG
+//            if((gix==2) && (l==2))
+//            {
+//              printf ("------- loop %d wire %d doing count statistics, number of wires=%d\n",l,wire,gridData->GetNumXWires());
+//            }
+
 
             hauxWire.Reset("");
             for (int time = 0; time < loopDisplay->GetTimeSlices(); ++time)
@@ -651,19 +669,35 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
               {
                 haux.Fill(loopDisplay->hBeamXSlice->GetBinContent(wire + 1, time + 1));
                 hauxWire.Fill(loopDisplay->hBeamXSlice->GetBinContent(wire + 1, time + 1));
+//                if((gix==2) && (l==2))
+//                          {
+//                            printf ("------- timeslice %d: bin content of %s - %f..\n",time, loopDisplay->hBeamXSlice->GetName(), loopDisplay->hBeamXSlice->GetBinContent(wire + 1, time + 1));
+//                          }
               }
             }
             MeanCountsWireX[wire] = hauxWire.GetMean();
             RMSCountsWireX[wire] = hauxWire.GetRMS();
+//            if((gix==2) && (l==2))
+//                               {
+//                                 printf ("------------wire %d meanX:%f RMSx:%f histogetmean:%f, histogetRMS:%f\n",
+//                                     wire, MeanCountsWireX[wire], RMSCountsWireX[wire], hauxWire.GetMean(), hauxWire.GetRMS());
+//                               }
+
           }
 
           MeanCountsX = haux.GetMean();
           RMSCountsX = haux.GetRMS();
+//          if((gix==2) && (l==2))
+//                     {
+//                       printf ("------------ meanX:%f RMSx:%f\n",MeanCountsX, RMSCountsX);
+//                     }
+
+
         }
         else
         {
           // optionally show debug
-          //printf("XXXXXXXX: cmax=%d <0, do not evaluate profile stats \n", cmax);
+          //printf("XXXXXXXX: cmax=%d <0, do not evaluate profile stats for grid:%d loop:%d\n", cmax,g,l);
 
         }
 
@@ -675,12 +709,14 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
         Int_t cmay = loopDisplay->cBeamYSliceCond->GetCMax(loopDisplay->hBeamYSlice);
         if (cmay > 0)
         {
-          TH1I hauy("temp2", "temp2", 2 * cmay, -cmay, cmay);    // auxiliary histogram to calculate mean and rms of counts
-          TH1I hauyWire("temp2wire", "temp2wire", 2 * cmay, -cmay, cmay);    // per wire calculation of
-          for (int wire = 0; wire < gridData->GetNumYWires(); ++wire)
+          TH1I hauy("temp2", "temp2", 4 * cmay, -2*cmay, 2*cmay);    // auxiliary histogram to calculate mean and rms of counts
+          TH1I hauyWire("temp2wire", "temp2wire", 4 * cmay, -2*cmay, 2*cmay);    // per wire calculation of
+          for (int wire = 0; wire < gridData->GetNumYWires(); wire++)
           {
-            MeanCountsWireY[wire] = 0;
-            RMSCountsWireY[wire] = 0;
+            TQFWChannelMap ymap = gridData->GetYChannelMap(wire);
+            Int_t ychan = ymap.fQFWChannel;
+            if(ychan<0) continue; // skip non configured channels
+
             hauyWire.Reset("");
             for (int time = 0; time < loopDisplay->GetTimeSlices(); ++time)
             {
@@ -717,6 +753,14 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           loopDisplay->hBeamMeanCountsGridY[w]->Fill(MeanCountsWireY[w]);
           loopDisplay->hBeamRMSCountsGridX[w]->Fill(RMSCountsWireX[w]);
           loopDisplay->hBeamRMSCountsGridY[w]->Fill(RMSCountsWireY[w]);
+//          if((gix==2) && (l==2))
+//                              {
+//                                printf ("-------Wire %d -  meanX:%f RMSx:%f meanY:%f RMSy:%f\n",
+//                                    w, MeanCountsWireX[w], RMSCountsWireX[w], MeanCountsWireY[w], RMSCountsWireY[w]);
+//                              }
+
+
+
         }
 
       }    // loops
