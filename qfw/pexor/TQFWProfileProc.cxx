@@ -384,7 +384,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           sum += value;
           loopDisplay->hBeamXSlice->SetBinContent(binx, bint, value);    // assume all traces are scaled with same bindims
 
-          loopDisplay->hBeamTimeX->SetBinContent(t + 1, value);    // time slice is always direct index of trace
+          loopDisplay->hBeamTimeX->AddBinContent(t + 1, value);    // time slice is always direct index of trace
 
           Double_t prev = loopDisplay->hBeamAccXSlice->GetBinContent(binx, bint);
           loopDisplay->hBeamAccXSlice->SetBinContent(binx, bint, prev + value);
@@ -534,7 +534,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           Double_t value = fParam->GetCorrectedYValue(g, l, y, trace[t]);
           sum += value;
           loopDisplay->hBeamYSlice->SetBinContent(biny, bint, value);
-          loopDisplay->hBeamTimeY->SetBinContent(t + 1, value);    // time slice is always direct index of trace
+          loopDisplay->hBeamTimeY->AddBinContent(t + 1, value);    // time slice is always direct index of trace
 
           Double_t prev = loopDisplay->hBeamAccYSlice->GetBinContent(biny, bint);
           loopDisplay->hBeamAccYSlice->SetBinContent(biny, bint, prev + value);
