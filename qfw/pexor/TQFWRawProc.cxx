@@ -40,14 +40,14 @@ if((pdata - pdatastart) > (opticlen/4)) \
 
 //***********************************************************
 TQFWRawProc::TQFWRawProc() :
-    TGo4EventProcessor()
+    TGo4EventProcessor(),fbOffsetReady(kFALSE)
 {
 }
 
 //***********************************************************
 // this one is used in standard factory
 TQFWRawProc::TQFWRawProc(const char* name) :
-    TGo4EventProcessor(name)
+    TGo4EventProcessor(name),fbOffsetReady(kFALSE)
 {
   TGo4Log::Info("TQFWRawProc: Create instance %s", name);
 
@@ -199,6 +199,8 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
                  theBoard->SetOffset(c,value);
                  //boardDisplay->hQFWOffsets->Fill(c,value);
                }
+
+               fbOffsetReady=kTRUE;
                // no check at end of payload, either we find new correct header or subevent is over
              continue;
        } // end  if (source->GetTrigger() == fPar->fFrontendOffsetTrigger)
@@ -355,9 +357,9 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
 
             if(fPar->fUseFrontendOffsets)
             {
-                if(fPar->fFrontendOffsetLoop!=loop) // supress correction of frontend offset raw data if dynamic mode is set!
+
+              if(fPar->fFrontendOffsetLoop!=loop) // supress correction of frontend offset raw data if dynamic mode is set!
                 {
-                  //cout <<"supress correction for loop"<<loop<<" slice:"<<sl<<" channel:"<<ch << endl;
                 // we account frontend measured offset already here
                 // this emulates future mode where offset is corrected already in poland
                 Double_t correction=theBoard->GetOffset(ch) * loopData->GetMicroSecsPerTimeSlice()/1.0e+6;
@@ -424,8 +426,12 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
       // GO4_SKIP_EVENT; // no debug mode
     }
   }
-  FillDisplays();    // we only fill histograms for the events that are selected by trigger condition
 
+  if((fPar->fFrontendOffsetLoop<0) || fbOffsetReady)
+    // always fill, but in dynamic offset loop do not fill unless we have valid offset correction (for Sven)
+      {
+        FillDisplays();    // we only fill histograms for the events that are selected by trigger condition
+      }
   // here refresh dynamic offsets from defined loop
   // this is done _after_ displaying the previous offset and the data corrected from this
   if(fPar->fFrontendOffsetLoop>=0)
@@ -587,6 +593,7 @@ Bool_t TQFWRawProc::RefreshOffsetFromLoop(UInt_t loop)
       }
     }
   }
+fbOffsetReady=kTRUE;
 return kTRUE;
 }
 
