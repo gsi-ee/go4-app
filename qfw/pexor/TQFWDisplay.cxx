@@ -642,10 +642,10 @@ void TQFWGridLoopDisplay::InitDisplay(int timeslices, Bool_t replace)
 
     hBeamAccChargeXSlice = MakeTH2('D', Form("%s/ChargeSum_X_Time_G%d_L%d", foldername.Data(), grid, loop),
               Form("X Accumulated Charge Profile vs Time slices Grid%2d Loop%2d", grid, loop), binsX, minX, maxX, timeslices, 0, timeslices,
-              "Wire", "Time Slice", "I [A]");
+              "Wire", "Time Slice", "Q [C]");
     hBeamAccChargeYSlice = MakeTH2('D', Form("%s/ChargeSum_Y_Time_G%d_L%d", foldername.Data(), grid, loop),
               Form("Y Accumulated Charge Profile vs Time slices Grid%2d Loop%2d", grid, loop), binsY, minY, maxY, timeslices, 0, timeslices,
-              "Wire", "Time Slice", "I [A]");
+              "Wire", "Time Slice", "Q [C]");
 
 
 
