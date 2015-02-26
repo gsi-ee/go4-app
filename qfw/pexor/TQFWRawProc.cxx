@@ -426,7 +426,7 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
       // GO4_SKIP_EVENT; // no debug mode
     }
   }
-
+  Bool_t offsetreadyold=fbOffsetReady;
   if((fPar->fFrontendOffsetLoop<0) || fbOffsetReady)
     // always fill, but in dynamic offset loop do not fill unless we have valid offset correction (for Sven)
       {
@@ -439,9 +439,9 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
     //cout << "**** TQFWRawProc: RefreshOffsetFromLoop for loop"<< fPar->fFrontendOffsetLoop<< endl;
     RefreshOffsetFromLoop(fPar->fFrontendOffsetLoop);
   }
-
+  // do not fill histograms of second analysis step with data of uncorrected first event:
+  if(offsetreadyold)  GO4_SKIP_EVENT_MESSAGE("Skip event of seqnr %d because first offset!", QFWRawEvent->fSequenceNumber);
   QFWRawEvent->SetValid(kTRUE);    // to store
-
   return kTRUE;
 }
 
