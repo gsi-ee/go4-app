@@ -440,7 +440,7 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
     RefreshOffsetFromLoop(fPar->fFrontendOffsetLoop);
   }
   // do not fill histograms of second analysis step with data of uncorrected first event:
-  if(offsetreadyold)  GO4_SKIP_EVENT_MESSAGE("Skip event of seqnr %d because first offset!", QFWRawEvent->fSequenceNumber);
+  if(!offsetreadyold)  GO4_SKIP_EVENT_MESSAGE("Skip event of seqnr %d because first offset!", QFWRawEvent->fSequenceNumber);
   QFWRawEvent->SetValid(kTRUE);    // to store
   return kTRUE;
 }
