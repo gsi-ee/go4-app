@@ -18,15 +18,28 @@
 
 #include "TGo4UserException.h"
 
+static unsigned long skipped_events=0;
+
 /* helper macro for BuildEvent to check if payload pointer is still inside delivered region:*/
 /* this one to be called at top data processing loop*/
 #define  QFWRAW_CHECK_PDATA                                    \
 if((pdata - pdatastart) > (opticlen/4)) \
 { \
-  GO4_SKIP_EVENT_MESSAGE("############ unexpected end of payload for sfp:%d slave:%d with opticlen:0x%x, skip event\n",sfp_id, device_id, opticlen);\
+  printf("############ unexpected end of payload for sfp:%d slave:%d with opticlen:0x%x, skip event %ld\n",sfp_id, device_id, opticlen, skipped_events++);\
+  psubevt->PrintMbsSubevent(kTRUE,kTRUE,kTRUE); \
+  GO4_SKIP_EVENT \
   continue; \
 }
 
+/******************************************
+ JAM: this one can flood go4 message socket
+#define  QFWRAW_CHECK_PDATA
+if((pdata - pdatastart) > (opticlen/4)) \
+{ \
+  GO4_SKIP_EVENT_MESSAGE("############ unexpected end of payload for sfp:%d slave:%d with opticlen:0x%x, skip event\n",sfp_id, device_id, opticlen);\
+  continue; \
+}
+******************/
 /* this one just to leave internal loops*/
 #define  QFWRAW_CHECK_PDATA_BREAK                                    \
 if((pdata - pdatastart) > (opticlen/4)) \
@@ -110,7 +123,7 @@ void TQFWRawProc::InitDisplay(int timeslices, Bool_t replace)
 Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
 {
 // called by framework from TQFWRawEvent to fill it
-
+  Bool_t isOffsetTrigger=kFALSE;
   QFWRawEvent = (TQFWRawEvent*) target;
   QFWRawEvent->SetValid(kFALSE);    // not store
   Int_t triggersum = 0;    // sums up all "software trigger" channels (for free running acquired data)
@@ -199,7 +212,7 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
                  theBoard->SetOffset(c,value);
                  //boardDisplay->hQFWOffsets->Fill(c,value);
                }
-
+               isOffsetTrigger=kTRUE; // suppress evaluating offset from loop data later
                fbOffsetReady=kTRUE;
                // no check at end of payload, either we find new correct header or subevent is over
              continue;
@@ -434,7 +447,7 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
       }
   // here refresh dynamic offsets from defined loop
   // this is done _after_ displaying the previous offset and the data corrected from this
-  if(fPar->fFrontendOffsetLoop>=0)
+  if((fPar->fFrontendOffsetLoop>=0) && !isOffsetTrigger)
   {
     //cout << "**** TQFWRawProc: RefreshOffsetFromLoop for loop"<< fPar->fFrontendOffsetLoop<< endl;
     RefreshOffsetFromLoop(fPar->fFrontendOffsetLoop);
