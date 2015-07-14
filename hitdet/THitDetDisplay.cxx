@@ -82,6 +82,11 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
     obtitle.Form("HitDetection Board %d Stitched Trace (direct ADC only)", brd);
     Int_t totlength= 8 * numsnapshots; // JAM todo: different variable for stitched length here later
     hTraceLong=MakeTH1('I', obname.Data(), obtitle.Data(), totlength, 0, totlength, "time (bins)", "counts");
+
+    obname.Form("Board%d/TraceLongFull_%d", brd, brd);
+    obtitle.Form("HitDetection Board %d Last complete Stitched Trace (direct ADC only)", brd);
+    hTraceLongPrev=MakeTH1('I', obname.Data(), obtitle.Data(), totlength, 0, totlength, "time (bins)", "counts");
+
     obname.Form("Board%d/TraceLongSum_%d", brd, brd);
     obtitle.Form("HitDetection Board %d Stitched Trace Sums(direct ADC only)", brd);
     hTraceLongSum=MakeTH1('I', obname.Data(), obtitle.Data(), totlength, 0, totlength, "time (bins)", "counts");

@@ -33,6 +33,8 @@ void THitDetRawParam::InitBoardMapping()
 
   fNumSnapshots = 64;
   fTraceLength = HitDet_TRACEBINS;
+  fDoFFT=kFALSE;
+  fFFTOptions="R2C M";
 
 }
 
@@ -64,6 +66,8 @@ Bool_t THitDetRawParam::UpdateFrom(TGo4Parameter *pp)
 
   fNumSnapshots = from->fNumSnapshots;
   fTraceLength = from->fTraceLength;
+  fDoFFT=from->fDoFFT;
+  fFFTOptions=from->fFFTOptions;
   SetConfigBoards();
   return kTRUE;
 

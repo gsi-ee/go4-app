@@ -69,6 +69,9 @@ public:
    /** FFT transformed result of hTraceLong*/
    TH1 *hTraceLongFFT;
 
+   /** Previously full filled hTraceLong. Coressponds to contents of hTraceLongFFT*/
+   TH1 *hTraceLongPrev;
+
    /** statistics of message types*/
    TH1* hMsgTypes;
 

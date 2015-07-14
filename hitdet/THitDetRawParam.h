@@ -15,6 +15,8 @@ class THitDetRawParam : public TGo4Parameter {
 
       Int_t fNumSnapshots; // number of trace snapshots per mbs event
       Int_t fTraceLength; // length of trace to visualize (8, 16, 32)
+      Bool_t fDoFFT; // do fast fourier transform on trace long when complete
+      TString fFFTOptions; // ROOT fft option string
 
 
 

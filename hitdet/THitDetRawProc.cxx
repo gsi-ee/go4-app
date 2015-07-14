@@ -6,6 +6,7 @@
 #include "TH2.h"
 #include "TROOT.h"
 #include "TMath.h"
+#include "TVirtualFFT.h"
 #include "TGo4Analysis.h"
 #include "TGo4Log.h"
 
@@ -29,7 +30,6 @@ static unsigned long skipped_events = 0;
 #define HitDetMAYSWAPDATA(src, tgt) \
     (needswap ? f_swaplw(src,1,tgt): *tgt=*src);
 
-
 /* helper macros for BuildEvent to check if payload pointer is still inside delivered region:*/
 /* this one to be called at top data processing loop*/
 #define  HitDetRAW_CHECK_PDATA                                    \
@@ -40,7 +40,6 @@ if((pdata - pdatastart) > HitDetRawEvent->fDataCount ) \
   continue; \
 }
 
-
 #define  HitDetMSG_CHECK_PDATA                                    \
 if((pdata - pdatastartMsg) > msize ) \
 { \
@@ -48,8 +47,6 @@ if((pdata - pdatastartMsg) > msize ) \
   GO4_SKIP_EVENT \
   continue; \
 }
-
-
 
 //***********************************************************
 THitDetRawProc::THitDetRawProc() :
@@ -138,24 +135,17 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
   }
   UInt_t snapshotcount = 0;    // counter for trace snapshot display
   static UInt_t tracelongcount = 0;    // counter for direct adc trace long part
-  static Int_t numsnapshots=0;
-  static Int_t tracelength=0;
+  static Int_t numsnapshots = 0;
+  static Int_t tracelength = 0;
 
   // since we fill histograms already in BuildEvent, need to check if we must rescale histogram displays:
-if((fPar->fNumSnapshots != numsnapshots) || (fPar->fTraceLength != tracelength))
-{
-  numsnapshots=fPar->fNumSnapshots;
-  tracelength=fPar->fTraceLength;
-  InitDisplay(tracelength, numsnapshots, kTRUE);
+  if ((fPar->fNumSnapshots != numsnapshots) || (fPar->fTraceLength != tracelength))
+  {
+    numsnapshots = fPar->fNumSnapshots;
+    tracelength = fPar->fTraceLength;
+    InitDisplay(tracelength, numsnapshots, kTRUE);
 
-
-}
-
-
-
-
-
-
+  }
 
   /////////////////////////////////////////////////////////////
   ////// evaluate from buffer header if we need to swap data words later:
@@ -228,18 +218,16 @@ if((fPar->fNumSnapshots != numsnapshots) || (fPar->fTraceLength != tracelength))
         while ((pdata - pdatastart) < HitDetRawEvent->fDataCount)
         {
           // first vulom wrapper containing total message length:
-          Int_t vulombytecount=0;
+          Int_t vulombytecount = 0;
           HitDetMAYSWAPDATA(pdata++, &vulombytecount);
-          if(((vulombytecount >> 28 ) & 0xF) != 0x4)
-            {
-              // check ROByteCounter marker
-              GO4_SKIP_EVENT_MESSAGE(
-                         "Data error: wrong vulom byte counter 0x%x", vulombytecount);
+          if (((vulombytecount >> 28) & 0xF) != 0x4)
+          {
+            // check ROByteCounter marker
+            GO4_SKIP_EVENT_MESSAGE( "Data error: wrong vulom byte counter 0x%x", vulombytecount);
 
-            }
-          Int_t* pdatastartMsg = pdata; // remember start of message for checking
-          UChar_t msize=(vulombytecount & 0x3F) / sizeof(Int_t); // message size in 32bit words
-
+          }
+          Int_t* pdatastartMsg = pdata;    // remember start of message for checking
+          UChar_t msize = (vulombytecount & 0x3F) / sizeof(Int_t);    // message size in 32bit words
 
           // evaluate message type from header:
           Int_t header = 0;
@@ -259,7 +247,8 @@ if((fPar->fNumSnapshots != numsnapshots) || (fPar->fTraceLength != tracelength))
                 tracelongcount = msgcount;    // reset trace histogram
 
                 Int_t adcdata[4];
-                for (Int_t j = 0; j < 4; ++j){
+                for (Int_t j = 0; j < 4; ++j)
+                {
                   HitDetRAW_CHECK_PDATA;
                   HitDetMSG_CHECK_PDATA;
                   HitDetMAYSWAPDATA(pdata++, (adcdata + j));
@@ -291,7 +280,14 @@ if((fPar->fNumSnapshots != numsnapshots) || (fPar->fTraceLength != tracelength))
                   tracelong = boardDisplay->hTraceLong;
                   tracelongsum = boardDisplay->hTraceLongSum;
                   if (tracelongcount == 0)
+                  {
+                    // begin of new trace, provide FFT of previous one here:
+                    DoFFT(boardDisplay);
+                    boardDisplay->hTraceLongPrev->Reset("");
+                    boardDisplay->hTraceLongPrev->Add(tracelong);    // copy previous full trace to buffer histogram
                     tracelong->Reset("");
+                  }
+
                 }
 
                 for (Int_t k = 0; k < 8; ++k)
@@ -324,7 +320,8 @@ if((fPar->fNumSnapshots != numsnapshots) || (fPar->fTraceLength != tracelength))
                       "ASIC Event header error: 12 bit size %d does not fit into mbs subevent buffer of restlen %d words", size12bit, lwords - (pdata - pdatastart));
 
                 Int_t evdata[size32bit];
-                for (Int_t j = 0; j < size32bit; ++j){
+                for (Int_t j = 0; j < size32bit; ++j)
+                {
                   HitDetRAW_CHECK_PDATA;
                   HitDetMSG_CHECK_PDATA;
                   HitDetMAYSWAPDATA(pdata++, (evdata + j));
@@ -335,7 +332,7 @@ if((fPar->fNumSnapshots != numsnapshots) || (fPar->fTraceLength != tracelength))
 
                 // now decode 12 bit samples inside mbs data words:Ä
                 Int_t binlen = size12bit - 3;    // number of sample bins (should be 8,16, or 32)
-                if(binlen>32)
+                if (binlen > 32)
                   GO4_SKIP_EVENT_MESSAGE("ASIC Event header error: bin length %d exceeds maximum 32", binlen);
 
                 UShort_t val = 0;
@@ -347,13 +344,13 @@ if((fPar->fNumSnapshots != numsnapshots) || (fPar->fTraceLength != tracelength))
                 {
                   UChar_t j_end = j_start + 12;
                   Int_t dix_start = (Int_t) j_start / 32;    // data index containing first bit of sample
-                  Int_t dix_end =   (Int_t) j_end / 32;    // data index containing last bit of sample
+                  Int_t dix_end = (Int_t) j_end / 32;    // data index containing last bit of sample
                   UChar_t k_start = 32 - (j_start - 32 * dix_start);    //  start bit number in evdata word
                   UChar_t k_end = 32 - (j_end - 32 * dix_end);    // end bit number in evdata word
                   if (dix_start == dix_end)
                   {
                     // easy case, sample is inside one evdata word:
-                    val = (evdata[dixoffset+dix_start] >> k_end) & 0xFFF;
+                    val = (evdata[dixoffset + dix_start] >> k_end) & 0xFFF;
                   }
                   else if (dix_end == dix_start + 1)
                   {
@@ -364,7 +361,7 @@ if((fPar->fNumSnapshots != numsnapshots) || (fPar->fTraceLength != tracelength))
 
                     for (UChar_t b = 0; b < (32 - k_end); ++b)
                       mask_end |= (1 << b);
-                    val = (evdata[dixoffset+ dix_start] << (12 - k_start)) & mask_start;
+                    val = (evdata[dixoffset + dix_start] << (12 - k_start)) & mask_start;
                     val |= (evdata[dixoffset + dix_end] >> k_end) & mask_end;
 
                   }
@@ -401,101 +398,151 @@ if((fPar->fNumSnapshots != numsnapshots) || (fPar->fTraceLength != tracelength))
 
                 theBoard->AddMessage(theMsg, channel);
 
+              }
 
-          }
+              break;
 
-          break;
-
-          case THitDetMsg::MSG_Wishbone:
-          // wishbone response (error message)
-          {
-            THitDetMsgWishbone* theMsg = new THitDetMsgWishbone(header);
-            Int_t address=0, val=0;;
-            pdata++; //account header already processed above
-            HitDetRAW_CHECK_PDATA;
-            if(pdata-pdatastartMsg < msize)
-            {
-              HitDetMAYSWAPDATA(pdata++, &address);
-              theMsg->SetAddress(address);
-            }
-            // here we could take rest of message as data contents:
-            while (pdata- pdatastartMsg < msize)
-            {
+            case THitDetMsg::MSG_Wishbone:
+              // wishbone response (error message)
+              {
+                THitDetMsgWishbone* theMsg = new THitDetMsgWishbone(header);
+                Int_t address = 0, val = 0;
+                ;
+                pdata++;    //account header already processed above
                 HitDetRAW_CHECK_PDATA;
-                HitDetMAYSWAPDATA(pdata++, &val);
-                theMsg->AddData(val);
-            }
-            boardDisplay->hWishboneAck->Fill(theMsg->GetAckCode());
-            boardDisplay->hWishboneSource->Fill(theMsg->GetSource());
-            boardDisplay->lWishboneText->SetText(0.1,0.9,theMsg->DumpMsg());
+                if (pdata - pdatastartMsg < msize)
+                {
+                  HitDetMAYSWAPDATA(pdata++, &address);
+                  theMsg->SetAddress(address);
+                }
+                // here we could take rest of message as data contents:
+                while (pdata - pdatastartMsg < msize)
+                {
+                  HitDetRAW_CHECK_PDATA;
+                  HitDetMAYSWAPDATA(pdata++, &val);
+                  theMsg->AddData(val);
+                }
+                boardDisplay->hWishboneAck->Fill(theMsg->GetAckCode());
+                boardDisplay->hWishboneSource->Fill(theMsg->GetSource());
+                boardDisplay->lWishboneText->SetText(0.1, 0.9, theMsg->DumpMsg());
 
+                theBoard->AddMessage(theMsg, 0);    // wishbone messages accounted for channel 0
 
-            theBoard->AddMessage(theMsg, 0); // wishbone messages accounted for channel 0
+              }
+              break;
 
-
-
-
-
+            default:
+              printf("############ found unknown message type 0x%x, skip event %ld\n", mtype, skipped_events++);
+              GO4_SKIP_EVENT
+              break;
           }
-          break;
 
-          default:
-          printf("############ found unknown message type 0x%x, skip event %ld\n", mtype, skipped_events++);
-          GO4_SKIP_EVENT
-          break;
-        }
-
-        if((pdata-pdatastartMsg) < msize)
+          if ((pdata - pdatastartMsg) < msize)
           {
-              // never come here if messages are treated correctly!
-              printf("############  pdata offset 0x%x has not yet reached message length 0x%x, correcting ,\n",
-                  (unsigned int) (pdata-pdatastartMsg), msize);
-              pdata=pdatastartMsg+msize;
+            // never come here if messages are treated correctly!
+            printf("############  pdata offset 0x%x has not yet reached message length 0x%x, correcting ,\n",
+                (unsigned int) (pdata - pdatastartMsg), msize);
+            pdata = pdatastartMsg + msize;
           }
 
+        };    // switch
+        snapshotcount++;
 
-      };    // switch
-      snapshotcount++;
+      }    // if event is not bad
 
-    }    // if event is not bad
+    }    // while pdata - psubevt->GetDataField() <lwords
 
-  }    // while pdata - psubevt->GetDataField() <lwords
-
-}    // while subevents
+  }    // while subevents
 
 //
 
-UpdateDisplays();    // we fill the raw displays immediately, but may do additional histogramming later
-HitDetRawEvent->SetValid(kTRUE);// to store
-return kTRUE;
+  UpdateDisplays();    // we fill the raw displays immediately, but may do additional histogramming later
+  HitDetRawEvent->SetValid(kTRUE);    // to store
+  return kTRUE;
 }
 
 Bool_t THitDetRawProc::UpdateDisplays()
 {
-for (unsigned i = 0; i < THitDetRawEvent::fgConfigHitDetBoards.size(); ++i)
-{
-  UInt_t brdid = THitDetRawEvent::fgConfigHitDetBoards[i];
-  THitDetBoard* theBoard = HitDetRawEvent->GetBoard(brdid);
-  if (theBoard == 0)
-  {
-    GO4_SKIP_EVENT_MESSAGE("FillDisplays Configuration error: Board id %d does not exist!", brdid);
-    //return kFALSE;
-  }
-  THitDetBoardDisplay* boardDisplay = GetBoardDisplay(brdid);
-  if (boardDisplay == 0)
-  {
-    GO4_SKIP_EVENT_MESSAGE(
-        "FillDisplays Configuration error: Board id %d does not exist as histogram display set!", brdid);
-    //return kFALSE;
-  }
 
+// maybe later some advanced analysis from output event data here
 
+//for (unsigned i = 0; i < THitDetRawEvent::fgConfigHitDetBoards.size(); ++i)
+//{
+//  UInt_t brdid = THitDetRawEvent::fgConfigHitDetBoards[i];
+//  THitDetBoard* theBoard = HitDetRawEvent->GetBoard(brdid);
+//  if (theBoard == 0)
+//  {
+//    GO4_SKIP_EVENT_MESSAGE("FillDisplays Configuration error: Board id %d does not exist!", brdid);
+//    //return kFALSE;
+//  }
+//  THitDetBoardDisplay* boardDisplay = GetBoardDisplay(brdid);
+//  if (boardDisplay == 0)
+//  {
+//    GO4_SKIP_EVENT_MESSAGE(
+//        "FillDisplays Configuration error: Board id %d does not exist as histogram display set!", brdid);
+//    //return kFALSE;
+//  }
+//
+//
+//
+//
+//}    // i board
 
-
-}    // i board
-
-
-
-return kTRUE;
+  return kTRUE;
 }
 
+void THitDetRawProc::DoFFT(THitDetBoardDisplay* boardDisplay)
+{
+  if (fPar->fDoFFT)
+  {
+    // JAM taken from example $GO4SYS/macros/fft.C
+    boardDisplay->hTraceLongFFT->Reset("");
+    TString opt = fPar->fFFTOptions;    // ROOT fft parameters, user defined
+//         Available transform types:
+//         FFT:
+//         - "C2CFORWARD" - a complex input/output discrete Fourier transform (DFT)
+//                          in one or more dimensions, -1 in the exponent
+//         - "C2CBACKWARD"- a complex input/output discrete Fourier transform (DFT)
+//                          in one or more dimensions, +1 in the exponent
+//         - "R2C"        - a real-input/complex-output discrete Fourier transform (DFT)
+//                          in one or more dimensions,
+//         - "C2R"        - inverse transforms to "R2C", taking complex input
+//                          (storing the non-redundant half of a logically Hermitian array)
+//                          to real output
+//         - "R2HC"       - a real-input DFT with output in halfcomplex format,
+//                          i.e. real and imaginary parts for a transform of size n stored as
+//                          r0, r1, r2, ..., rn/2, i(n+1)/2-1, ..., i2, i1
+//         - "HC2R"       - computes the reverse of FFTW_R2HC, above
+//         - "DHT"        - computes a discrete Hartley transform
+
+    //1st parameter:
+    //  Possible flag_options:
+    //  "ES" (from "estimate") - no time in preparing the transform, but probably sub-optimal
+    //       performance
+    //  "M" (from "measure") - some time spend in finding the optimal way to do the transform
+    //  "P" (from "patient") - more time spend in finding the optimal way to do the transform
+    //  "EX" (from "exhaustive") - the most optimal way is found
+    //  This option should be chosen depending on how many transforms of the same size and
+    //  type are going to be done. Planning is only done once, for the first transform of this
+    //  size and type.
+
+    //Examples of valid options: "R2C ES ", "C2CF M", "DHT P ", etc.
+
+    Int_t N = boardDisplay->hTraceLong->GetNbinsX();
+    Double_t *in = new Double_t[N];
+    // since we do not know type of input histo, we copy contents to Double array:
+    for (Int_t ix = 0; ix < N; ++ix)
+    {
+      in[ix] = boardDisplay->hTraceLong->GetBinContent(ix + 1);
+    }
+    TVirtualFFT *thefft = TVirtualFFT::FFT(1, &N, opt.Data());
+    thefft->SetPoints(in);
+    thefft->Transform();
+    Double_t re, im;
+    for (Int_t i = 0; i < N; i++)
+    {
+      thefft->GetPointComplex(i, re, im);
+      boardDisplay->hTraceLongFFT->SetBinContent(i + 1, TMath::Sqrt(re * re + im * im));
+    }
+  }
+}

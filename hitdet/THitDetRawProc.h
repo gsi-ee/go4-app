@@ -41,6 +41,8 @@ protected:
   /** recreate histograms using the given number of time slice*/
   void InitDisplay(Int_t timeslices, Int_t numsnapshots, Bool_t replace = kFALSE);
 
+  /** provide FFT of complete trace long */
+  void DoFFT( THitDetBoardDisplay* disp);
 
   /** subdisplays for each frotend board */
   std::vector<THitDetBoardDisplay*> fBoards;
