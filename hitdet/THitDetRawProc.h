@@ -32,8 +32,8 @@ public:
 
 protected:
 
-  /** Fill all display histograms here*/
-  Bool_t FillDisplays();
+  /** Additional histogram filling here*/
+  Bool_t UpdateDisplays();
 
   /** access to histogram set for current board id*/
   THitDetBoardDisplay* GetBoardDisplay(Int_t uniqueid);

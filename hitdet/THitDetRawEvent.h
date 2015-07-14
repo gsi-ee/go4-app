@@ -22,6 +22,9 @@
 #include "TGo4EventElement.h"
 #include "TGo4CompositeEvent.h"
 
+
+#include <vector>
+
 // maximum number of boards to investigate at once
 #define HitDet_MAXBOARDS 10
 
@@ -29,14 +32,32 @@
 // number of data channels per hit detection board
 #define HitDet_CHANNELS 4
 
-// length of sampled trace per message
+// length of sampled trace per triggered readout message
 #define HitDet_TRACEBINS 32
+
+// length of sampled bins per direct ADC message
+#define HitDet_DIRECTBINS 8
 
 /**
  * Base class for single "message" inside data stream */
 class THitDetMsg {
 
+
+
+
+
+
 public:
+
+  enum MsgType
+    {
+      MSG_ADC_Direct =0,
+      MSG_Wishbone =  1,
+      MSG_Unused = 2,
+      MSG_ADC_Event = 3
+    };
+
+
     THitDetMsg(){;}
     virtual ~THitDetMsg(){;}
 };
@@ -47,11 +68,43 @@ class THitDetMsgEvent : public THitDetMsg
 {
 
 public:
-    THitDetMsgEvent();
-    virtual ~THitDetMsgEvent();
+    THitDetMsgEvent(UChar_t ch): fChannel(ch), fEpoch(0), fTimeStamp(0)
+    {
+        for(Int_t j=0; j<HitDet_TRACEBINS; ++j) fTrace[j]=0;
+    }
+    virtual ~THitDetMsgEvent(){;}
 
-    // JAM TODO
+    /** channel number (0-3)*/
+    void SetChannel(UChar_t ch){fChannel=ch;}
+    UShort_t GetChannel(){return fChannel;}
 
+    /** Epoch counter (24 bit)*/
+    void SetEpoch(UInt_t e){fEpoch=e;}
+    UInt_t GetEpoch(){return fEpoch;}
+
+    /** Time Stamp counter (12 bit)*/
+    void SetTimeStamp(UShort_t ts){fTimeStamp=ts;}
+    UShort_t GeTimeStamp(){return fTimeStamp;}
+
+    /** sampled signal trace data*/
+    void SetTraceData(Int_t ix, UShort_t val){if((ix>=0) && (ix<HitDet_TRACEBINS)) fTrace[ix]=val;}
+    UShort_t GetTraceData(Int_t ix){ if((ix>=0) && (ix< HitDet_TRACEBINS)) return fTrace[ix]; return 0;}
+
+
+
+protected:
+
+    /** channel number (0-3)*/
+    UChar_t fChannel;
+
+    /** Epoch counter (24 bit)*/
+    UInt_t fEpoch;
+
+    /** Time Stamp counter (12 bit)*/
+    UShort_t fTimeStamp;
+
+    /** sampled signal trace data*/
+    UShort_t fTrace[HitDet_TRACEBINS];
 
 };
 
@@ -62,10 +115,22 @@ class THitDetMsgDirect : public THitDetMsg
 {
 
 public:
-    THitDetMsgDirect();
-    virtual ~THitDetMsgDirect();
+    THitDetMsgDirect(UShort_t count=0): fMsgCounter(count)
+    {
+      for(Int_t j=0; j<HitDet_DIRECTBINS; ++j) fBin[j]=0;;
+    }
+    virtual ~THitDetMsgDirect(){;}
 
- // JAM TODO
+    void SetBinData(Int_t ix, UShort_t val){if((ix>=0) && (ix<HitDet_DIRECTBINS)) fBin[ix]=val;}
+    UShort_t GetBinData(Int_t ix){ if((ix>=0) && (ix<HitDet_DIRECTBINS)) return fBin[ix]; return 0;}
+    UShort_t GetMsgCounter(){return fMsgCounter;}
+
+protected:
+    /** message counter value in sequence of direct readout frames (11 bit)*/
+    UShort_t fMsgCounter;
+
+    /** sampled data for each ADC bin (12 bit)*/
+    UShort_t fBin[HitDet_DIRECTBINS];
 
 };
 
@@ -75,8 +140,18 @@ class THitDetMsgWishbone : public THitDetMsg
 {
 
 public:
-    THitDetMsgWishbone(){;}
-    THitDetMsgWishbone(UChar_t header): THitDetMsg(), fWishboneHeader(header){}
+
+  enum AckType
+      {
+        ACK_Acknowledge =0,
+        ACK_Unused =  1,
+        ACK_Error = 2,
+        ACK_Data = 3
+      };
+
+
+    THitDetMsgWishbone(): fWishboneHeader(0), fRegAddress(0){;}
+    THitDetMsgWishbone(UChar_t header): THitDetMsg(), fWishboneHeader(header), fRegAddress(0){}
     virtual ~THitDetMsgWishbone(){;}
 
     UChar_t GetAckCode(){return ((fWishboneHeader >> 4) & 0x3);}
@@ -170,9 +245,16 @@ class THitDetRawEvent : public TGo4CompositeEvent {
       /* This array keeps the unique id numbers of configured hit detection boards*/
        static std::vector<UInt_t> fgConfigHitDetBoards;
        
+       /** Event sequence number incremented by MBS Trigger*/
        Int_t fSequenceNumber;
-
        
+       /** vulom status register*/
+       Int_t fVULOMStatus;
+
+       /** number of payload words in vulom buffer (u32)*/
+       Int_t fDataCount;
+
+
 
 	   ClassDef(THitDetRawEvent,1)
 };

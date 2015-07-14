@@ -15,17 +15,26 @@
 
 #include "THitDetRawEvent.h"
 #include "THitDetRawParam.h"
+#include "THitDetDisplay.h"
 
 #include "TGo4UserException.h"
 
-static unsigned long skipped_events=0;
+extern "C"
+{
+#include "MbsAPIbase/f_swaplw.h"
+}
+static unsigned long skipped_events = 0;
+
+/** local definition to optionally swap the data words according to endianness*/
+#define HitDetMAYSWAPDATA(src, tgt) \
+    (needswap ? f_swaplw(src,1,tgt): *tgt=*src);
 
 /* helper macro for BuildEvent to check if payload pointer is still inside delivered region:*/
 /* this one to be called at top data processing loop*/
 #define  HitDetRAW_CHECK_PDATA                                    \
-if((pdata - pdatastart) > (opticlen/4)) \
+if((pdata - pdatastart) > HitDetRawEvent->fDataCount ) \
 { \
-  printf("############ unexpected end of payload for sfp:%d slave:%d with opticlen:0x%x, skip event %ld\n",sfp_id, device_id, opticlen, skipped_events++);\
+  printf("############ unexpected end of payload for datacount:0x%x, skip event %ld\n", HitDetRawEvent->fDataCount, skipped_events++);\
   GO4_SKIP_EVENT \
   continue; \
 }
@@ -35,13 +44,13 @@ if((pdata - pdatastart) > (opticlen/4)) \
 
 /******************************************
  JAM: this one can flood go4 message socket
-#define  HitDetRAW_CHECK_PDATA
-if((pdata - pdatastart) > (opticlen/4)) \
+ #define  HitDetRAW_CHECK_PDATA
+ if((pdata - pdatastart) > (opticlen/4)) \
 { \
   GO4_SKIP_EVENT_MESSAGE("############ unexpected end of payload for sfp:%d slave:%d with opticlen:0x%x, skip event\n",sfp_id, device_id, opticlen);\
   continue; \
 }
-******************/
+ ******************/
 /* this one just to leave internal loops*/
 #define  HitDetRAW_CHECK_PDATA_BREAK                                    \
 if((pdata - pdatastart) > (opticlen/4)) \
@@ -49,9 +58,7 @@ if((pdata - pdatastart) > (opticlen/4)) \
  break; \
 }
 
-
 //  printf("############ reached end of payload for sfp:%d slave:%d with opticlen:0x%x\n",sfp_id, device_id, opticlen);
-
 
 //***********************************************************
 THitDetRawProc::THitDetRawProc() :
@@ -72,7 +79,6 @@ THitDetRawProc::THitDetRawProc(const char* name) :
   fPar = dynamic_cast<THitDetRawParam*>(MakeParameter("HitDetRawParam", "THitDetRawParam", "set_HitDetRawParam.C"));
   if (fPar)
     fPar->SetConfigBoards();
-
 
   for (unsigned i = 0; i < THitDetRawEvent::fgConfigHitDetBoards.size(); ++i)
   {
@@ -106,15 +112,13 @@ THitDetBoardDisplay* THitDetRawProc::GetBoardDisplay(Int_t uniqueid)
   return 0;
 }
 
-void THitDetRawProc::InitDisplay(int timeslices, Int_t numsnapshots, Bool_t replace)
+void THitDetRawProc::InitDisplay(int tracelength, Int_t numsnapshots, Bool_t replace)
 {
-  cout << "**** THitDetRawProc: Init Display for " << timeslices << " time slices, snapshots="<<numsnapshots << endl;
-//   if(replace) //TGo4Analysis::Instance()->
-//         SetMakeWithAutosave(kFALSE);
+  cout << "**** THitDetRawProc: Init Display for " << tracelength << " trace bins, snapshots=" << numsnapshots << endl;
 
   for (unsigned i = 0; i < fBoards.size(); ++i)
   {
-    fBoards[i]->InitDisplay(timeslices, numsnapshots, replace);
+    fBoards[i]->InitDisplay(tracelength, numsnapshots, replace);
   }
 
 }
@@ -126,23 +130,48 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
 // called by framework from THitDetRawEvent to fill it
   HitDetRawEvent = (THitDetRawEvent*) target;
   HitDetRawEvent->SetValid(kFALSE);    // not store
-  Int_t triggersum = 0;    // sums up all "software trigger" channels (for free running acquired data)
   TGo4MbsEvent* source = (TGo4MbsEvent*) GetInputEvent();
   if (source == 0)
   {
     cout << "AnlProc: no input event !" << endl;
     return kFALSE;
   }
-  UShort_t triggertype=source->GetTrigger();
+  UShort_t triggertype = source->GetTrigger();
 
   if (triggertype > 11)
   {
     // frontend offset trigger can be one of these, we let it through to unpacking loop
     //cout << "**** THitDetRawProc: Skip trigger event" << endl;
-    GO4_SKIP_EVENT_MESSAGE( "**** THitDetRawProc: Skip event of trigger type 0x%x",
-                                     triggertype);
+    GO4_SKIP_EVENT_MESSAGE( "**** THitDetRawProc: Skip event of trigger type 0x%x", triggertype);
     //return kFALSE; // this would let the second step execute!
   }
+  UInt_t snapshotcount = 0;    // counter for trace snapshot display
+  static UInt_t tracelongcount = 0;    // counter for direct adc trace long part
+  static Int_t numsnapshots=0;
+  static Int_t tracelength=0;
+
+  // since we fill histograms already in BuildEvent, need to check if we must rescale histogram displays:
+if((fPar->fNumSnapshots != numsnapshots) || (fPar->fTraceLength != tracelength))
+{
+  numsnapshots=fPar->fNumSnapshots;
+  tracelength=fPar->fTraceLength;
+  InitDisplay(tracelength, numsnapshots, kTRUE);
+
+
+}
+
+
+
+
+
+
+
+  /////////////////////////////////////////////////////////////
+  ////// evaluate from buffer header if we need to swap data words later:
+  Bool_t needswap = kFALSE;
+  s_bufhe* head = source->GetMbsBufferHeader();
+  if (head && head->l_free[0] != 1)
+    needswap = kTRUE;
 
 // first we fill the THitDetRawEvent with data from MBS source
 // we have up to two subevents, crate 1 and 2
@@ -162,350 +191,281 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
     // loop over single subevent data:
     while (pdata - psubevt->GetDataField() < lwords)
     {
+      if ((unsigned) *pdata == 0xbad00bad)
+      {
+        GO4_SKIP_EVENT_MESSAGE("**** THitDetRawProc: Found BAD mbs event (marked 0x%x), skip it.", (*pdata));
+      }
+      else
+      {
+
+        // JAM TODO: here is the actual unpacker
+
+        // vulom status word:
+        HitDetRawEvent->fVULOMStatus = *pdata++;
+        //event trigger counter:
+        HitDetRawEvent->fSequenceNumber = *pdata++;
+        // data length
+        HitDetRawEvent->fDataCount = *pdata++;
+        if (HitDetRawEvent->fDataCount > (lwords - 3))
+        {
+          GO4_SKIP_EVENT_MESSAGE(
+              "**** THitDetRawProc: Mismatch with subevent len %d and data count %d", lwords, HitDetRawEvent->fDataCount);
+          // avoid that we run optional second step on invalid raw event!
+        }
+        Int_t* pdatastart = pdata;    // remember begin of asic payload data section
+
+        // now fetch boardwise subcomponents for output data and histograming:
+        Int_t slix = 0;    // JAM here we later could evaluate a board identifier mapped to a slot/sfp number contained in subevent
+        UInt_t brdid = fPar->fBoardID[slix];    // get hardware identifier from "DAQ link index" number
+        THitDetBoard* theBoard = HitDetRawEvent->GetBoard(brdid);
+        if (theBoard == 0)
+        {
+          GO4_SKIP_EVENT_MESSAGE(
+              "Configuration error: Board id %d does not exist as subevent, slot index:%d", brdid, slix);
+
+          return kFALSE;
+        }
+        THitDetBoardDisplay* boardDisplay = GetBoardDisplay(brdid);
+        if (boardDisplay == 0)
+        {
+          GO4_SKIP_EVENT_MESSAGE("Configuration error: Board id %d does not exist as histogram display set!", brdid);
+          return kFALSE;
+        }
+        boardDisplay->ResetDisplay(kFALSE);
+        // evaluate HitDetection ASIC messages in the payload:
+
+        while ((pdata - pdatastart) < HitDetRawEvent->fDataCount)
+        {
+          // evaluate message type from header:
+          Int_t header = 0;
+          HitDetMAYSWAPDATA(pdata, &header);
+          // not we do not increment pdata here, do this inside msg types
+          Int_t mtype = ((header >> 29) & 0x3);
+
+          boardDisplay->hMsgTypes->Fill(mtype);
+          switch (mtype)
+          {
+
+            case THitDetMsg::MSG_ADC_Direct:    // direct ADC readout
+              {
+                // message counter
+                UShort_t msgcount = ((header >> 20) & 0x3FF);
+                THitDetMsgDirect* theMsg = new THitDetMsgDirect(msgcount);
+                tracelongcount = msgcount;    // reset trace histogram
+
+                Int_t adcdata[4];
+                for (Int_t j = 0; j < 4; ++j)
+                  HitDetMAYSWAPDATA(pdata++, (adcdata + j));
+
+                // checkhere if we are already outside allowed range:
+                HitDetRAW_CHECK_PDATA
+
+                // decode sample bin data (0-7)
+                theMsg->SetBinData(0, ((adcdata[0] >> 8) & 0xFFF));
+                theMsg->SetBinData(1, (adcdata[0] & 0xFF) | ((adcdata[1] >> 28) & 0xF));
+                theMsg->SetBinData(2, (adcdata[1] >> 16) & 0xFFF);
+                theMsg->SetBinData(3, (adcdata[1] >> 4) & 0xFFF);
+                theMsg->SetBinData(4, ((adcdata[1] & 0xF) << 8) | ((adcdata[2] >> 24) & 0xFF));
+                theMsg->SetBinData(5, (adcdata[2] >> 12) & 0xFFF);
+                theMsg->SetBinData(6, adcdata[2] & 0xFFF);
+                theMsg->SetBinData(7, (adcdata[3] >> 20) & 0xFFF);
+
+                // here directly evaluate display  TODO: optionally do this in FillDisplays from output event
+
+                TH1* tracesnapshot = 0;
+                TH1* tracelong = 0;
+                TH1* tracelongsum = 0;
+                TH2* trace2d = 0;
+                if (snapshotcount < HitDet_MAXSNAPSHOTS)
+                {
+                  tracesnapshot = boardDisplay->hTraceSnapshots[0][snapshotcount];
+                  trace2d = boardDisplay->hTraceSnapshot2d[0];
+                }
+                if (tracelongcount < HitDet_MAXTRACELONG)
+                {
+                  tracelong = boardDisplay->hTraceLong;
+                  tracelongsum = boardDisplay->hTraceLongSum;
+                  if (tracelongcount == 0)
+                    tracelong->Reset("");
+                }
+
+                for (Int_t k = 0; k < 8; ++k)
+                {
+                  UShort_t val = theMsg->GetBinData(k);
+                  if (tracesnapshot)
+                    tracesnapshot->SetBinContent(k + 1, val);
+                  if (trace2d)
+                    trace2d->Fill(k, snapshotcount, val);
+                  if (tracelong)
+                    tracelong->SetBinContent(1 + k + (8 * tracelongcount), val);
+                  if (tracelongsum)
+                    tracelongsum->AddBinContent(1 + k + (8 * tracelongcount), val);
+                  boardDisplay->hTrace[0]->SetBinContent(1 + k, val);
+                  boardDisplay->hTraceSum[0]->AddBinContent(1 + k, val);
+
+                }
+
+                theBoard->AddMessage(theMsg, 0);    // direct ADC messages assigned to channel 0
+              }
+              break;
+
+            case THitDetMsg::MSG_ADC_Event:    // triggered event read out
+              {
+                UChar_t channel = ((header >> 28) & 0x3);
+                UChar_t size12bit = ((header >> 20) & 0x3F);
+                UChar_t size32bit = 1 + size12bit * 3 / 8;    // account header word again in evdata
+                if ((pdata - pdatastart) + size32bit > lwords)
+                  GO4_SKIP_EVENT_MESSAGE(
+                      "ASIC Event header error: 12 bit size %d does not fit into mbs subevent buffer of restlen %d words", size12bit, lwords - (pdata - pdatastart));
+
+                Int_t evdata[size32bit];
+                for (Int_t j = 0; j < size32bit; ++j)
+                  HitDetMAYSWAPDATA(pdata++, (evdata + j));
+
+                THitDetMsgEvent* theMsg = new THitDetMsgEvent(channel);
+                theMsg->SetEpoch(((evdata[0] & 0xFFFFF) << 4) | ((evdata[1] >> 28) & 0xF));
+                theMsg->SetTimeStamp((evdata[1] >> 16) & 0xFFF);
+
+                // now decode 12 bit samples inside mbs data words:Ä
+                Int_t binlen = size12bit - 3;    // number of sample bins (should be 8,16, or 32)
+                if(binlen>32)
+                  GO4_SKIP_EVENT_MESSAGE("ASIC Event header error: bin length %d exceeds maximum 32", binlen);
+
+                UShort_t val = 0;
+                Int_t dixoffset = 1;    // actual sample data begins after header and timestamp,
+                // j counts global bit number in stream, j_start is first in stream, j_end is last
+                // k is local bit number in evdata word (lsb=0)
+                UChar_t j_start = 16;    // begin of first 12 bit sample is after timestamp
+                for (Int_t bin = 0; bin < binlen; ++bin)
+                {
+                  UChar_t j_end = j_start + 12;
+                  Int_t dix_start = (Int_t) j_start / 32;    // data index containing first bit of sample
+                  Int_t dix_end =   (Int_t) j_end / 32;    // data index containing last bit of sample
+                  UChar_t k_start = 32 - (j_start - 32 * dix_start);    //  start bit number in evdata word
+                  UChar_t k_end = 32 - (j_end - 32 * dix_end);    // end bit number in evdata word
+                  if (dix_start == dix_end)
+                  {
+                    // easy case, sample is inside one evdata word:
+                    val = (evdata[dixoffset+dix_start] >> k_end) & 0xFFF;
+                  }
+                  else if (dix_end == dix_start + 1)
+                  {
+                    // spanning over 2 evdata words:
+                    UChar_t mask_start = 0, mask_end = 0;
+                    for (UChar_t b = 0; b < k_start; ++b)
+                      mask_start |= (1 << b);
+
+                    for (UChar_t b = 0; b < (32 - k_end); ++b)
+                      mask_end |= (1 << b);
+                    val = (evdata[dixoffset+ dix_start] << (12 - k_start)) & mask_start;
+                    val |= (evdata[dixoffset + dix_end] >> k_end) & mask_end;
+
+                  }
+                  else
+                  {
+                    // never come here
+                    GO4_STOP_ANALYSIS_MESSAGE(
+                        "NEVER COME HERE: mismatch of evsample indices - dix_end:%d and dix_start:%d", dix_end, dix_start)
+
+                  }
+                  theMsg->SetTraceData(bin, val);
+                }    // for bin
+
+                // here do simple histogramming of traces:
+
+                TH1* tracesnapshot = 0;
+                TH2* trace2d = 0;
+                if (snapshotcount < HitDet_MAXSNAPSHOTS)
+                {
+                  tracesnapshot = boardDisplay->hTraceSnapshots[channel][snapshotcount];
+                  trace2d = boardDisplay->hTraceSnapshot2d[channel];
+                }
+                for (Int_t bin = 0; bin < binlen; ++bin)
+                {
+                  UShort_t val = theMsg->GetTraceData(bin);
+                  if (tracesnapshot)
+                    tracesnapshot->SetBinContent(bin + 1, val);
+                  if (trace2d)
+                    trace2d->Fill(bin, snapshotcount, val);
+                  boardDisplay->hTrace[0]->SetBinContent(1 + bin, val);
+                  boardDisplay->hTraceSum[0]->AddBinContent(1 + bin, val);
+
+                }
+
+                theBoard->AddMessage(theMsg, channel);
 
 
-      // JAM TODO: here is the actual unpacker
+          }
+
+          break;
+
+          case THitDetMsg::MSG_Wishbone:
+          // wishbone response (error message)
+          {
+            THitDetMsgWishbone* theMsg = new THitDetMsgWishbone(header);
+            Int_t address=0;
+            pdata++; //account header already processed above
+            HitDetMAYSWAPDATA(pdata++, &address);
+            theMsg->SetAddress(address);
+            // here we could take adress data contents.
+            // TODO: find out how many data words follow (1..4 bytes)?
+            // assume that there are no wishbone messages here except errors!
+            boardDisplay->hWishboneAck->Fill(theMsg->GetAckCode());
+            boardDisplay->hWishboneSource->Fill(theMsg->GetSource());
 
 
-////////////////////////////////////////////////////////////////////////////////
-/// Here begin regular qfw data from token readout:
+            theBoard->AddMessage(theMsg, 0); // wishbone messages accounted for channel 0
+          }
+          break;
 
+          default:
+          printf("############ found unknown message type 0x%x, skip event %ld\n", mtype, skipped_events++);\
+          GO4_SKIP_EVENT
+          break;
+        }
 
-//      if ((*pdata & 0xffff0000) == 0xadd00000)    // we have padding word (initial data of sfp, skip it:)
-//      {
-//        Int_t dma_padd = (*pdata & 0xff00) >> 8;
-//        Int_t cnt(0);
-//        while (cnt < dma_padd)
-//        {
-//          if ((*pdata & 0xffff0000) != 0xadd00000)
-//          {
-//            //TGo4Log::Error("Wrong padding format - missing add0");
-//            GO4_SKIP_EVENT_MESSAGE("**** THitDetRawProc: Wrong padding format - missing add0");
-//            // avoid that we run second step on invalid raw event!
-//            //return kFALSE;
-//          }
-//          if (((*pdata & 0xff00) >> 8) != dma_padd)
-//          {
-//            //TGo4Log::Error("Wrong padding format - 8-15 bits are not the same");
-//            GO4_SKIP_EVENT_MESSAGE("**** THitDetRawProc: Wrong padding format - 8-15 bits are not the same");
-//            // avoid that we run second step on invalid raw event!
-//            //return kFALSE;
-//          }
-//          if ((*pdata & 0xff) != cnt)
-//          {
-//            //TGo4Log::Error("Wrong padding format - 0-7 bits not as expected");
-//            GO4_SKIP_EVENT_MESSAGE("**** THitDetRawProc: Wrong padding format - 0-7 bits not as expected");
-//            // avoid that we run second step on invalid raw event!
-//            //return kFALSE;
-//          }
-//          pdata++;
-//          cnt++;
-//        }
-//        continue;
-//      }
-//      else if ((unsigned) *pdata == 0xbad00bad)
-//      {
-//        GO4_SKIP_EVENT_MESSAGE("**** THitDetRawProc: Found BAD mbs event (marked 0x%x), skip it.", (*pdata));
-//      }
-//      else if ((*pdata & 0xff) != 0x34)    // regular channel data
-//      {
-//        //GO4_STOP_ANALYSIS_MESSAGE("Wrong optic format - 0x34 are expected0-7 bits not as expected");
-//        //TGo4Log::Error("Wrong optic format 0x%x - 0x34 are expected0-7 bits not as expected", (*pdata & 0xff));
-//        GO4_SKIP_EVENT_MESSAGE(
-//            "**** THitDetRawProc: Wrong optic format 0x%x - 0x34 are expected - 0-7 bits not as expected", (*pdata & 0xff));
-//        // avoid that we run second step on invalid raw event!
-//        //return kFALSE;
-//      }
-//
-//      Int_t* pdatastart = pdata;    // remember begin of optic payload data section
-//      // unsigned trig_type   = (*pdata & 0xf00) >> 8;
-//      unsigned sfp_id = (*pdata & 0xf000) >> 12;
-//      unsigned device_id = (*pdata & 0xff0000) >> 16;
-//      // unsigned channel_id  = (*pdata & 0xff000000) >> 24;
-//      pdata++;
-//
-//      Int_t opticlen = *pdata++;
-//      if (opticlen > lwords * 4)
-//      {
-//        //TGo4Log::Error("Mismatch with subevent len %d and optic len %d", lwords * 4, opticlen);
-//        GO4_SKIP_EVENT_MESSAGE(
-//            "**** THitDetRawProc: Mismatch with subevent len %d and optic len %d", lwords * 4, opticlen);
-//        // avoid that we run second step on invalid raw event!
-//        //return kFALSE;
-//      }
-//      HitDetRAW_CHECK_PDATA;
-//      int eventcounter = *pdata;
-//      //TGo4Log::Info("Internal Event number 0x%x", eventcounter);
-//      // board id calculated from SFP and device id:
-//      UInt_t brdid = fPar->fBoardID[sfp_id][device_id];
-//      THitDetBoard* theBoard = HitDetRawEvent->GetBoard(brdid);
-//      if (theBoard == 0)
-//      {
-//        GO4_SKIP_EVENT_MESSAGE(
-//            "Configuration error: Board id %d does not exist as subevent, sfp:%d device:%d", brdid, sfp_id, device_id);
-//
-//        return kFALSE;
-//      }
-//      THitDetBoardDisplay* boardDisplay = GetBoardDisplay(brdid);
-//      if (boardDisplay == 0)
-//      {
-//        GO4_SKIP_EVENT_MESSAGE("Configuration error: Board id %d does not exist as histogram display set!", brdid);
-//        return kFALSE;
-//      }
-//
-//      pdata += 1;
-//      HitDetRAW_CHECK_PDATA;
-//      theBoard->fQfwSetup = *pdata;
-//      //TGo4Log::Info("HitDet SEtup %d", theBoard->fQfwSetup);
-//      for (int j=0; j<4;++j)
-//      {
-//        HitDetRAW_CHECK_PDATA_BREAK;
-//        pdata++;
-//
-//      }
-//      //pdata += 4;
-//      HitDetRAW_CHECK_PDATA;
-//      for (int loop = 0; loop < theBoard->getNElements(); loop++)
-//      {
-//        THitDetLoop* theLoop = theBoard->GetLoop(loop);
-//        if (theLoop == 0)
-//        {
-//          TGo4Log::Error("Configuration error: Loop index %d  emtpy subevent for boardid:%d", loop, brdid);
-//          continue;
-//        }
-//
-//        theLoop->fQfwSetup = theBoard->fQfwSetup;    // propagate setup id to subevent
-//        HitDetRAW_CHECK_PDATA_BREAK;
-//        theLoop->fQfwLoopSize = *pdata++;
-//        theLoop->fHasData=kTRUE; // dynamic rebinning of timeslices only if we really have valid event
-//
-////      if (theLoop->fQfwLoopSize >= PEXOR_HitDetSLICES)
-////      {
-////        TGo4Log::Error("THitDetRawProc: found very large slice size %d max %d -  Please check set up!",
-////            theLoop->fQfwLoopSize, PEXOR_HitDetSLICES);
-////	 return kFALSE;
-////      }
-//
-//      }    // first loop loop
-//
-//      HitDetRAW_CHECK_PDATA;
-//      for (int loop = 0; loop < theBoard->getNElements(); loop++)
-//      {
-//        THitDetLoop* theLoop = theBoard->GetLoop(loop);
-//        HitDetRAW_CHECK_PDATA_BREAK;
-//        theLoop->fQfwLoopTime = *pdata++;
-//      }    // second loop loop
-//
-//      // TODO: are here some useful fields
-//      for (int j=0; j<21;++j)
-//      {
-//        HitDetRAW_CHECK_PDATA_BREAK;
-//        pdata++;
-//
-//      }
-//      //pdata += 21; // need to check for each increment if we are outside this slave's payload!
-//      HitDetRAW_CHECK_PDATA;
-//      /** All loops X slices/loop X channels */
-//      for (int loop = 0; loop < theBoard->getNElements(); loop++)
-//      {
-//        THitDetLoop* loopData = theBoard->GetLoop(loop);
-//        for (int sl = 0; sl < loopData->fQfwLoopSize; ++sl)
-//          for (int ch = 0; ch < PEXOR_HitDetCHANS; ++ch)
-//          {
-//            HitDetRAW_CHECK_PDATA_BREAK;
-//            Int_t value = *pdata++;
-//
-//            if(fPar->fUseFrontendOffsets)
-//            {
-//
-//              if(fPar->fFrontendOffsetLoop!=loop) // supress correction of frontend offset raw data if dynamic mode is set!
-//                {
-//                // we account frontend measured offset already here
-//                // this emulates future mode where offset is corrected already in poland
-//                Double_t correction=theBoard->GetOffset(ch) * loopData->GetMicroSecsPerTimeSlice()/1.0e+6;
-//                // <- offset is measured for 1 second, evaluate for actual time slice period
-//
-//                value -= correction;
-//                }
-//            }
-//
-//            loopData->fQfwTrace[ch].push_back(value);
-//
-//            if (fPar->fSelectTriggerEvents && ((UInt_t) fPar->fTriggerBoardID == brdid))
-//            {
-//              /////////// software trigger section
-//              // begin selecting good, bad and ugly events for free running data
-//              if (ch >= fPar->fTriggerFirstChannel || ch <= fPar->fTriggerLastChannel)
-//                triggersum += value;
-//            }    // if (fPar->fSelectTriggerEvents)
-//
-//            //printf("loop %d slice %d ch %d = %d\n", loop, sl ,ch ,value);
-//          }
-//      }    //loop
-//
-//      HitDetRAW_CHECK_PDATA;
-//      /* errorcount values: - per HitDet CHIPS*/
-//      for (int qfw = 0; qfw < PEXOR_HitDetNUM; ++qfw)
-//      {
-//        HitDetRAW_CHECK_PDATA_BREAK;
-//        theBoard->SetErrorScaler(qfw, (UInt_t) (*pdata++));
-//        //printf("EEEEEE Error counter qfw %d =0x%x\n", qfw , *(pdata-1));
-//      }
-//      HitDetRAW_CHECK_PDATA;
-//
-//      // skip filler words at the end of gosip payload:
-//      while (pdata - pdatastart <= (opticlen / 4))    // note that trailer is outside opticlen!
-//      {
-//        //printf("######### skipping word 0x%x\n ",*pdata);
-//        pdata++;
-//      }
-//
-//      // crosscheck if trailer word matches eventcounter header
-//      if (*pdata != eventcounter)
-//      {
-//        TGo4Log::Error("Eventcounter 0x%x does not match trailing word 0x%x at position 0x%x!", eventcounter, *pdata,
-//            (opticlen / 4));
-//        pdata++;
-//        continue;
-//      }
-//      //TGo4Log::Info("!!!!!!!!!!! found  trailer 0x%x",*pdata);
-//      pdata++;
-//      HitDetRawEvent->fSequenceNumber = eventcounter;
+      };    // switch
+      snapshotcount++;
+
+    }    // if event is not bad
+
+  }    // while pdata - psubevt->GetDataField() <lwords
+
+}    // while subevents
+
 //
 
-
-
-
-    }    // while pdata - psubevt->GetDataField() <lwords
-
-  }    // while subevents
-
-    //
-
-  FillDisplays(); // JAM TODO: pobably we fill the raw displays immediately before storing them into output event!
-  HitDetRawEvent->SetValid(kTRUE);    // to store
-  return kTRUE;
+UpdateDisplays();    // we fill the raw displays immediately, but may do additional histogramming later
+HitDetRawEvent->SetValid(kTRUE);// to store
+return kTRUE;
 }
 
-Bool_t THitDetRawProc::FillDisplays()
+Bool_t THitDetRawProc::UpdateDisplays()
 {
-  for (unsigned i = 0; i < THitDetRawEvent::fgConfigHitDetBoards.size(); ++i)
+for (unsigned i = 0; i < THitDetRawEvent::fgConfigHitDetBoards.size(); ++i)
+{
+  UInt_t brdid = THitDetRawEvent::fgConfigHitDetBoards[i];
+  THitDetBoard* theBoard = HitDetRawEvent->GetBoard(brdid);
+  if (theBoard == 0)
   {
-    UInt_t brdid = THitDetRawEvent::fgConfigHitDetBoards[i];
-    THitDetBoard* theBoard = HitDetRawEvent->GetBoard(brdid);
-    if (theBoard == 0)
-    {
-      GO4_SKIP_EVENT_MESSAGE("FillDisplays Configuration error: Board id %d does not exist!", brdid);
-      //return kFALSE;
-    }
-    THitDetBoardDisplay* boardDisplay = GetBoardDisplay(brdid);
-    if (boardDisplay == 0)
-    {
-      GO4_SKIP_EVENT_MESSAGE(
-          "FillDisplays Configuration error: Board id %d does not exist as histogram display set!", brdid);
-      //return kFALSE;
-    }
-
-//    // check first if we have to rebin histograms:
-//    Bool_t rebinned = kFALSE;
-//    for (int loop = 0; loop < theBoard->getNElements(); loop++)
-//    {
-//      THitDetBoardLoopDisplay* loopDisplay = boardDisplay->GetLoopDisplay(loop);
-//      if (loopDisplay == 0)
-//      {
-//        TGo4Log::Error("Configuration error: Loop index %d  empty histogram set for boardid:%d", loop, brdid);
-//        continue;
-//      }
-//      THitDetLoop* theLoop = theBoard->GetLoop(loop);
-//      // optionally rescale histograms of this loop:
-//      if (theLoop->fHasData && (loopDisplay->GetTimeSlices() != theLoop->fQfwLoopSize))
-//      {
-//        loopDisplay->InitDisplay(theLoop->fQfwLoopSize, kTRUE);
-//        rebinned = kTRUE;
-//      }
-//    }
-//    if (rebinned)
-//      boardDisplay->InitDisplay(-1, kTRUE);    // rebin overview histograms with true timeslices of subloops
-
-    // now fill histograms from already unpacked data in ouput event:
-//    boardDisplay->hHitDetRaw2DTrace->Reset("");
-//    int loopoffset = 0;
-//    /** All loops X slices/loop X channels */
-//    for (int loop = 0; loop < theBoard->getNElements(); loop++)
-//    {
-//      THitDetLoop* loopData = theBoard->GetLoop(loop);
-//      THitDetBoardLoopDisplay* loopDisplay = boardDisplay->GetLoopDisplay(loop);
-//      loopDisplay->hHitDetRawTrace->Reset("");
-//
-//      for (int sl = 0; sl < loopData->fQfwLoopSize; ++sl)
-//        for (int ch = 0; ch < PEXOR_HitDetCHANS; ++ch)
-//        {
-//          Int_t value = loopData->fQfwTrace[ch].at(sl);
-//          //printf("loop %d slice %d ch %d = %d\n", loop, sl ,ch ,value);
-//
-//          if (!fPar->fSimpleCompensation)
-//          {
-//            loopDisplay->hHitDetRawTrace->SetBinContent(ch + 1 + sl * PEXOR_HitDetCHANS, value);
-//            boardDisplay->hHitDetRaw2DTrace->Fill(loopoffset + sl, ch, value);
-//
-//            loopDisplay->hHitDetRaw->AddBinContent(ch + 1 + sl * PEXOR_HitDetCHANS, value);
-//            boardDisplay->hHitDetRaw2D->Fill(loopoffset + sl, ch, value);
-//            //printf("      loopoffset= %d\n", loopoffset);
-//
-//
-//
-//
-//          }
-//        }
-//      if (fPar->fSimpleCompensation)
-//      {
-//        for (int ch = 0; ch < PEXOR_HitDetCHANS; ++ch)
-//        {
-//
-//          if (loopData->fQfwLoopSize < 5)
-//            continue;
-//
-//          Double_t sum = 0;
-//          for (int sl = 0; sl < loopData->fQfwLoopSize; ++sl)
-//            sum += loopData->fQfwTrace[ch].at(sl);
-//          sum = sum / loopData->fQfwLoopSize;
-//
-//          for (int sl = 0; sl < loopData->fQfwLoopSize; ++sl)
-//          {
-//            Double_t value = loopData->fQfwTrace[ch].at(sl) - sum;
-//
-//            loopDisplay->hHitDetRawTrace->SetBinContent(ch + 1 + sl * PEXOR_HitDetCHANS, value);
-//            boardDisplay->hHitDetRaw2DTrace->Fill(loopoffset + sl, ch, value);
-//
-//            loopDisplay->hHitDetRaw->AddBinContent(ch + 1 + sl * PEXOR_HitDetCHANS, value);
-//            boardDisplay->hHitDetRaw2D->Fill(loopoffset + sl, ch, value);
-//          }    // sl
-//        }    //ch
-//      }
-//      loopoffset += loopData->fQfwLoopSize;
-
-
-//    }    //loop
-//
-//    //boardDisplay->hHitDetRawErrTr->Reset("");
-//    /* errorcount values: - per HitDet CHIPS*/
-//    for (int qfw = 0; qfw < PEXOR_HitDetNUM; ++qfw)
-//    {
-//      boardDisplay->hHitDetRawErr->SetBinContent(1 + qfw, theBoard->GetErrorScaler(qfw));
-//      //boardDisplay->hHitDetRawErrTr->SetBinContent(1 + qfw, theBoard->GetErrorScaler(qfw));
-//      //printf("FFFFFF Fill Error counter qfw %d with 0x%x\n", qfw , theBoard->GetErrorScaler(qfw));
-//
-//    }
-//    // need to update this here, since histograms are initialized after offset is retrieved!
-//    for (int c = 0; c < PEXOR_HitDetCHANS; ++c)
-//      boardDisplay->hHitDetOffsets->SetBinContent(c+1,theBoard->GetOffset(c));
-//
-//
+    GO4_SKIP_EVENT_MESSAGE("FillDisplays Configuration error: Board id %d does not exist!", brdid);
+    //return kFALSE;
+  }
+  THitDetBoardDisplay* boardDisplay = GetBoardDisplay(brdid);
+  if (boardDisplay == 0)
+  {
+    GO4_SKIP_EVENT_MESSAGE(
+        "FillDisplays Configuration error: Board id %d does not exist as histogram display set!", brdid);
+    //return kFALSE;
+  }
 
 
 
-  }    // i board
-  return kTRUE;
+
+}    // i board
+
+
+
+return kTRUE;
 }
-
 

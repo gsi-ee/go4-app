@@ -15,75 +15,10 @@ class THitDetRawParam;
 #define HitDet_MAXSNAPSHOTS 64
 
 
-
-/*
- * Common histogram container ("displays") used in hit detection analysis
- *  (JAM July 2015)
- *  need to inherit from TGo4EventProcessor since we want to access histogram helper functions
- *  consists in vector of sub displays for each board/ HitDetection ASIC, resp.
- * */
+#define HitDet_MAXTRACELONG 256
 
 
-//class THitDetDisplay: public TGo4EventProcessor
-//{
-//
-//public:
-//  THitDetDisplay() :
-//      TGo4EventProcessor(), fDisplayId(-1)
-//  {
-//    ;
-//  }
-//
-//  THitDetDisplay(Int_t deviceid);
-//
-//  virtual ~THitDetDisplay();
-//
-//  /* recreate histograms using the given number of trace length*/
-//  virtual void InitDisplay(Int_t tracelength, Bool_t replace = kFALSE);
-//
-//  /* unique ID number of device to display (board or grid)*/
-//  Int_t GetDevId()
-//  {
-//    return fDisplayId;
-//  }
-//
-//  void AddBoardDisplay(THitDetBoardDisplay* brd)
-//  {
-//    fBoards.push_back(brd);
-//  }
-//
-//  void ClearBoardDisplays()
-//  {
-//    std::for_each (fBoards.begin(), fBoards.end(), void delbrd(THitDetBoardDisplay* brd){delete brd;});
-//    fBoards.clear();
-//  }
-//
-//  Int_t GetNumBoards()
-//  {
-//    return fBoards.size();
-//  }
-//
-//  /* access to subdisplay set for loopid (if existing)*/
-//  THitDetBoardDisplay* GetBoardDisplay(UInt_t brdid)
-//  {
-//    if (loopid < fBoards.size())
-//      return fBoards[loopid];
-//    return 0;
-//  }
-//
-//
-//protected:
-//
-//
-//
-//  Int_t fDisplayId;
-//
-//  /* this holds array of subdisplays for each Board*/
-//  std::vector<THitDetBoardDisplay*> fBoards;
-//
-//ClassDef(THitDetDisplay,1)
-//};
-//
+
 
 /********************************
  * Histogram container for each HitDetection board
@@ -94,8 +29,8 @@ class THitDetBoardDisplay: public  TGo4EventProcessor
 {
 
 public:
-  THitDetBoardDisplay() : TGo4EventProcessor()
-  //, hHitDetRaw2D(0), hHitDetRaw2DTrace(0), hHitDetRawErr(0), hHitDetRawErrTr(0), hHitDetOffsets(0), pPexorQfws(0), pPexorQfwsTrace(0)
+  THitDetBoardDisplay() : TGo4EventProcessor(),
+  hTraceLong(0), hTraceLongSum(0), hTraceLongFFT(0), hMsgTypes(0), fDisplayId(0)
   {
     ;
   }
@@ -104,6 +39,10 @@ public:
 
   /* recreate histograms using the given trace length*/
   virtual void InitDisplay(Int_t tracelength, Int_t numsnapshots, Bool_t replace = kFALSE);
+
+  /** reset all trace histograms here and occ. update something
+   * long direct ADC trace is only cleared if argument is true*/
+  void ResetDisplay(Bool_t cleartracelong=kFALSE);
 
 // JAM put histograms etc here
 
@@ -126,8 +65,17 @@ public:
    /** for direct ADC readout: accumulated subsequent traces stitched together in one display, no channel info here!*/
    TH1 *hTraceLongSum;
 
+   /** FFT transformed result of hTraceLong*/
+   TH1 *hTraceLongFFT;
+
    /** statistics of message types*/
    TH1* hMsgTypes;
+
+   /** statistics  of wishbone acknowledge codes*/
+   TH1* hWishboneAck;
+
+   /** statistics  of wishbone source*/
+   TH1* hWishboneSource;
 
 
 //
@@ -142,8 +90,6 @@ protected:
 
   Int_t fDisplayId;
 
-//  TGo4Picture *pPexorQfws;
-//  TGo4Picture *pPexorQfwsTrace;
 
 ClassDef(THitDetBoardDisplay,1)
 };

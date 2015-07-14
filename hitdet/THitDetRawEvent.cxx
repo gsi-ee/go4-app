@@ -4,10 +4,11 @@
 
 
 
+
 //************************************************************************//
 
 THitDetBoard::THitDetBoard() :
-    TGo4EventElement()
+    TGo4EventElement(), fUniqueId(0)
 {
 
 }
@@ -34,6 +35,7 @@ void THitDetBoard::AddMessage(THitDetMsg* msg, UChar_t channel)
 
 void THitDetBoard::Clear(Option_t *t)
 {
+
    for(Int_t ch=0; ch<HitDet_CHANNELS; ++ch)
      {
        for (unsigned i = 0; i < fMessages[ch].size(); ++i)
@@ -52,12 +54,12 @@ void THitDetBoard::Clear(Option_t *t)
 std::vector<UInt_t> THitDetRawEvent::fgConfigHitDetBoards;
 
 THitDetRawEvent::THitDetRawEvent() :
-    TGo4CompositeEvent(), fSequenceNumber(-1)
+    TGo4CompositeEvent(), fSequenceNumber(-1), fVULOMStatus(0), fDataCount(0)
 {
 }
 //***********************************************************
 THitDetRawEvent::THitDetRawEvent(const char* name, Short_t id) :
-    TGo4CompositeEvent(name, name, id), fSequenceNumber(-1)
+    TGo4CompositeEvent(name, name, id), fSequenceNumber(-1), fVULOMStatus(0), fDataCount(0)
 {
   TGo4Log::Info("THitDetRawEvent: Create instance %s with composite id %d", name, id);
   TString modname;
@@ -93,5 +95,7 @@ void THitDetRawEvent::Clear(Option_t *t)
 {
   //TGo4Log::Info("THitDetRawEvent: Clear ");
   TGo4CompositeEvent::Clear();
-  fSequenceNumber = -1;
+  fSequenceNumber=-1;
+  fVULOMStatus=0;
+  fDataCount=0;
 }
