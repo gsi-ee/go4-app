@@ -11,6 +11,7 @@ class THitDetRawParam;
 
 #include "TGo4Analysis.h"
 
+#include "TLatex.h"
 
 #define HitDet_MAXSNAPSHOTS 64
 
@@ -77,7 +78,8 @@ public:
    /** statistics  of wishbone source*/
    TH1* hWishboneSource;
 
-
+   /** text dump of last wishbone message*/
+   TLatex* lWishboneText;
 //
  Int_t GetDevId()
      {

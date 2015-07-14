@@ -10,10 +10,10 @@
 
 
 #pragma link C++ class THitDetMsg+;
-#pragma link C++ class THitDetMsgEvent;
-#pragma link C++ class THitDetMsgDirect;
-#pragma link C++ class THitDetMsgWishbone;
-
+#pragma link C++ class THitDetMsgEvent+;
+#pragma link C++ class THitDetMsgDirect+;
+#pragma link C++ class THitDetMsgWishbone+;
+#pragma link C++ class std::vector<UChar_t>+;
 #pragma link C++ class THitDetBoard+;
 #pragma link C++ class std::vector<THitDetMsg*>+;
 

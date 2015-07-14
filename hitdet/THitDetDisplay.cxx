@@ -29,6 +29,7 @@ THitDetBoardDisplay::THitDetBoardDisplay(Int_t boardid) :
     for(Int_t i=0; i<HitDet_MAXSNAPSHOTS; ++i)
       hTraceSnapshots[ch][i]=0;
 
+  SetMakeWithAutosave(kTRUE);
 }
 
 THitDetBoardDisplay::~THitDetBoardDisplay()
@@ -42,6 +43,7 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
 
     if (replace)
       SetMakeWithAutosave(kFALSE);
+
     TGo4Log::Info("THitDetBoardDisplay: Initializing histograms with tracelength %d snapshots %d for Board %d ",
         tracelength,numsnapshots,
         GetDevId());
@@ -113,6 +115,13 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
     obtitle.Form("HitDetection Board %d Wishbone source id", brd);
     hWishboneSource=MakeTH1('I', obname.Data(), obtitle.Data(), 16, 0, 16);
 
+    obname.Form("WishboneDump_%d", brd);
+    lWishboneText = new TLatex(0.2,0.8,"-- wishbone dump --");
+    lWishboneText->SetName(obname.Data());
+    lWishboneText->SetNDC(); // relative pad x,y coordinates [0...1]
+    AddObject(lWishboneText); // always replace previous label
+
+    SetMakeWithAutosave(kTRUE);
 }
 
 

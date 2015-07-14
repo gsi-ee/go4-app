@@ -29,7 +29,8 @@ static unsigned long skipped_events = 0;
 #define HitDetMAYSWAPDATA(src, tgt) \
     (needswap ? f_swaplw(src,1,tgt): *tgt=*src);
 
-/* helper macro for BuildEvent to check if payload pointer is still inside delivered region:*/
+
+/* helper macros for BuildEvent to check if payload pointer is still inside delivered region:*/
 /* this one to be called at top data processing loop*/
 #define  HitDetRAW_CHECK_PDATA                                    \
 if((pdata - pdatastart) > HitDetRawEvent->fDataCount ) \
@@ -39,26 +40,16 @@ if((pdata - pdatastart) > HitDetRawEvent->fDataCount ) \
   continue; \
 }
 
-// JAM took this out since the case is clear
-//psubevt->PrintMbsSubevent(kTRUE,kTRUE,kTRUE);
 
-/******************************************
- JAM: this one can flood go4 message socket
- #define  HitDetRAW_CHECK_PDATA
- if((pdata - pdatastart) > (opticlen/4)) \
+#define  HitDetMSG_CHECK_PDATA                                    \
+if((pdata - pdatastartMsg) > msize ) \
 { \
-  GO4_SKIP_EVENT_MESSAGE("############ unexpected end of payload for sfp:%d slave:%d with opticlen:0x%x, skip event\n",sfp_id, device_id, opticlen);\
+  printf("############ pdata offset 0x%x exceeds message size:0x%x, skip event %ld\n", (unsigned int)(pdata - pdatastartMsg), msize, skipped_events++);\
+  GO4_SKIP_EVENT \
   continue; \
 }
- ******************/
-/* this one just to leave internal loops*/
-#define  HitDetRAW_CHECK_PDATA_BREAK                                    \
-if((pdata - pdatastart) > (opticlen/4)) \
-{ \
- break; \
-}
 
-//  printf("############ reached end of payload for sfp:%d slave:%d with opticlen:0x%x\n",sfp_id, device_id, opticlen);
+
 
 //***********************************************************
 THitDetRawProc::THitDetRawProc() :
@@ -236,6 +227,20 @@ if((fPar->fNumSnapshots != numsnapshots) || (fPar->fTraceLength != tracelength))
 
         while ((pdata - pdatastart) < HitDetRawEvent->fDataCount)
         {
+          // first vulom wrapper containing total message length:
+          Int_t vulombytecount=0;
+          HitDetMAYSWAPDATA(pdata++, &vulombytecount);
+          if(((vulombytecount >> 28 ) & 0xF) != 0x4)
+            {
+              // check ROByteCounter marker
+              GO4_SKIP_EVENT_MESSAGE(
+                         "Data error: wrong vulom byte counter 0x%x", vulombytecount);
+
+            }
+          Int_t* pdatastartMsg = pdata; // remember start of message for checking
+          UChar_t msize=(vulombytecount & 0x3F) / sizeof(Int_t); // message size in 32bit words
+
+
           // evaluate message type from header:
           Int_t header = 0;
           HitDetMAYSWAPDATA(pdata, &header);
@@ -254,11 +259,11 @@ if((fPar->fNumSnapshots != numsnapshots) || (fPar->fTraceLength != tracelength))
                 tracelongcount = msgcount;    // reset trace histogram
 
                 Int_t adcdata[4];
-                for (Int_t j = 0; j < 4; ++j)
+                for (Int_t j = 0; j < 4; ++j){
+                  HitDetRAW_CHECK_PDATA;
+                  HitDetMSG_CHECK_PDATA;
                   HitDetMAYSWAPDATA(pdata++, (adcdata + j));
-
-                // checkhere if we are already outside allowed range:
-                HitDetRAW_CHECK_PDATA
+                }
 
                 // decode sample bin data (0-7)
                 theMsg->SetBinData(0, ((adcdata[0] >> 8) & 0xFFF));
@@ -270,7 +275,7 @@ if((fPar->fNumSnapshots != numsnapshots) || (fPar->fTraceLength != tracelength))
                 theMsg->SetBinData(6, adcdata[2] & 0xFFF);
                 theMsg->SetBinData(7, (adcdata[3] >> 20) & 0xFFF);
 
-                // here directly evaluate display  TODO: optionally do this in FillDisplays from output event
+                // here directly evaluate display:
 
                 TH1* tracesnapshot = 0;
                 TH1* tracelong = 0;
@@ -319,9 +324,11 @@ if((fPar->fNumSnapshots != numsnapshots) || (fPar->fTraceLength != tracelength))
                       "ASIC Event header error: 12 bit size %d does not fit into mbs subevent buffer of restlen %d words", size12bit, lwords - (pdata - pdatastart));
 
                 Int_t evdata[size32bit];
-                for (Int_t j = 0; j < size32bit; ++j)
+                for (Int_t j = 0; j < size32bit; ++j){
+                  HitDetRAW_CHECK_PDATA;
+                  HitDetMSG_CHECK_PDATA;
                   HitDetMAYSWAPDATA(pdata++, (evdata + j));
-
+                }
                 THitDetMsgEvent* theMsg = new THitDetMsgEvent(channel);
                 theMsg->SetEpoch(((evdata[0] & 0xFFFFF) << 4) | ((evdata[1] >> 28) & 0xF));
                 theMsg->SetTimeStamp((evdata[1] >> 16) & 0xFFF);
@@ -403,26 +410,49 @@ if((fPar->fNumSnapshots != numsnapshots) || (fPar->fTraceLength != tracelength))
           // wishbone response (error message)
           {
             THitDetMsgWishbone* theMsg = new THitDetMsgWishbone(header);
-            Int_t address=0;
+            Int_t address=0, val=0;;
             pdata++; //account header already processed above
-            HitDetMAYSWAPDATA(pdata++, &address);
-            theMsg->SetAddress(address);
-            // here we could take adress data contents.
-            // TODO: find out how many data words follow (1..4 bytes)?
-            // assume that there are no wishbone messages here except errors!
+            HitDetRAW_CHECK_PDATA;
+            if(pdata-pdatastartMsg < msize)
+            {
+              HitDetMAYSWAPDATA(pdata++, &address);
+              theMsg->SetAddress(address);
+            }
+            // here we could take rest of message as data contents:
+            while (pdata- pdatastartMsg < msize)
+            {
+                HitDetRAW_CHECK_PDATA;
+                HitDetMAYSWAPDATA(pdata++, &val);
+                theMsg->AddData(val);
+            }
             boardDisplay->hWishboneAck->Fill(theMsg->GetAckCode());
             boardDisplay->hWishboneSource->Fill(theMsg->GetSource());
+            boardDisplay->lWishboneText->SetText(0.1,0.9,theMsg->DumpMsg());
 
 
             theBoard->AddMessage(theMsg, 0); // wishbone messages accounted for channel 0
+
+
+
+
+
           }
           break;
 
           default:
-          printf("############ found unknown message type 0x%x, skip event %ld\n", mtype, skipped_events++);\
+          printf("############ found unknown message type 0x%x, skip event %ld\n", mtype, skipped_events++);
           GO4_SKIP_EVENT
           break;
         }
+
+        if((pdata-pdatastartMsg) < msize)
+          {
+              // never come here if messages are treated correctly!
+              printf("############  pdata offset 0x%x has not yet reached message length 0x%x, correcting ,\n",
+                  (unsigned int) (pdata-pdatastartMsg), msize);
+              pdata=pdatastartMsg+msize;
+          }
+
 
       };    // switch
       snapshotcount++;
