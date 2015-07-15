@@ -169,18 +169,14 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
     Int_t *pdata = psubevt->GetDataField();
     Int_t lwords = psubevt->GetIntLen();
 
+    if ((unsigned) *pdata == 0xbad00bad)
+          {
+            GO4_SKIP_EVENT_MESSAGE("**** THitDetRawProc: Found BAD mbs event (marked 0x%x), skip it.", (*pdata));
+          }
+
     // loop over single subevent data:
     while (pdata - psubevt->GetDataField() < lwords)
     {
-      if ((unsigned) *pdata == 0xbad00bad)
-      {
-        GO4_SKIP_EVENT_MESSAGE("**** THitDetRawProc: Found BAD mbs event (marked 0x%x), skip it.", (*pdata));
-      }
-      else
-      {
-
-        // JAM TODO: here is the actual unpacker
-
         // vulom status word:
         HitDetRawEvent->fVULOMStatus = *pdata++;
         //event trigger counter:
@@ -256,7 +252,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
 
                 // decode sample bin data (0-7)
                 theMsg->SetBinData(0, ((adcdata[0] >> 8) & 0xFFF));
-                theMsg->SetBinData(1, (adcdata[0] & 0xFF) | ((adcdata[1] >> 28) & 0xF));
+                theMsg->SetBinData(1, ((adcdata[0] & 0xFF) << 4) | ((adcdata[1] >> 28) & 0xF));
                 theMsg->SetBinData(2, (adcdata[1] >> 16) & 0xFFF);
                 theMsg->SetBinData(3, (adcdata[1] >> 4) & 0xFFF);
                 theMsg->SetBinData(4, ((adcdata[1] & 0xF) << 8) | ((adcdata[2] >> 24) & 0xFF));
@@ -361,7 +357,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
 
                     for (UChar_t b = 0; b < (32 - k_end); ++b)
                       mask_end |= (1 << b);
-                    val = (evdata[dixoffset + dix_start] << (12 - k_start)) & mask_start;
+                    val = ( (evdata[dixoffset + dix_start] & mask_start )<< (12 - k_start)) ;
                     val |= (evdata[dixoffset + dix_end] >> k_end) & mask_end;
 
                   }
@@ -447,9 +443,6 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
 
         };    // switch
         snapshotcount++;
-
-      }    // if event is not bad
-
     }    // while pdata - psubevt->GetDataField() <lwords
 
   }    // while subevents
@@ -543,6 +536,9 @@ void THitDetRawProc::DoFFT(THitDetBoardDisplay* boardDisplay)
     {
       thefft->GetPointComplex(i, re, im);
       boardDisplay->hTraceLongFFT->SetBinContent(i + 1, TMath::Sqrt(re * re + im * im));
+      // JAM todo: maybe it is more simple to directly work with GetPointReal()
+      // in case of option DHT (real 2 real)
+
     }
   }
 }
