@@ -60,7 +60,7 @@ THitDetRawProc::THitDetRawProc(const char* name) :
     TGo4EventProcessor(name)
 {
   TGo4Log::Info("THitDetRawProc: Create instance %s", name);
-
+  fBoards.clear();
   SetMakeWithAutosave(kTRUE);
 //// init user analysis objects:
 
@@ -74,7 +74,7 @@ THitDetRawProc::THitDetRawProc(const char* name) :
     fBoards.push_back(new THitDetBoardDisplay(uniqueid));
   }
 
-  InitDisplay(fPar->fTraceLength, fPar->fNumSnapshots);
+  InitDisplay(fPar->fTraceLength, fPar->fNumSnapshots, false);
 
 }
 
@@ -139,13 +139,13 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
   static Int_t tracelength = 0;
 
   // since we fill histograms already in BuildEvent, need to check if we must rescale histogram displays:
-  if ((fPar->fNumSnapshots != numsnapshots) || (fPar->fTraceLength != tracelength))
-  {
-    numsnapshots = fPar->fNumSnapshots;
-    tracelength = fPar->fTraceLength;
-    InitDisplay(tracelength, numsnapshots, kTRUE);
-
-  }
+//  if ((fPar->fNumSnapshots != numsnapshots) || (fPar->fTraceLength != tracelength))
+//  {
+//    numsnapshots = fPar->fNumSnapshots;
+//    tracelength = fPar->fTraceLength;
+//    InitDisplay(tracelength, numsnapshots, kTRUE);
+//
+//  }
 
   /////////////////////////////////////////////////////////////
   ////// evaluate from buffer header if we need to swap data words later:
@@ -189,6 +189,9 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
               "**** THitDetRawProc: Mismatch with subevent len %d and data count %d", lwords, HitDetRawEvent->fDataCount);
           // avoid that we run optional second step on invalid raw event!
         }
+
+        pdata++; // skip first  word?
+
         Int_t* pdatastart = pdata;    // remember begin of asic payload data section
 
         // now fetch boardwise subcomponents for output data and histograming:
@@ -213,14 +216,15 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
 
         while ((pdata - pdatastart) < HitDetRawEvent->fDataCount)
         {
+
           // first vulom wrapper containing total message length:
           Int_t vulombytecount = 0;
           HitDetMAYSWAPDATA(pdata++, &vulombytecount);
           if (((vulombytecount >> 28) & 0xF) != 0x4)
           {
             // check ROByteCounter marker
-            GO4_SKIP_EVENT_MESSAGE( "Data error: wrong vulom byte counter 0x%x", vulombytecount);
-
+            printf( "Data error: wrong vulom byte counter 0x%x, skip event %d", vulombytecount, skipped_events++);
+            GO4_SKIP_EVENT
           }
           Int_t* pdatastartMsg = pdata;    // remember start of message for checking
           UChar_t msize = (vulombytecount & 0x3F) / sizeof(Int_t);    // message size in 32bit words
@@ -232,6 +236,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
           Int_t mtype = ((header >> 29) & 0x3);
 
           boardDisplay->hMsgTypes->Fill(mtype);
+          //printf("MMMMMMMM message type %d \n",mtype);
           switch (mtype)
           {
 
@@ -239,6 +244,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
               {
                 // message counter
                 UShort_t msgcount = ((header >> 20) & 0x3FF);
+                //printf("MSG_ADC_Direct msgcoutn=%d \n",msgcount);
                 THitDetMsgDirect* theMsg = new THitDetMsgDirect(msgcount);
                 tracelongcount = msgcount;    // reset trace histogram
 
@@ -248,6 +254,8 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
                   HitDetRAW_CHECK_PDATA;
                   HitDetMSG_CHECK_PDATA;
                   HitDetMAYSWAPDATA(pdata++, (adcdata + j));
+
+                  //printf(" - data[%d]=0x%x \n",j,adcdata[j]);
                 }
 
                 // decode sample bin data (0-7)
@@ -288,7 +296,16 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
 
                 for (Int_t k = 0; k < 8; ++k)
                 {
-                  UShort_t val = theMsg->GetBinData(k);
+
+                  Short_t val = theMsg->GetBinData(k);
+                  // convert raw data to signed 8bit (2 complement) representation:
+                  if(val> 0x7FF)
+                      val= (0x7FF -val);
+                  else if (val==0x7FF)
+                      val=-val;
+
+
+
                   if (tracesnapshot)
                     tracesnapshot->SetBinContent(k + 1, val);
                   if (trace2d)
@@ -311,6 +328,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
                 UChar_t channel = ((header >> 28) & 0x3);
                 UChar_t size12bit = ((header >> 20) & 0x3F);
                 UChar_t size32bit = 1 + size12bit * 3 / 8;    // account header word again in evdata
+                //printf("MSG_ADC_Event channel:%d size12:%d size32:%d\n",channel,size12bit,size32bit);
                 if ((pdata - pdatastart) + size32bit > lwords)
                   GO4_SKIP_EVENT_MESSAGE(
                       "ASIC Event header error: 12 bit size %d does not fit into mbs subevent buffer of restlen %d words", size12bit, lwords - (pdata - pdatastart));
@@ -382,11 +400,18 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
                 }
                 for (Int_t bin = 0; bin < binlen; ++bin)
                 {
-                  UShort_t val = theMsg->GetTraceData(bin);
+                  Short_t val = theMsg->GetTraceData(bin);
+                  // convert raw data to signed 8bit (2 complement) representation:
+                  if(val> 0x7FF)
+                    val= (0x7FF -val);
+                  else if (val==0x7FF)
+                    val=-val;
+
+
                   if (tracesnapshot)
                     tracesnapshot->SetBinContent(bin + 1, val);
                   if (trace2d)
-                    trace2d->Fill(bin, snapshotcount, val);
+                    trace2d->Fill(bin, val,snapshotcount);
                   boardDisplay->hTrace[0]->SetBinContent(1 + bin, val);
                   boardDisplay->hTraceSum[0]->AddBinContent(1 + bin, val);
 
@@ -401,27 +426,32 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
             case THitDetMsg::MSG_Wishbone:
               // wishbone response (error message)
               {
+                //printf("MSG_WishboneEvent header=0x%x\n",header);
+                pdata = pdatastartMsg + msize;
+
                 THitDetMsgWishbone* theMsg = new THitDetMsgWishbone(header);
                 Int_t address = 0, val = 0;
-                ;
+//                ;
                 pdata++;    //account header already processed above
-                HitDetRAW_CHECK_PDATA;
+
+
+
                 if (pdata - pdatastartMsg < msize)
                 {
                   HitDetMAYSWAPDATA(pdata++, &address);
                   theMsg->SetAddress(address);
                 }
-                // here we could take rest of message as data contents:
+////                // here we could take rest of message as data contents:
                 while (pdata - pdatastartMsg < msize)
                 {
                   HitDetRAW_CHECK_PDATA;
                   HitDetMAYSWAPDATA(pdata++, &val);
                   theMsg->AddData(val);
                 }
+                pdata--; // rewind pointer to end of payload
                 boardDisplay->hWishboneAck->Fill(theMsg->GetAckCode());
                 boardDisplay->hWishboneSource->Fill(theMsg->GetSource());
                 boardDisplay->lWishboneText->SetText(0.1, 0.9, theMsg->DumpMsg());
-
                 theBoard->AddMessage(theMsg, 0);    // wishbone messages accounted for channel 0
 
               }
@@ -431,7 +461,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
               printf("############ found unknown message type 0x%x, skip event %ld\n", mtype, skipped_events++);
               GO4_SKIP_EVENT
               break;
-          }
+          }; // switch
 
           if ((pdata - pdatastartMsg) < msize)
           {
@@ -441,8 +471,14 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
             pdata = pdatastartMsg + msize;
           }
 
-        };    // switch
-        snapshotcount++;
+          //printf("EEEEEEEE  end of message payload: pdata offset 0x%x msglength 0x%x\n",
+             //             (unsigned int) (pdata - pdatastartMsg), msize);
+              snapshotcount++;
+        }   // while ((pdata - pdatastart) < HitDetRawEvent->fDataCount)
+
+
+
+
     }    // while pdata - psubevt->GetDataField() <lwords
 
   }    // while subevents

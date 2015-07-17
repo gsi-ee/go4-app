@@ -2,9 +2,6 @@
 
 #include "TGo4Log.h"
 
-
-
-
 //************************************************************************//
 
 THitDetBoard::THitDetBoard() :
@@ -16,6 +13,10 @@ THitDetBoard::THitDetBoard(const char* name, UInt_t unid, Short_t index) :
     TGo4EventElement(name, name, index), fUniqueId(unid)
 {
   TGo4Log::Info("THitDetBoard: Create instance %s with unique id: %d, index: %d", name, unid, index);
+  for (Int_t ch = 0; ch < HitDet_CHANNELS; ++ch)
+  {
+    fMessages[ch].clear();
+  }
 }
 
 THitDetBoard::~THitDetBoard()
@@ -25,29 +26,27 @@ THitDetBoard::~THitDetBoard()
 
 void THitDetBoard::AddMessage(THitDetMsg* msg, UChar_t channel)
 {
-  if(channel< HitDet_CHANNELS)
-    {
-      fMessages[channel].push_back(msg);
-    }
+  //printf("THitDetBoard::AddMessage %d\n",channel);
+  if (channel < HitDet_CHANNELS)
+  {
+    fMessages[channel].push_back(msg);
+  }
 }
-
-
 
 void THitDetBoard::Clear(Option_t *t)
 {
+  //printf("THitDetBoard::Clear");
+  for (Int_t ch = 0; ch < HitDet_CHANNELS; ++ch)
+  {
 
-   for(Int_t ch=0; ch<HitDet_CHANNELS; ++ch)
-     {
-       for (unsigned i = 0; i < fMessages[ch].size(); ++i)
-         {
-           delete fMessages[ch].at(i);
-         }
-       fMessages[ch].clear();
-     }
+    for (unsigned i = 0; i < fMessages[ch].size(); ++i)
+    {
+      delete fMessages[ch].at(i);
+    }
+    fMessages[ch].clear();
+  }
 
 }
-
-
 
 //***********************************************************
 
@@ -95,7 +94,7 @@ void THitDetRawEvent::Clear(Option_t *t)
 {
   //TGo4Log::Info("THitDetRawEvent: Clear ");
   TGo4CompositeEvent::Clear();
-  fSequenceNumber=-1;
-  fVULOMStatus=0;
-  fDataCount=0;
+  fSequenceNumber = -1;
+  fVULOMStatus = 0;
+  fDataCount = 0;
 }

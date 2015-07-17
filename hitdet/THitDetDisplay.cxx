@@ -25,11 +25,34 @@
 THitDetBoardDisplay::THitDetBoardDisplay(Int_t boardid) :
   fDisplayId(boardid)
 {
+
+  printf("THitDetBoardDisplay ctor of id %d\n", fDisplayId);
   for(Int_t ch=0; ch<HitDet_CHANNELS; ++ch)
     for(Int_t i=0; i<HitDet_MAXSNAPSHOTS; ++i)
       hTraceSnapshots[ch][i]=0;
 
   SetMakeWithAutosave(kTRUE);
+  TString obname;
+  Int_t brd = fDisplayId;
+  obname.Form("WishboneDump_%d", brd);
+  lWishboneText = new TLatex(0.2,0.8,"-- wishbone dump --");
+  lWishboneText->SetName(obname.Data());
+  lWishboneText->SetNDC(); // relative pad x,y coordinates [0...1]
+  AddObject(lWishboneText); // always replace previous label
+
+  for(Int_t ch=0; ch<HitDet_CHANNELS; ++ch)
+      {
+        hTrace[ch] = 0;
+        hTraceSum[ch] = 0;
+        for(Int_t i=0; i<HitDet_MAXSNAPSHOTS; ++i)
+        {
+          hTraceSnapshots[ch][i]=0;
+        }
+        hTraceSnapshot2d[ch]=0;
+      }
+
+
+
 }
 
 THitDetBoardDisplay::~THitDetBoardDisplay()
@@ -40,6 +63,7 @@ THitDetBoardDisplay::~THitDetBoardDisplay()
 
 void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Bool_t replace)
 {
+
 
     if (replace)
       SetMakeWithAutosave(kFALSE);
@@ -65,9 +89,9 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
       obtitle.Form("Accumulated HitDetection Board %d Channel %d Trace", brd, ch);
       hTraceSum[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), tracelength, 0, tracelength, "time (bins)", "counts");
 
-      for(Int_t i=0; i<numsnapshots; ++i)
+      for(Int_t i=0; i<HitDet_MAXSNAPSHOTS; ++i)
       {
-          if(i>=HitDet_MAXSNAPSHOTS) continue;
+//          if(i>=HitDet_MAXSNAPSHOTS) continue;
           obname.Form("Board%d/Channel%d/Trace_%d_%d_%d", brd, ch, brd, ch,i);
           obtitle.Form("HitDetection Board %d Channel %d Trace %d", brd, ch, i);
           hTraceSnapshots[ch][i] = MakeTH1('I', obname.Data(), obtitle.Data(), tracelength, 0, tracelength, "time (bins)", "counts");
@@ -80,7 +104,7 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
     }// for ch
     obname.Form("Board%d/TraceLong_%d", brd, brd);
     obtitle.Form("HitDetection Board %d Stitched Trace (direct ADC only)", brd);
-    Int_t totlength= 8 * numsnapshots; // JAM todo: different variable for stitched length here later
+    Int_t totlength= 8 * HitDet_MAXTRACELONG; // JAM todo: different variable for stitched length here later
     hTraceLong=MakeTH1('I', obname.Data(), obtitle.Data(), totlength, 0, totlength, "time (bins)", "counts");
 
     obname.Form("Board%d/TraceLongFull_%d", brd, brd);
@@ -120,11 +144,7 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
     obtitle.Form("HitDetection Board %d Wishbone source id", brd);
     hWishboneSource=MakeTH1('I', obname.Data(), obtitle.Data(), 16, 0, 16);
 
-    obname.Form("WishboneDump_%d", brd);
-    lWishboneText = new TLatex(0.2,0.8,"-- wishbone dump --");
-    lWishboneText->SetName(obname.Data());
-    lWishboneText->SetNDC(); // relative pad x,y coordinates [0...1]
-    AddObject(lWishboneText); // always replace previous label
+
 
     SetMakeWithAutosave(kTRUE);
 }
