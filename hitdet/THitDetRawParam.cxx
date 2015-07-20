@@ -33,7 +33,7 @@ void THitDetRawParam::InitBoardMapping()
 
   fNumSnapshots = 64;
   fTraceLength = HitDet_TRACEBINS;
-  fDoFFT=kFALSE;
+  fDoFFT=kTRUE;
   fFFTOptions="R2C M";
 
 }

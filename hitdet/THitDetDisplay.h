@@ -16,7 +16,7 @@ class THitDetRawParam;
 #define HitDet_MAXSNAPSHOTS 64
 
 
-#define HitDet_MAXTRACELONG 256
+#define HitDet_MAXTRACELONG 512
 
 
 

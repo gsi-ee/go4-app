@@ -135,8 +135,8 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
   }
   UInt_t snapshotcount = 0;    // counter for trace snapshot display
   static UInt_t tracelongcount = 0;    // counter for direct adc trace long part
-  static Int_t numsnapshots = 0;
-  static Int_t tracelength = 0;
+  static Int_t numsnapshots = fPar->fNumSnapshots;
+  static Int_t tracelength = fPar->fTraceLength;
 
   // since we fill histograms already in BuildEvent, need to check if we must rescale histogram displays:
 //  if ((fPar->fNumSnapshots != numsnapshots) || (fPar->fTraceLength != tracelength))
@@ -223,7 +223,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
           if (((vulombytecount >> 28) & 0xF) != 0x4)
           {
             // check ROByteCounter marker
-            printf( "Data error: wrong vulom byte counter 0x%x, skip event %d", vulombytecount, skipped_events++);
+            printf( "Data error: wrong vulom byte counter 0x%x, skip event %ld", vulombytecount, skipped_events++);
             GO4_SKIP_EVENT
           }
           Int_t* pdatastartMsg = pdata;    // remember start of message for checking
@@ -299,11 +299,11 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
 
                   Short_t val = theMsg->GetBinData(k);
                   // convert raw data to signed 8bit (2 complement) representation:
-                  if(val> 0x7FF)
-                      val= (0x7FF -val);
-                  else if (val==0x7FF)
-                      val=-val;
+//                  if (val & 0x800 != 0)
+//                    val |= 0xf000;
 
+                  if(val> 0x7FF)
+                      val=  val -0x1000;
 
 
                   if (tracesnapshot)
@@ -403,10 +403,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
                   Short_t val = theMsg->GetTraceData(bin);
                   // convert raw data to signed 8bit (2 complement) representation:
                   if(val> 0x7FF)
-                    val= (0x7FF -val);
-                  else if (val==0x7FF)
-                    val=-val;
-
+                    val=  val -0x1000;
 
                   if (tracesnapshot)
                     tracesnapshot->SetBinContent(bin + 1, val);
@@ -557,12 +554,12 @@ void THitDetRawProc::DoFFT(THitDetBoardDisplay* boardDisplay)
 
     //Examples of valid options: "R2C ES ", "C2CF M", "DHT P ", etc.
 
-    Int_t N = boardDisplay->hTraceLong->GetNbinsX();
+    Int_t N = boardDisplay->hTraceLongPrev->GetNbinsX();
     Double_t *in = new Double_t[N];
     // since we do not know type of input histo, we copy contents to Double array:
     for (Int_t ix = 0; ix < N; ++ix)
     {
-      in[ix] = boardDisplay->hTraceLong->GetBinContent(ix + 1);
+      in[ix] = boardDisplay->hTraceLongPrev->GetBinContent(ix + 1);
     }
     TVirtualFFT *thefft = TVirtualFFT::FFT(1, &N, opt.Data());
     thefft->SetPoints(in);
