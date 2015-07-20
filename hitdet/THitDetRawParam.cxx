@@ -32,7 +32,7 @@ void THitDetRawParam::InitBoardMapping()
   fBoardID[0] = 42;    // this might be a unique hardware id
 
   fNumSnapshots = 64;
-  fTraceLength = HitDet_TRACEBINS;
+  fTraceLength = 8; //HitDet_TRACEBINS;
   fDoFFT=kTRUE;
   fFFTOptions="R2C M";
 

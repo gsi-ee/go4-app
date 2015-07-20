@@ -99,7 +99,7 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
      } //for i
       obname.Form("Board%d/Channel%d/TraceSnapshots_%d_%d", brd, ch, brd, ch);
       obtitle.Form("HitDetection Board %d Channel %d Trace snapshot overview", brd, ch);
-      hTraceSnapshot2d[ch]=MakeTH2('I', obname.Data(), obtitle.Data(), tracelength, 0, tracelength, numsnapshots, 0, numsnapshots,"time (bins)", "message sequence", "counts");
+      hTraceSnapshot2d[ch]=MakeTH2('I', obname.Data(), obtitle.Data(), tracelength, 0, tracelength, numsnapshots, 0, numsnapshots -1,"time (bins)", "message sequence", "counts");
 
     }// for ch
     obname.Form("Board%d/TraceLong_%d", brd, brd);
