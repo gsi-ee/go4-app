@@ -17,7 +17,9 @@ class THitDetRawParam : public TGo4Parameter {
       Int_t fTraceLength; // length of trace to visualize (8, 16, 32)
       Bool_t fDoFFT; // do fast fourier transform on trace long when complete
       TString fFFTOptions; // ROOT fft option string
-
+      Bool_t fDoFilter; // enable digital (Hamming) filter before FFT
+      Double_t fHammingAlpha; // coefficient for generalized Hamming window
+      Double_t fHammingBeta; // coefficient for generalized Hamming window
 
 
 

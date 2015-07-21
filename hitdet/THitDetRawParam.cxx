@@ -35,7 +35,11 @@ void THitDetRawParam::InitBoardMapping()
   fTraceLength = 8; //HitDet_TRACEBINS;
   fDoFFT=kTRUE;
   fFFTOptions="R2C M";
-
+  fDoFilter=kFALSE;
+  fHammingAlpha=0.54; // start with plain Hamming window filter
+  fHammingBeta=0.46;
+  // for von Hann window set both to 0.5
+  // see https://en.wikipedia.org/wiki/Window_function#Hamming_window
 }
 
 Bool_t THitDetRawParam::SetConfigBoards()
@@ -68,6 +72,10 @@ Bool_t THitDetRawParam::UpdateFrom(TGo4Parameter *pp)
   fTraceLength = from->fTraceLength;
   fDoFFT=from->fDoFFT;
   fFFTOptions=from->fFFTOptions;
+  fDoFilter=from->fDoFilter;
+  fHammingAlpha=from->fHammingAlpha; // start with plain Hamming window filter
+  fHammingBeta=from->fHammingBeta;
+
   SetConfigBoards();
   return kTRUE;
 

@@ -579,6 +579,7 @@ void THitDetRawProc::DoFFT(THitDetBoardDisplay* boardDisplay)
     {
       in[ix] = boardDisplay->hTraceLongPrev->GetBinContent(ix + 1);
     }
+    DoFilter(in,N);
     TVirtualFFT *thefft = TVirtualFFT::FFT(1, &N, opt.Data());
     thefft->SetPoints(in);
     thefft->Transform();
@@ -603,7 +604,7 @@ void THitDetRawProc::DoFFT(THitDetBoardDisplay* boardDisplay)
             Npart++;
           }
       }
-
+    DoFilter(in,Npart);
     thefft = TVirtualFFT::FFT(1, &Npart, opt.Data());
     thefft->SetPoints(in);
     thefft->Transform();
@@ -616,3 +617,19 @@ void THitDetRawProc::DoFFT(THitDetBoardDisplay* boardDisplay)
     delete [] in;
   } // if dofft
 }
+
+
+void  THitDetRawProc::DoFilter(Double_t* array, Int_t N)
+{
+  if(!fPar->fDoFilter) return;
+
+  // JAM to do: choose between different types of filters by fPar setup here
+  for (Int_t i = 0; i < N; i++)
+      {
+        Double_t factor=fPar->fHammingAlpha - fPar->fHammingBeta * TMath::Cos( 2.0 * TMath::Pi() * i/(N-1));
+        array[i] *= factor;
+            //fPar->fHammingAlpha - fPar->fHammingBeta * (TMath::Cos(2* TMath::Pi * i/(N-1)));
+      }
+}
+
+

@@ -44,6 +44,9 @@ protected:
   /** provide FFT of complete trace long */
   void DoFFT( THitDetBoardDisplay* disp);
 
+  /** transform hamming or other filter over array of lenght N*/
+  void DoFilter(Double_t* array, Int_t N);
+
   /** subdisplays for each frotend board */
   std::vector<THitDetBoardDisplay*> fBoards;
 
