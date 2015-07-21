@@ -233,7 +233,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
           Int_t header = 0;
           HitDetMAYSWAPDATA(pdata, &header);
           // not we do not increment pdata here, do this inside msg types
-          Int_t mtype = ((header >> 29) & 0x3);
+          Int_t mtype = ((header >> 30) & 0x3);
 
           boardDisplay->hMsgTypes->Fill(mtype);
           //printf("MMMMMMMM message type %d \n",mtype);
@@ -409,9 +409,16 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
                     tracesnapshot->SetBinContent(bin + 1, val);
                   if (trace2d)
                     trace2d->Fill(bin, val,snapshotcount);
-                  boardDisplay->hTrace[0]->SetBinContent(1 + bin, val);
-                  boardDisplay->hTraceSum[0]->AddBinContent(1 + bin, val);
 
+                  if(channel>=HitDet_CHANNELS )
+                  {
+                    printf("MSG_ADC_Event channel:%d out of range %d\n",channel, HitDet_CHANNELS);
+                  }
+                  else
+                  {
+                    boardDisplay->hTrace[channel]->SetBinContent(1 + bin, val);
+                    boardDisplay->hTraceSum[channel]->AddBinContent(1 + bin, val);
+                  }
                 }
 
                 theBoard->AddMessage(theMsg, channel);
@@ -423,10 +430,12 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
             case THitDetMsg::MSG_Wishbone:
               // wishbone response (error message)
               {
-                //printf("MSG_WishboneEvent header=0x%x\n",header);
-                pdata = pdatastartMsg + msize;
 
-                THitDetMsgWishbone* theMsg = new THitDetMsgWishbone(header);
+                pdata = pdatastartMsg + msize;
+                UChar_t wishhead=(header >>23) & 0xFF;
+                //printf("MSG_WishboneEvent header=0x%x\n",wishhead);
+
+                THitDetMsgWishbone* theMsg = new THitDetMsgWishbone(wishhead);
                 Int_t address = 0, val = 0;
 //                ;
                 pdata++;    //account header already processed above
@@ -450,6 +459,12 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
                 boardDisplay->hWishboneSource->Fill(theMsg->GetSource());
                 boardDisplay->lWishboneText->SetText(0.1, 0.9, theMsg->DumpMsg());
                 theBoard->AddMessage(theMsg, 0);    // wishbone messages accounted for channel 0
+
+//                if(theMsg->GetDataSize()>0)
+//                {
+//                  printf("Wishbone text: %s",theMsg->DumpMsg().Data());
+//                  std::cout<<std::endl;
+//                }
 
               }
               break;

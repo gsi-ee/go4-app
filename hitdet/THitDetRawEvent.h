@@ -240,10 +240,10 @@ public:
     head.Form("Wishbone message ack:0x%x src 0x%x\n", GetAckCode(), GetSource());
     if (GetAddress())
       add.Form(" - address: 0x%x\n", GetAddress());
-    data.Form(" - data:\n");
+    data.Form(" - data size 0x%x, data:\n", (int) GetDataSize());
     for (size_t i = 0; i < GetDataSize(); ++i)
     {
-      data.Append(GetData(i));
+      data.Append((const char*) GetData(i), 1);
     }
     return (head + add + data);
   }
