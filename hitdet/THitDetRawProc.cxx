@@ -135,17 +135,17 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
   }
   UInt_t snapshotcount = 0;    // counter for trace snapshot display
   static UInt_t tracelongcount = 0;    // counter for direct adc trace long part
-  static Int_t numsnapshots = fPar->fNumSnapshots;
-  static Int_t tracelength = fPar->fTraceLength;
+  static Int_t numsnapshots =  fPar->fNumSnapshots;
+  static Int_t tracelength =  fPar->fTraceLength;
 
   // since we fill histograms already in BuildEvent, need to check if we must rescale histogram displays:
-//  if ((fPar->fNumSnapshots != numsnapshots) || (fPar->fTraceLength != tracelength))
-//  {
-//    numsnapshots = fPar->fNumSnapshots;
-//    tracelength = fPar->fTraceLength;
-//    InitDisplay(tracelength, numsnapshots, kTRUE);
-//
-//  }
+  if ((fPar->fNumSnapshots != numsnapshots) || (fPar->fTraceLength != tracelength))
+  {
+    numsnapshots = fPar->fNumSnapshots;
+    tracelength = fPar->fTraceLength;
+    InitDisplay(tracelength, numsnapshots, kTRUE);
+
+  }
 
   /////////////////////////////////////////////////////////////
   ////// evaluate from buffer header if we need to swap data words later:
@@ -432,7 +432,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
               {
 
                 pdata = pdatastartMsg + msize;
-                UChar_t wishhead=(header >>23) & 0xFF;
+                UChar_t wishhead=(header >>24) & 0xFF;
                 //printf("MSG_WishboneEvent header=0x%x\n",wishhead);
 
                 THitDetMsgWishbone* theMsg = new THitDetMsgWishbone(wishhead);
