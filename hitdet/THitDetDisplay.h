@@ -72,6 +72,10 @@ public:
    /** Previously full filled hTraceLong. Coressponds to contents of hTraceLongFFT*/
    TH1 *hTraceLongPrev;
 
+   /** FFT transformed result of conditino window inside hTraceLong*/
+   TH1 *hTracePartFFT;
+
+
    /** statistics of message types*/
    TH1* hMsgTypes;
 
@@ -83,7 +87,11 @@ public:
 
    /** text dump of last wishbone message*/
    TLatex* lWishboneText;
-//
+
+   /** window condition to select region for part fft*/
+   TGo4WinCond* cWindowFFT;
+
+   //
  Int_t GetDevId()
      {
        return fDisplayId;

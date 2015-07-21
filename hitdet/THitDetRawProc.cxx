@@ -153,6 +153,9 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
   s_bufhe* head = source->GetMbsBufferHeader();
   if (head && head->l_free[0] != 1)
     needswap = kTRUE;
+//  printf( "needswap is %d\n", needswap);
+//  std::cout<<std::endl;
+
 
 // first we fill the THitDetRawEvent with data from MBS source
 // we have up to two subevents, crate 1 and 2
@@ -588,5 +591,28 @@ void THitDetRawProc::DoFFT(THitDetBoardDisplay* boardDisplay)
       // in case of option DHT (real 2 real)
 
     }
-  }
+
+    // now partial fft from window condition:
+    boardDisplay->hTracePartFFT->Reset("");
+    Int_t Npart=0;
+    for (Int_t ix = 0; ix < N; ++ix)
+      {
+          if(boardDisplay->cWindowFFT->Test(ix))
+          {
+            in[ix] = boardDisplay->hTraceLongPrev->GetBinContent(ix + 1);
+            Npart++;
+          }
+      }
+
+    thefft = TVirtualFFT::FFT(1, &Npart, opt.Data());
+    thefft->SetPoints(in);
+    thefft->Transform();
+    for (Int_t i = 0; i < Npart; i++)
+    {
+      thefft->GetPointComplex(i, re, im);
+      boardDisplay->hTracePartFFT->SetBinContent(i + 1, TMath::Sqrt(re * re + im * im));
+    }
+
+    delete [] in;
+  } // if dofft
 }

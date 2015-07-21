@@ -40,6 +40,9 @@ THitDetBoardDisplay::THitDetBoardDisplay(Int_t boardid) :
   lWishboneText->SetNDC(); // relative pad x,y coordinates [0...1]
   AddObject(lWishboneText); // always replace previous label
 
+
+
+
   for(Int_t ch=0; ch<HitDet_CHANNELS; ++ch)
       {
         hTrace[ch] = 0;
@@ -119,6 +122,11 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
     obtitle.Form("HitDetection Board %d Stitched Trace FFT (direct ADC only)", brd);
     hTraceLongFFT=MakeTH1('I', obname.Data(), obtitle.Data(), totlength, 0, totlength, "1/t ", "counts");
 
+
+    obname.Form("Board%d/TracePartFFT_%d", brd, brd);
+    obtitle.Form("HitDetection Board %d Stitched Trace FFT from window(direct ADC only)", brd);
+    hTracePartFFT=MakeTH1('I', obname.Data(), obtitle.Data(), totlength, 0, totlength, "1/t ", "counts");
+
     obname.Form("Board%d/MsgTypes_%d", brd, brd);
     obtitle.Form("HitDetection Board %d Message types", brd);
     hMsgTypes=MakeTH1('I', obname.Data(), obtitle.Data(), 4, 0, 4);
@@ -144,9 +152,43 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
     obtitle.Form("HitDetection Board %d Wishbone source id", brd);
     hWishboneSource=MakeTH1('I', obname.Data(), obtitle.Data(), 16, 0, 16);
 
+    obname.Form("Board%d/FFTWindow_%d", brd, brd);
+    cWindowFFT=MakeWinCond(obname.Data(),0, totlength,hTraceLongPrev->GetName());
+
+
+
+
 
 
     SetMakeWithAutosave(kTRUE);
+
+    obname.Form("ADC_direct_Brd%d_Tr", brd);
+  TGo4Picture* pic = GetPicture(obname.Data());
+  if (pic == 0)
+  {
+    obtitle.Form("ADC direct trace Board%d", brd);
+    pic = new TGo4Picture(obname.Data(), obtitle.Data());
+
+    pic->SetDivision(2, 2);
+    pic->Pic(0, 0)->AddObject(hTraceLongPrev);
+    pic->Pic(0, 0)->SetLineAtt(3, 1, 1);    // solid line
+    pic->Pic(0, 0)->AddObject(cWindowFFT);
+
+    pic->Pic(0, 1)->AddObject(hTracePartFFT);
+    pic->Pic(0, 1)->SetLogScale(1);
+    pic->Pic(0, 1)->SetLineAtt(4, 1, 1);
+    pic->Pic(0, 1)->SetFillAtt(4, 3001);
+
+    pic->Pic(1, 0)->AddObject(hTraceLong);
+    pic->Pic(1, 0)->SetLineAtt(3, 1, 1);
+    pic->Pic(1, 0)->SetFillAtt(3, 3001);
+
+    pic->Pic(1, 1)->AddObject(hTraceLongFFT);
+    pic->Pic(1, 1)->SetLogScale(1);
+    pic->Pic(1, 1)->SetLineAtt(4, 1, 1);
+    pic->Pic(1, 1)->SetFillAtt(4, 3001);
+    AddPicture(pic, Form("Board%d", brd));
+  }
 }
 
 
