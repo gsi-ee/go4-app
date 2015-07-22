@@ -20,15 +20,7 @@
 
 #include "TGo4UserException.h"
 
-extern "C"
-{
-#include "MbsAPIbase/f_swaplw.h"
-}
 static unsigned long skipped_events = 0;
-
-/** local definition to optionally swap the data words according to endianness*/
-#define HitDetMAYSWAPDATA(src, tgt) \
-    (needswap ? f_swaplw(src,1,tgt): *tgt=*src);
 
 /* helper macros for BuildEvent to check if payload pointer is still inside delivered region:*/
 /* this one to be called at top data processing loop*/
@@ -135,8 +127,8 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
   }
   UInt_t snapshotcount = 0;    // counter for trace snapshot display
   static UInt_t tracelongcount = 0;    // counter for direct adc trace long part
-  static Int_t numsnapshots =  fPar->fNumSnapshots;
-  static Int_t tracelength =  fPar->fTraceLength;
+  static Int_t numsnapshots = fPar->fNumSnapshots;
+  static Int_t tracelength = fPar->fTraceLength;
 
   // since we fill histograms already in BuildEvent, need to check if we must rescale histogram displays:
   if ((fPar->fNumSnapshots != numsnapshots) || (fPar->fTraceLength != tracelength))
@@ -146,16 +138,6 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
     InitDisplay(tracelength, numsnapshots, kTRUE);
 
   }
-
-  /////////////////////////////////////////////////////////////
-  ////// evaluate from buffer header if we need to swap data words later:
-  Bool_t needswap = kFALSE;
-  s_bufhe* head = source->GetMbsBufferHeader();
-  if (head && head->l_free[0] != 1)
-    needswap = kTRUE;
-//  printf( "needswap is %d\n", needswap);
-//  std::cout<<std::endl;
-
 
 // first we fill the THitDetRawEvent with data from MBS source
 // we have up to two subevents, crate 1 and 2
@@ -173,295 +155,290 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
     Int_t lwords = psubevt->GetIntLen();
 
     if ((unsigned) *pdata == 0xbad00bad)
-          {
-            GO4_SKIP_EVENT_MESSAGE("**** THitDetRawProc: Found BAD mbs event (marked 0x%x), skip it.", (*pdata));
-          }
+    {
+      GO4_SKIP_EVENT_MESSAGE("**** THitDetRawProc: Found BAD mbs event (marked 0x%x), skip it.", (*pdata));
+    }
 
     // loop over single subevent data:
     while (pdata - psubevt->GetDataField() < lwords)
     {
-        // vulom status word:
-        HitDetRawEvent->fVULOMStatus = *pdata++;
-        //event trigger counter:
-        HitDetRawEvent->fSequenceNumber = *pdata++;
-        // data length
-        HitDetRawEvent->fDataCount = *pdata++;
-        if (HitDetRawEvent->fDataCount > (lwords - 3))
+      // vulom status word:
+      HitDetRawEvent->fVULOMStatus = *pdata++;
+      //event trigger counter:
+      HitDetRawEvent->fSequenceNumber = *pdata++;
+      // data length
+      HitDetRawEvent->fDataCount = *pdata++;
+      if (HitDetRawEvent->fDataCount > (lwords - 3))
+      {
+        GO4_SKIP_EVENT_MESSAGE(
+            "**** THitDetRawProc: Mismatch with subevent len %d and data count %d", lwords, HitDetRawEvent->fDataCount);
+        // avoid that we run optional second step on invalid raw event!
+      }
+
+      pdata++;    // skip first  word?
+
+      Int_t* pdatastart = pdata;    // remember begin of asic payload data section
+
+      // now fetch boardwise subcomponents for output data and histograming:
+      Int_t slix = 0;    // JAM here we later could evaluate a board identifier mapped to a slot/sfp number contained in subevent
+      UInt_t brdid = fPar->fBoardID[slix];    // get hardware identifier from "DAQ link index" number
+      THitDetBoard* theBoard = HitDetRawEvent->GetBoard(brdid);
+      if (theBoard == 0)
+      {
+        GO4_SKIP_EVENT_MESSAGE(
+            "Configuration error: Board id %d does not exist as subevent, slot index:%d", brdid, slix);
+
+        return kFALSE;
+      }
+      THitDetBoardDisplay* boardDisplay = GetBoardDisplay(brdid);
+      if (boardDisplay == 0)
+      {
+        GO4_SKIP_EVENT_MESSAGE("Configuration error: Board id %d does not exist as histogram display set!", brdid);
+        return kFALSE;
+      }
+      boardDisplay->ResetDisplay(kFALSE);
+      // evaluate HitDetection ASIC messages in the payload:
+
+      while ((pdata - pdatastart) < HitDetRawEvent->fDataCount)
+      {
+
+        // first vulom wrapper containing total message length:
+        Int_t vulombytecount = *pdata++;
+        if (((vulombytecount >> 28) & 0xF) != 0x4)
         {
-          GO4_SKIP_EVENT_MESSAGE(
-              "**** THitDetRawProc: Mismatch with subevent len %d and data count %d", lwords, HitDetRawEvent->fDataCount);
-          // avoid that we run optional second step on invalid raw event!
+          // check ROByteCounter marker
+          printf("Data error: wrong vulom byte counter 0x%x, skip event %ld", vulombytecount, skipped_events++);
+          GO4_SKIP_EVENT
         }
+        Int_t* pdatastartMsg = pdata;    // remember start of message for checking
+        UChar_t msize = (vulombytecount & 0x3F) / sizeof(Int_t);    // message size in 32bit words
 
-        pdata++; // skip first  word?
+        // evaluate message type from header:
+        Int_t header = *pdata;
+        // not we do not increment pdata here, do this inside msg types
+        Int_t mtype = ((header >> 30) & 0x3);
 
-        Int_t* pdatastart = pdata;    // remember begin of asic payload data section
-
-        // now fetch boardwise subcomponents for output data and histograming:
-        Int_t slix = 0;    // JAM here we later could evaluate a board identifier mapped to a slot/sfp number contained in subevent
-        UInt_t brdid = fPar->fBoardID[slix];    // get hardware identifier from "DAQ link index" number
-        THitDetBoard* theBoard = HitDetRawEvent->GetBoard(brdid);
-        if (theBoard == 0)
-        {
-          GO4_SKIP_EVENT_MESSAGE(
-              "Configuration error: Board id %d does not exist as subevent, slot index:%d", brdid, slix);
-
-          return kFALSE;
-        }
-        THitDetBoardDisplay* boardDisplay = GetBoardDisplay(brdid);
-        if (boardDisplay == 0)
-        {
-          GO4_SKIP_EVENT_MESSAGE("Configuration error: Board id %d does not exist as histogram display set!", brdid);
-          return kFALSE;
-        }
-        boardDisplay->ResetDisplay(kFALSE);
-        // evaluate HitDetection ASIC messages in the payload:
-
-        while ((pdata - pdatastart) < HitDetRawEvent->fDataCount)
+        boardDisplay->hMsgTypes->Fill(mtype);
+        //printf("MMMMMMMM message type %d \n",mtype);
+        switch (mtype)
         {
 
-          // first vulom wrapper containing total message length:
-          Int_t vulombytecount = 0;
-          HitDetMAYSWAPDATA(pdata++, &vulombytecount);
-          if (((vulombytecount >> 28) & 0xF) != 0x4)
-          {
-            // check ROByteCounter marker
-            printf( "Data error: wrong vulom byte counter 0x%x, skip event %ld", vulombytecount, skipped_events++);
-            GO4_SKIP_EVENT
-          }
-          Int_t* pdatastartMsg = pdata;    // remember start of message for checking
-          UChar_t msize = (vulombytecount & 0x3F) / sizeof(Int_t);    // message size in 32bit words
+          case THitDetMsg::MSG_ADC_Direct:    // direct ADC readout
+            {
+              // message counter
+              UShort_t msgcount = ((header >> 20) & 0x3FF);
+              //printf("MSG_ADC_Direct msgcoutn=%d \n",msgcount);
+              THitDetMsgDirect* theMsg = new THitDetMsgDirect(msgcount);
+              tracelongcount = msgcount;    // reset trace histogram
 
-          // evaluate message type from header:
-          Int_t header = 0;
-          HitDetMAYSWAPDATA(pdata, &header);
-          // not we do not increment pdata here, do this inside msg types
-          Int_t mtype = ((header >> 30) & 0x3);
-
-          boardDisplay->hMsgTypes->Fill(mtype);
-          //printf("MMMMMMMM message type %d \n",mtype);
-          switch (mtype)
-          {
-
-            case THitDetMsg::MSG_ADC_Direct:    // direct ADC readout
+              Int_t adcdata[4];
+              for (Int_t j = 0; j < 4; ++j)
               {
-                // message counter
-                UShort_t msgcount = ((header >> 20) & 0x3FF);
-                //printf("MSG_ADC_Direct msgcoutn=%d \n",msgcount);
-                THitDetMsgDirect* theMsg = new THitDetMsgDirect(msgcount);
-                tracelongcount = msgcount;    // reset trace histogram
+                HitDetRAW_CHECK_PDATA;
+                HitDetMSG_CHECK_PDATA;
+                adcdata[j] = *pdata++;
 
-                Int_t adcdata[4];
-                for (Int_t j = 0; j < 4; ++j)
+                //printf(" - data[%d]=0x%x \n",j,adcdata[j]);
+              }
+
+              // decode sample bin data (0-7)
+              theMsg->SetBinData(0, ((adcdata[0] >> 8) & 0xFFF));
+              theMsg->SetBinData(1, ((adcdata[0] & 0xFF) << 4) | ((adcdata[1] >> 28) & 0xF));
+              theMsg->SetBinData(2, (adcdata[1] >> 16) & 0xFFF);
+              theMsg->SetBinData(3, (adcdata[1] >> 4) & 0xFFF);
+              theMsg->SetBinData(4, ((adcdata[1] & 0xF) << 8) | ((adcdata[2] >> 24) & 0xFF));
+              theMsg->SetBinData(5, (adcdata[2] >> 12) & 0xFFF);
+              theMsg->SetBinData(6, adcdata[2] & 0xFFF);
+              theMsg->SetBinData(7, (adcdata[3] >> 20) & 0xFFF);
+
+              // here directly evaluate display:
+
+              TH1* tracesnapshot = 0;
+              TH1* tracelong = 0;
+              TH1* tracelongsum = 0;
+              TH2* trace2d = 0;
+              if (snapshotcount < HitDet_MAXSNAPSHOTS)
+              {
+                tracesnapshot = boardDisplay->hTraceSnapshots[0][snapshotcount];
+                trace2d = boardDisplay->hTraceSnapshot2d[0];
+              }
+              if (tracelongcount < HitDet_MAXTRACELONG)
+              {
+                tracelong = boardDisplay->hTraceLong;
+                tracelongsum = boardDisplay->hTraceLongSum;
+                if (tracelongcount == 0)
                 {
-                  HitDetRAW_CHECK_PDATA;
-                  HitDetMSG_CHECK_PDATA;
-                  HitDetMAYSWAPDATA(pdata++, (adcdata + j));
-
-                  //printf(" - data[%d]=0x%x \n",j,adcdata[j]);
+                  // begin of new trace, provide FFT of previous one here:
+                  DoFFT(boardDisplay);
+                  boardDisplay->hTraceLongPrev->Reset("");
+                  boardDisplay->hTraceLongPrev->Add(tracelong);    // copy previous full trace to buffer histogram
+                  tracelong->Reset("");
                 }
 
-                // decode sample bin data (0-7)
-                theMsg->SetBinData(0, ((adcdata[0] >> 8) & 0xFFF));
-                theMsg->SetBinData(1, ((adcdata[0] & 0xFF) << 4) | ((adcdata[1] >> 28) & 0xF));
-                theMsg->SetBinData(2, (adcdata[1] >> 16) & 0xFFF);
-                theMsg->SetBinData(3, (adcdata[1] >> 4) & 0xFFF);
-                theMsg->SetBinData(4, ((adcdata[1] & 0xF) << 8) | ((adcdata[2] >> 24) & 0xFF));
-                theMsg->SetBinData(5, (adcdata[2] >> 12) & 0xFFF);
-                theMsg->SetBinData(6, adcdata[2] & 0xFFF);
-                theMsg->SetBinData(7, (adcdata[3] >> 20) & 0xFFF);
+              }
 
-                // here directly evaluate display:
+              for (Int_t k = 0; k < 8; ++k)
+              {
 
-                TH1* tracesnapshot = 0;
-                TH1* tracelong = 0;
-                TH1* tracelongsum = 0;
-                TH2* trace2d = 0;
-                if (snapshotcount < HitDet_MAXSNAPSHOTS)
-                {
-                  tracesnapshot = boardDisplay->hTraceSnapshots[0][snapshotcount];
-                  trace2d = boardDisplay->hTraceSnapshot2d[0];
-                }
-                if (tracelongcount < HitDet_MAXTRACELONG)
-                {
-                  tracelong = boardDisplay->hTraceLong;
-                  tracelongsum = boardDisplay->hTraceLongSum;
-                  if (tracelongcount == 0)
-                  {
-                    // begin of new trace, provide FFT of previous one here:
-                    DoFFT(boardDisplay);
-                    boardDisplay->hTraceLongPrev->Reset("");
-                    boardDisplay->hTraceLongPrev->Add(tracelong);    // copy previous full trace to buffer histogram
-                    tracelong->Reset("");
-                  }
-
-                }
-
-                for (Int_t k = 0; k < 8; ++k)
-                {
-
-                  Short_t val = theMsg->GetBinData(k);
-                  // convert raw data to signed 8bit (2 complement) representation:
+                Short_t val = theMsg->GetBinData(k);
+                // convert raw data to signed 8bit (2 complement) representation:
 //                  if (val & 0x800 != 0)
 //                    val |= 0xf000;
 
-                  if(val> 0x7FF)
-                      val=  val -0x1000;
+                if (val > 0x7FF)
+                  val = val - 0x1000;
 
-
-                  if (tracesnapshot)
-                    tracesnapshot->SetBinContent(k + 1, val);
-                  if (trace2d)
-                    trace2d->Fill(k, snapshotcount, val);
-                  if (tracelong)
-                    tracelong->SetBinContent(1 + k + (8 * tracelongcount), val);
-                  if (tracelongsum)
-                    tracelongsum->AddBinContent(1 + k + (8 * tracelongcount), val);
-                  boardDisplay->hTrace[0]->SetBinContent(1 + k, val);
-                  boardDisplay->hTraceSum[0]->AddBinContent(1 + k, val);
-
-                }
-
-                theBoard->AddMessage(theMsg, 0);    // direct ADC messages assigned to channel 0
-              }
-              break;
-
-            case THitDetMsg::MSG_ADC_Event:    // triggered event read out
-              {
-                UChar_t channel = ((header >> 28) & 0x3);
-                UChar_t size12bit = ((header >> 20) & 0x3F);
-                UChar_t size32bit = 1 + size12bit * 3 / 8;    // account header word again in evdata
-                //printf("MSG_ADC_Event channel:%d size12:%d size32:%d\n",channel,size12bit,size32bit);
-                if ((pdata - pdatastart) + size32bit > lwords)
-                  GO4_SKIP_EVENT_MESSAGE(
-                      "ASIC Event header error: 12 bit size %d does not fit into mbs subevent buffer of restlen %d words", size12bit, lwords - (pdata - pdatastart));
-
-                Int_t evdata[size32bit];
-                for (Int_t j = 0; j < size32bit; ++j)
-                {
-                  HitDetRAW_CHECK_PDATA;
-                  HitDetMSG_CHECK_PDATA;
-                  HitDetMAYSWAPDATA(pdata++, (evdata + j));
-                }
-                THitDetMsgEvent* theMsg = new THitDetMsgEvent(channel);
-                theMsg->SetEpoch(((evdata[0] & 0xFFFFF) << 4) | ((evdata[1] >> 28) & 0xF));
-                theMsg->SetTimeStamp((evdata[1] >> 16) & 0xFFF);
-
-                // now decode 12 bit samples inside mbs data words:Ä
-                Int_t binlen = size12bit - 3;    // number of sample bins (should be 8,16, or 32)
-                if (binlen > 32)
-                  GO4_SKIP_EVENT_MESSAGE("ASIC Event header error: bin length %d exceeds maximum 32", binlen);
-
-                UShort_t val = 0;
-                Int_t dixoffset = 1;    // actual sample data begins after header and timestamp,
-                // j counts global bit number in stream, j_start is first in stream, j_end is last
-                // k is local bit number in evdata word (lsb=0)
-                UChar_t j_start = 16;    // begin of first 12 bit sample is after timestamp
-                for (Int_t bin = 0; bin < binlen; ++bin)
-                {
-                  UChar_t j_end = j_start + 12;
-                  Int_t dix_start = (Int_t) j_start / 32;    // data index containing first bit of sample
-                  Int_t dix_end = (Int_t) j_end / 32;    // data index containing last bit of sample
-                  UChar_t k_start = 32 - (j_start - 32 * dix_start);    //  start bit number in evdata word
-                  UChar_t k_end = 32 - (j_end - 32 * dix_end);    // end bit number in evdata word
-                  if (dix_start == dix_end)
-                  {
-                    // easy case, sample is inside one evdata word:
-                    val = (evdata[dixoffset + dix_start] >> k_end) & 0xFFF;
-                  }
-                  else if (dix_end == dix_start + 1)
-                  {
-                    // spanning over 2 evdata words:
-                    UChar_t mask_start = 0, mask_end = 0;
-                    for (UChar_t b = 0; b < k_start; ++b)
-                      mask_start |= (1 << b);
-
-                    for (UChar_t b = 0; b < (32 - k_end); ++b)
-                      mask_end |= (1 << b);
-                    val = ( (evdata[dixoffset + dix_start] & mask_start )<< (12 - k_start)) ;
-                    val |= (evdata[dixoffset + dix_end] >> k_end) & mask_end;
-
-                  }
-                  else
-                  {
-                    // never come here
-                    GO4_STOP_ANALYSIS_MESSAGE(
-                        "NEVER COME HERE: mismatch of evsample indices - dix_end:%d and dix_start:%d", dix_end, dix_start)
-
-                  }
-                  theMsg->SetTraceData(bin, val);
-                }    // for bin
-
-                // here do simple histogramming of traces:
-
-                TH1* tracesnapshot = 0;
-                TH2* trace2d = 0;
-                if (snapshotcount < HitDet_MAXSNAPSHOTS)
-                {
-                  tracesnapshot = boardDisplay->hTraceSnapshots[channel][snapshotcount];
-                  trace2d = boardDisplay->hTraceSnapshot2d[channel];
-                }
-                for (Int_t bin = 0; bin < binlen; ++bin)
-                {
-                  Short_t val = theMsg->GetTraceData(bin);
-                  // convert raw data to signed 8bit (2 complement) representation:
-                  if(val> 0x7FF)
-                    val=  val -0x1000;
-
-                  if (tracesnapshot)
-                    tracesnapshot->SetBinContent(bin + 1, val);
-                  if (trace2d)
-                    trace2d->Fill(bin, val,snapshotcount);
-
-                  if(channel>=HitDet_CHANNELS )
-                  {
-                    printf("MSG_ADC_Event channel:%d out of range %d\n",channel, HitDet_CHANNELS);
-                  }
-                  else
-                  {
-                    boardDisplay->hTrace[channel]->SetBinContent(1 + bin, val);
-                    boardDisplay->hTraceSum[channel]->AddBinContent(1 + bin, val);
-                  }
-                }
-
-                theBoard->AddMessage(theMsg, channel);
+                if (tracesnapshot)
+                  tracesnapshot->SetBinContent(k + 1, val);
+                if (trace2d)
+                  trace2d->Fill(k, snapshotcount, val);
+                if (tracelong)
+                  tracelong->SetBinContent(1 + k + (8 * tracelongcount), val);
+                if (tracelongsum)
+                  tracelongsum->AddBinContent(1 + k + (8 * tracelongcount), val);
+                boardDisplay->hTrace[0]->SetBinContent(1 + k, val);
+                boardDisplay->hTraceSum[0]->AddBinContent(1 + k, val);
 
               }
 
-              break;
+              theBoard->AddMessage(theMsg, 0);    // direct ADC messages assigned to channel 0
+            }
+            break;
 
-            case THitDetMsg::MSG_Wishbone:
-              // wishbone response (error message)
+          case THitDetMsg::MSG_ADC_Event:    // triggered event read out
+            {
+              UChar_t channel = ((header >> 28) & 0x3);
+              UChar_t size12bit = ((header >> 20) & 0x3F);
+              UChar_t size32bit = 1 + size12bit * 3 / 8;    // account header word again in evdata
+              //printf("MSG_ADC_Event channel:%d size12:%d size32:%d\n",channel,size12bit,size32bit);
+              if ((pdata - pdatastart) + size32bit > lwords)
+                GO4_SKIP_EVENT_MESSAGE(
+                    "ASIC Event header error: 12 bit size %d does not fit into mbs subevent buffer of restlen %d words", size12bit, lwords - (pdata - pdatastart));
+
+              Int_t evdata[size32bit];
+              for (Int_t j = 0; j < size32bit; ++j)
               {
+                HitDetRAW_CHECK_PDATA;
+                HitDetMSG_CHECK_PDATA;
+                evdata[j] = *pdata++;
+              }
+              THitDetMsgEvent* theMsg = new THitDetMsgEvent(channel);
+              theMsg->SetEpoch(((evdata[0] & 0xFFFFF) << 4) | ((evdata[1] >> 28) & 0xF));
+              theMsg->SetTimeStamp((evdata[1] >> 16) & 0xFFF);
 
-                pdata = pdatastartMsg + msize;
-                UChar_t wishhead=(header >>24) & 0xFF;
-                //printf("MSG_WishboneEvent header=0x%x\n",wishhead);
+              // now decode 12 bit samples inside mbs data words:Ä
+              Int_t binlen = size12bit - 3;    // number of sample bins (should be 8,16, or 32)
+              if (binlen > 32)
+                GO4_SKIP_EVENT_MESSAGE("ASIC Event header error: bin length %d exceeds maximum 32", binlen);
 
-                THitDetMsgWishbone* theMsg = new THitDetMsgWishbone(wishhead);
-                Int_t address = 0, val = 0;
+              UShort_t val = 0;
+              Int_t dixoffset = 1;    // actual sample data begins after header and timestamp,
+              // j counts global bit number in stream, j_start is first in stream, j_end is last
+              // k is local bit number in evdata word (lsb=0)
+              UChar_t j_start = 16;    // begin of first 12 bit sample is after timestamp
+              for (Int_t bin = 0; bin < binlen; ++bin)
+              {
+                UChar_t j_end = j_start + 12;
+                Int_t dix_start = (Int_t) j_start / 32;    // data index containing first bit of sample
+                Int_t dix_end = (Int_t) j_end / 32;    // data index containing last bit of sample
+                UChar_t k_start = 32 - (j_start - 32 * dix_start);    //  start bit number in evdata word
+                UChar_t k_end = 32 - (j_end - 32 * dix_end);    // end bit number in evdata word
+                if (dix_start == dix_end)
+                {
+                  // easy case, sample is inside one evdata word:
+                  val = (evdata[dixoffset + dix_start] >> k_end) & 0xFFF;
+                }
+                else if (dix_end == dix_start + 1)
+                {
+                  // spanning over 2 evdata words:
+                  UChar_t mask_start = 0, mask_end = 0;
+                  for (UChar_t b = 0; b < k_start; ++b)
+                    mask_start |= (1 << b);
+
+                  for (UChar_t b = 0; b < (32 - k_end); ++b)
+                    mask_end |= (1 << b);
+                  val = ((evdata[dixoffset + dix_start] & mask_start) << (12 - k_start));
+                  val |= (evdata[dixoffset + dix_end] >> k_end) & mask_end;
+
+                }
+                else
+                {
+                  // never come here
+                  GO4_STOP_ANALYSIS_MESSAGE(
+                      "NEVER COME HERE: mismatch of evsample indices - dix_end:%d and dix_start:%d", dix_end, dix_start)
+
+                }
+                theMsg->SetTraceData(bin, val);
+              }    // for bin
+
+              // here do simple histogramming of traces:
+
+              TH1* tracesnapshot = 0;
+              TH2* trace2d = 0;
+              if (snapshotcount < HitDet_MAXSNAPSHOTS)
+              {
+                tracesnapshot = boardDisplay->hTraceSnapshots[channel][snapshotcount];
+                trace2d = boardDisplay->hTraceSnapshot2d[channel];
+              }
+              for (Int_t bin = 0; bin < binlen; ++bin)
+              {
+                Short_t val = theMsg->GetTraceData(bin);
+                // convert raw data to signed 8bit (2 complement) representation:
+                if (val > 0x7FF)
+                  val = val - 0x1000;
+
+                if (tracesnapshot)
+                  tracesnapshot->SetBinContent(bin + 1, val);
+                if (trace2d)
+                  trace2d->Fill(bin, val, snapshotcount);
+
+                if (channel >= HitDet_CHANNELS)
+                {
+                  printf("MSG_ADC_Event channel:%d out of range %d\n", channel, HitDet_CHANNELS);
+                }
+                else
+                {
+                  boardDisplay->hTrace[channel]->SetBinContent(1 + bin, val);
+                  boardDisplay->hTraceSum[channel]->AddBinContent(1 + bin, val);
+                }
+              }
+
+              theBoard->AddMessage(theMsg, channel);
+
+            }
+
+            break;
+
+          case THitDetMsg::MSG_Wishbone:
+            // wishbone response (error message)
+            {
+
+              pdata = pdatastartMsg + msize;
+              UChar_t wishhead = (header >> 24) & 0xFF;
+              //printf("MSG_WishboneEvent header=0x%x\n",wishhead);
+
+              THitDetMsgWishbone* theMsg = new THitDetMsgWishbone(wishhead);
+              Int_t address = 0, val = 0;
 //                ;
-                pdata++;    //account header already processed above
+              pdata++;    //account header already processed above
 
-
-
-                if (pdata - pdatastartMsg < msize)
-                {
-                  HitDetMAYSWAPDATA(pdata++, &address);
-                  theMsg->SetAddress(address);
-                }
+              if (pdata - pdatastartMsg < msize)
+              {
+                address = *pdata++;
+                theMsg->SetAddress(address);
+              }
 ////                // here we could take rest of message as data contents:
-                while (pdata - pdatastartMsg < msize)
-                {
-                  HitDetRAW_CHECK_PDATA;
-                  HitDetMAYSWAPDATA(pdata++, &val);
-                  theMsg->AddData(val);
-                }
-                pdata--; // rewind pointer to end of payload
-                boardDisplay->hWishboneAck->Fill(theMsg->GetAckCode());
-                boardDisplay->hWishboneSource->Fill(theMsg->GetSource());
-                boardDisplay->lWishboneText->SetText(0.1, 0.9, theMsg->DumpMsg());
-                theBoard->AddMessage(theMsg, 0);    // wishbone messages accounted for channel 0
+              while (pdata - pdatastartMsg < msize)
+              {
+                HitDetRAW_CHECK_PDATA;
+                val = *pdata++;
+                theMsg->AddData(val);
+              }
+              pdata--;    // rewind pointer to end of payload
+              boardDisplay->hWishboneAck->Fill(theMsg->GetAckCode());
+              boardDisplay->hWishboneSource->Fill(theMsg->GetSource());
+              boardDisplay->lWishboneText->SetText(0.1, 0.9, theMsg->DumpMsg());
+              theBoard->AddMessage(theMsg, 0);    // wishbone messages accounted for channel 0
 
 //                if(theMsg->GetDataSize()>0)
 //                {
@@ -469,30 +446,27 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
 //                  std::cout<<std::endl;
 //                }
 
-              }
-              break;
+            }
+            break;
 
-            default:
-              printf("############ found unknown message type 0x%x, skip event %ld\n", mtype, skipped_events++);
-              GO4_SKIP_EVENT
-              break;
-          }; // switch
+          default:
+            printf("############ found unknown message type 0x%x, skip event %ld\n", mtype, skipped_events++);
+            GO4_SKIP_EVENT
+            break;
+        };    // switch
 
-          if ((pdata - pdatastartMsg) < msize)
-          {
-            // never come here if messages are treated correctly!
-            printf("############  pdata offset 0x%x has not yet reached message length 0x%x, correcting ,\n",
-                (unsigned int) (pdata - pdatastartMsg), msize);
-            pdata = pdatastartMsg + msize;
-          }
+        if ((pdata - pdatastartMsg) < msize)
+        {
+          // never come here if messages are treated correctly!
+          printf("############  pdata offset 0x%x has not yet reached message length 0x%x, correcting ,\n",
+              (unsigned int) (pdata - pdatastartMsg), msize);
+          pdata = pdatastartMsg + msize;
+        }
 
-          //printf("EEEEEEEE  end of message payload: pdata offset 0x%x msglength 0x%x\n",
-             //             (unsigned int) (pdata - pdatastartMsg), msize);
-              snapshotcount++;
-        }   // while ((pdata - pdatastart) < HitDetRawEvent->fDataCount)
-
-
-
+        //printf("EEEEEEEE  end of message payload: pdata offset 0x%x msglength 0x%x\n",
+        //             (unsigned int) (pdata - pdatastartMsg), msize);
+        snapshotcount++;
+      }    // while ((pdata - pdatastart) < HitDetRawEvent->fDataCount)
 
     }    // while pdata - psubevt->GetDataField() <lwords
 
@@ -579,7 +553,7 @@ void THitDetRawProc::DoFFT(THitDetBoardDisplay* boardDisplay)
     {
       in[ix] = boardDisplay->hTraceLongPrev->GetBinContent(ix + 1);
     }
-    DoFilter(in,N);
+    DoFilter(in, N);
     TVirtualFFT *thefft = TVirtualFFT::FFT(1, &N, opt.Data());
     thefft->SetPoints(in);
     thefft->Transform();
@@ -595,16 +569,16 @@ void THitDetRawProc::DoFFT(THitDetBoardDisplay* boardDisplay)
 
     // now partial fft from window condition:
     boardDisplay->hTracePartFFT->Reset("");
-    Int_t Npart=0;
+    Int_t Npart = 0;
     for (Int_t ix = 0; ix < N; ++ix)
+    {
+      if (boardDisplay->cWindowFFT->Test(ix))
       {
-          if(boardDisplay->cWindowFFT->Test(ix))
-          {
-            in[ix] = boardDisplay->hTraceLongPrev->GetBinContent(ix + 1);
-            Npart++;
-          }
+        in[ix] = boardDisplay->hTraceLongPrev->GetBinContent(ix + 1);
+        Npart++;
       }
-    DoFilter(in,Npart);
+    }
+    DoFilter(in, Npart);
     thefft = TVirtualFFT::FFT(1, &Npart, opt.Data());
     thefft->SetPoints(in);
     thefft->Transform();
@@ -614,22 +588,24 @@ void THitDetRawProc::DoFFT(THitDetBoardDisplay* boardDisplay)
       boardDisplay->hTracePartFFT->SetBinContent(i + 1, TMath::Sqrt(re * re + im * im));
     }
 
-    delete [] in;
-  } // if dofft
+    delete[] in;
+  }    // if dofft
 }
 
-
-void  THitDetRawProc::DoFilter(Double_t* array, Int_t N)
+void THitDetRawProc::DoFilter(Double_t* array, Int_t N)
 {
-  if(!fPar->fDoFilter) return;
-
-  // JAM to do: choose between different types of filters by fPar setup here
+  // please compare https://en.wikipedia.org/wiki/Window_function
+  if(fPar->fFilterType==THitDetRawParam::FIL_NONE) return;
+  Double_t factor=0;
   for (Int_t i = 0; i < N; i++)
-      {
-        Double_t factor=fPar->fHammingAlpha - fPar->fHammingBeta * TMath::Cos( 2.0 * TMath::Pi() * i/(N-1));
-        array[i] *= factor;
-            //fPar->fHammingAlpha - fPar->fHammingBeta * (TMath::Cos(2* TMath::Pi * i/(N-1)));
-      }
-}
+  {
+    // generalized cosine filter:
+    for (Int_t j = 0; j < 5; ++j)
+    {
+      factor += fPar->fFilterCoeff[j] * TMath::Cos(j * 2.0 * TMath::Pi() * i / (N - 1));
+    }    // for j
+    array[i] *= factor;
+  }    // for i
 
+}
 

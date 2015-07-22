@@ -243,7 +243,8 @@ public:
     data.Form(" - data size 0x%x, data:\n", (int) GetDataSize());
     for (size_t i = 0; i < GetDataSize(); ++i)
     {
-      data.Append((const char*) GetData(i), 1);
+      char key=GetData(i);
+      data.Append((const char*) &key, 1);
     }
     return (head + add + data);
   }

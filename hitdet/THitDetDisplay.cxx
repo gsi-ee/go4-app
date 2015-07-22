@@ -153,7 +153,7 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
     hWishboneSource=MakeTH1('I', obname.Data(), obtitle.Data(), 16, 0, 16);
 
     obname.Form("Board%d/FFTWindow_%d", brd, brd);
-    cWindowFFT=MakeWinCond(obname.Data(),0, totlength,hTraceLongPrev->GetName());
+    cWindowFFT=MakeWinCond(obname.Data(),1024, 2048,hTraceLongPrev->GetName());
 
 
 
