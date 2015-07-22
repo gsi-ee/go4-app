@@ -600,9 +600,10 @@ void THitDetRawProc::DoFilter(Double_t* array, Int_t N)
   for (Int_t i = 0; i < N; i++)
   {
     // generalized cosine filter:
-    for (Int_t j = 0; j < 5; ++j)
+    factor = fPar->fFilterCoeff[0]; // JAM put this out of sum loop to avoid nasty numerical problems with TMath::Cos ???
+    for (Int_t j = 1; j < HitDet_FILTERCOEFFS; ++j)
     {
-      factor += fPar->fFilterCoeff[j] * TMath::Cos(j * 2.0 * TMath::Pi() * i / (N - 1));
+      factor += fPar->fFilterCoeff[j] * TMath::Cos((double) j * 2.0 * TMath::Pi() * (double) i / (double)(N - 1));
     }    // for j
     array[i] *= factor;
   }    // for i
