@@ -134,15 +134,15 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
 
     obname.Form("Board%d/ADC_DeltaValues_%d", brd, brd);
     obtitle.Form("HitDetection Board %d Accumulated ADC mean deviation", brd);
-    hADCDeltaMeanValues=MakeTH1('I', obname.Data(), obtitle.Data(), 4095, -2048, 2047, "ADC value", "#delta Mean");
+    hADCDeltaMeanValues=MakeTH1('D', obname.Data(), obtitle.Data(), 4095, -2048, 2047, "ADC value", "#delta Mean");
 
     obname.Form("Board%d/ADC_DiffNL_%d", brd, brd);
     obtitle.Form("HitDetection Board %d Differential nonlinearity", brd);
-    hADCNonLinDiff=MakeTH1('I', obname.Data(), obtitle.Data(), 4095, -2048, 2047, "ADC value", "DNL");
+    hADCNonLinDiff=MakeTH1('D', obname.Data(), obtitle.Data(), 4095, -2048, 2047, "ADC value", "DNL");
 
     obname.Form("Board%d/ADC_IntNL_%d", brd, brd);
     obtitle.Form("HitDetection Board %d Integral nonlinearity", brd);
-    hADCNonLinInt=MakeTH1('I', obname.Data(), obtitle.Data(), 4095, -2048, 2047, "ADC value", "INL");
+    hADCNonLinInt=MakeTH1('D', obname.Data(), obtitle.Data(), 4095, -2048, 2047, "ADC value", "INL");
 
 
     obname.Form("Board%d/MsgTypes_%d", brd, brd);
