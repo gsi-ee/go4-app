@@ -545,19 +545,16 @@ for (unsigned i = 0; i < THitDetRawEvent::fgConfigHitDetBoards.size(); ++i)
   boardDisplay->hADCNonLinDiff->Reset("");
 
   Double_t mean=boardDisplay->hADCValues->GetEntries()/boardDisplay->hADCValues->GetNbinsX();
+  Double_t inl=0;
   for(Int_t bix=0; bix<boardDisplay->hADCValues->GetNbinsX(); ++bix)
   {
       Double_t val=boardDisplay->hADCValues->GetBinContent(bix+1);
       Double_t delta=(val-mean);
       boardDisplay->hADCDeltaMeanValues->SetBinContent(bix+1,delta);
-
-
       Double_t dnl=TMath::Abs(delta/mean);
       boardDisplay->hADCNonLinDiff->SetBinContent(bix+1,dnl);
-
-      // JAM TODO: differential/integral nonlinearity
-
-
+      inl+=delta/mean;
+      boardDisplay->hADCNonLinInt->SetBinContent(bix+1,inl);
   }
 
 
