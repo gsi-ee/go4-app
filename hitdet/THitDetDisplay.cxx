@@ -127,6 +127,24 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
     obtitle.Form("HitDetection Board %d Stitched Trace FFT from window(direct ADC only)", brd);
     hTracePartFFT=MakeTH1('I', obname.Data(), obtitle.Data(), totlength, 0, totlength, "1/t ", "counts");
 
+
+    obname.Form("Board%d/ADC_Values_%d", brd, brd);
+    obtitle.Form("HitDetection Board %d Accumulated ADC values", brd);
+    hADCValues=MakeTH1('I', obname.Data(), obtitle.Data(), 4095, -2048, 2047, "ADC value", "counts");
+
+    obname.Form("Board%d/ADC_DeltaValues_%d", brd, brd);
+    obtitle.Form("HitDetection Board %d Accumulated ADC mean deviation", brd);
+    hADCDeltaMeanValues=MakeTH1('I', obname.Data(), obtitle.Data(), 4095, -2048, 2047, "ADC value", "#delta Mean");
+
+    obname.Form("Board%d/ADC_DiffNL_%d", brd, brd);
+    obtitle.Form("HitDetection Board %d Differential nonlinearity", brd);
+    hADCNonLinDiff=MakeTH1('I', obname.Data(), obtitle.Data(), 4095, -2048, 2047, "ADC value", "DNL");
+
+    obname.Form("Board%d/ADC_IntNL_%d", brd, brd);
+    obtitle.Form("HitDetection Board %d Integral nonlinearity", brd);
+    hADCNonLinInt=MakeTH1('I', obname.Data(), obtitle.Data(), 4095, -2048, 2047, "ADC value", "INL");
+
+
     obname.Form("Board%d/MsgTypes_%d", brd, brd);
     obtitle.Form("HitDetection Board %d Message types", brd);
     hMsgTypes=MakeTH1('I', obname.Data(), obtitle.Data(), 4, 0, 4);

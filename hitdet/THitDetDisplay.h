@@ -76,6 +76,19 @@ public:
    TH1 *hTracePartFFT;
 
 
+   /** Histogram of all ADC Values retrieved*/
+   TH1 *hADCValues;
+
+   /** Deviation of ADC Values from mean*/
+   TH1 *hADCDeltaMeanValues;
+
+   /** Differential ADC nonlinearity*/
+   TH1 *hADCNonLinDiff;
+
+   /** Integral ADC nonlinearity*/
+   TH1 *hADCNonLinInt;
+
+
    /** statistics of message types*/
    TH1* hMsgTypes;
 

@@ -299,6 +299,10 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
                 boardDisplay->hTrace[0]->SetBinContent(1 + k, val);
                 boardDisplay->hTraceSum[0]->AddBinContent(1 + k, val);
 
+
+                // value histograms:
+                boardDisplay->hADCValues->Fill(val);
+
               }
 
               theBoard->AddMessage(theMsg, 0);    // direct ADC messages assigned to channel 0
@@ -401,6 +405,10 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
                   boardDisplay->hTrace[channel]->SetBinContent(1 + bin, val);
                   boardDisplay->hTraceSum[channel]->AddBinContent(1 + bin, val);
                 }
+
+                // value histograms:
+                boardDisplay->hADCValues->Fill(val);
+
               }
 
               theBoard->AddMessage(theMsg, channel);
@@ -484,27 +492,58 @@ Bool_t THitDetRawProc::UpdateDisplays()
 
 // maybe later some advanced analysis from output event data here
 
-//for (unsigned i = 0; i < THitDetRawEvent::fgConfigHitDetBoards.size(); ++i)
-//{
-//  UInt_t brdid = THitDetRawEvent::fgConfigHitDetBoards[i];
-//  THitDetBoard* theBoard = HitDetRawEvent->GetBoard(brdid);
-//  if (theBoard == 0)
-//  {
-//    GO4_SKIP_EVENT_MESSAGE("FillDisplays Configuration error: Board id %d does not exist!", brdid);
-//    //return kFALSE;
-//  }
-//  THitDetBoardDisplay* boardDisplay = GetBoardDisplay(brdid);
-//  if (boardDisplay == 0)
-//  {
-//    GO4_SKIP_EVENT_MESSAGE(
-//        "FillDisplays Configuration error: Board id %d does not exist as histogram display set!", brdid);
-//    //return kFALSE;
-//  }
+for (unsigned i = 0; i < THitDetRawEvent::fgConfigHitDetBoards.size(); ++i)
+{
+  UInt_t brdid = THitDetRawEvent::fgConfigHitDetBoards[i];
+  THitDetBoard* theBoard = HitDetRawEvent->GetBoard(brdid);
+  if (theBoard == 0)
+  {
+    GO4_SKIP_EVENT_MESSAGE("FillDisplays Configuration error: Board id %d does not exist!", brdid);
+    //return kFALSE;
+  }
+  THitDetBoardDisplay* boardDisplay = GetBoardDisplay(brdid);
+  if (boardDisplay == 0)
+  {
+    GO4_SKIP_EVENT_MESSAGE(
+        "FillDisplays Configuration error: Board id %d does not exist as histogram display set!", brdid);
+    //return kFALSE;
+  }
+
+  // here calculate integral and differential ADC nonlinearities:
+  boardDisplay->hADCNonLinInt->Reset("");
+  boardDisplay->hADCNonLinDiff->Reset("");
+
+  Double_t mean=boardDisplay->hADCValues->GetEntries()/boardDisplay->hADCValues->GetNbinsX();
+  for(Int_t bix=0; bix<boardDisplay->hADCValues->GetNbinsX(); ++bix)
+  {
+      Double_t val=boardDisplay->hADCValues->GetBinContent(bix+1);
+      Double_t valnext=0;
+      if(bix+2<boardDisplay->hADCValues->GetNbinsX()) valnext=boardDisplay->hADCValues->GetBinContent(bix+2);
+      Double_t delta=(val-mean);
+      boardDisplay->hADCDeltaMeanValues->SetBinContent(bix+1,delta);
+      // JAM TODO: differential/integral nonlinearity
+
+// definitions from http://www.maximintegrated.com/en/app-notes/index.mvp/id/283
+//      DNL = |[(VD+1- VD)/VLSB-IDEAL - 1] | , where 0 < D < 2N - 2.
+//     VD is the physical value corresponding to the digital output code D, N is the ADC resolution, and VLSB-IDEAL is the ideal spacing for two adjacent digital codes. By adding noise and spurious components beyond the effects of quantization, higher values of DNL usually limit the ADC's performance in terms of signal-to-noise ratio (SNR) and spurious-free dynamic range (SFDR).
 //
+
+      Double_t VLSB= 1;
+      Double_t dnl= TMath::Abs((valnext - val)/ VLSB -1);
+      boardDisplay->hADCNonLinDiff->SetBinContent(bix+1,dnl);
+//      INL = | [(VD - VZERO)/VLSB-IDEAL] - D | , where 0 < D < 2N-1.
 //
+//     VD is the analog value represented by the digital output code D, N is the ADC's resolution, VZERO is the minimum analog input corresponding to an all-zero output code, and VLSB-IDEAL is the ideal spacing for two adjacent output codes.
 //
-//
-//}    // i board
+
+      Double_t inl= TMath::Abs((val - (-2048)) / VLSB - bix);
+      boardDisplay->hADCNonLinInt->SetBinContent(bix+1,inl);
+
+  }
+
+
+
+}    // i board
 
   return kTRUE;
 }
