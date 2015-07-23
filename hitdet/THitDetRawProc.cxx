@@ -21,9 +21,23 @@
 #include "TGo4UserException.h"
 
 static unsigned long skipped_events = 0;
+static unsigned long skipped_msgs = 0;
 
 /* helper macros for BuildEvent to check if payload pointer is still inside delivered region:*/
 /* this one to be called at top data processing loop*/
+
+
+
+
+#define  HitDetEVENT_CHECK_PDATA                                    \
+if((pdata - psubevt->GetDataField()) > lwords ) \
+{ \
+  printf("############ unexpected end of event for subevent size :0x%x, skip event %ld\n", lwords, skipped_events++);\
+  GO4_SKIP_EVENT \
+  continue; \
+}
+
+
 #define  HitDetRAW_CHECK_PDATA                                    \
 if((pdata - pdatastart) > HitDetRawEvent->fDataCount ) \
 { \
@@ -39,6 +53,17 @@ if((pdata - pdatastartMsg) > msize ) \
   GO4_SKIP_EVENT \
   continue; \
 }
+
+// this one is to discard last message that may be cut off by vulom daq:
+#define  HitDetEVENTLASTMSG_CHECK_PDATA                                    \
+if((pdata - psubevt->GetDataField()) >= lwords ) \
+ { \
+  skipmessage=kTRUE; \
+  break; \
+}
+
+/*printf("############ pdata offset 0x%x exceeds  subevent size :0x%x, skip message %ld\n", (unsigned int) (pdata - psubevt->GetDataField()), lwords, skipped_msgs++);\*/
+
 
 //***********************************************************
 THitDetRawProc::THitDetRawProc() :
@@ -125,6 +150,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
     GO4_SKIP_EVENT_MESSAGE( "**** THitDetRawProc: Skip event of trigger type 0x%x", triggertype);
     //return kFALSE; // this would let the second step execute!
   }
+
   UInt_t snapshotcount = 0;    // counter for trace snapshot display
   static UInt_t tracelongcount = 0;    // counter for direct adc trace long part
   static Int_t numsnapshots = fPar->fNumSnapshots;
@@ -158,7 +184,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
     {
       GO4_SKIP_EVENT_MESSAGE("**** THitDetRawProc: Found BAD mbs event (marked 0x%x), skip it.", (*pdata));
     }
-
+    Bool_t skipmessage=kFALSE;
     // loop over single subevent data:
     while (pdata - psubevt->GetDataField() < lwords)
     {
@@ -175,9 +201,12 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
         // avoid that we run optional second step on invalid raw event!
       }
 
+      Int_t* pdatastart = pdata;    // remember begin of asic payload data section
+
+
       pdata++;    // skip first  word?
 
-      Int_t* pdatastart = pdata;    // remember begin of asic payload data section
+      // pdatastart was here JAM
 
       // now fetch boardwise subcomponents for output data and histograming:
       Int_t slix = 0;    // JAM here we later could evaluate a board identifier mapped to a slot/sfp number contained in subevent
@@ -212,7 +241,6 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
         }
         Int_t* pdatastartMsg = pdata;    // remember start of message for checking
         UChar_t msize = (vulombytecount & 0x3F) / sizeof(Int_t);    // message size in 32bit words
-
         // evaluate message type from header:
         Int_t header = *pdata;
         // not we do not increment pdata here, do this inside msg types
@@ -230,17 +258,18 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
               //printf("MSG_ADC_Direct msgcoutn=%d \n",msgcount);
               THitDetMsgDirect* theMsg = new THitDetMsgDirect(msgcount);
               tracelongcount = msgcount;    // reset trace histogram
-
               Int_t adcdata[4];
               for (Int_t j = 0; j < 4; ++j)
               {
+                HitDetEVENTLASTMSG_CHECK_PDATA
                 HitDetRAW_CHECK_PDATA;
                 HitDetMSG_CHECK_PDATA;
                 adcdata[j] = *pdata++;
 
                 //printf(" - data[%d]=0x%x \n",j,adcdata[j]);
               }
-
+              if(!skipmessage)
+              {
               // decode sample bin data (0-7)
               theMsg->SetBinData(0, ((adcdata[0] >> 8) & 0xFFF));
               theMsg->SetBinData(1, ((adcdata[0] & 0xFF) << 4) | ((adcdata[1] >> 28) & 0xF));
@@ -291,7 +320,8 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
                 if (tracesnapshot)
                   tracesnapshot->SetBinContent(k + 1, val);
                 if (trace2d)
-                  trace2d->Fill(k, snapshotcount, val);
+                  trace2d->Fill(k, 0.5+snapshotcount, val);
+
                 if (tracelong)
                   tracelong->SetBinContent(1 + k + (8 * tracelongcount), val);
                 if (tracelongsum)
@@ -306,6 +336,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
               }
 
               theBoard->AddMessage(theMsg, 0);    // direct ADC messages assigned to channel 0
+              } // if !skipmessage
             }
             break;
 
@@ -463,7 +494,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
             break;
         };    // switch
 
-        if ((pdata - pdatastartMsg) < msize)
+        if (!skipmessage && (pdata - pdatastartMsg) < msize)
         {
           // never come here if messages are treated correctly!
           printf("############  pdata offset 0x%x has not yet reached message length 0x%x, correcting ,\n",
@@ -517,27 +548,15 @@ for (unsigned i = 0; i < THitDetRawEvent::fgConfigHitDetBoards.size(); ++i)
   for(Int_t bix=0; bix<boardDisplay->hADCValues->GetNbinsX(); ++bix)
   {
       Double_t val=boardDisplay->hADCValues->GetBinContent(bix+1);
-      Double_t valnext=0;
-      if(bix+2<boardDisplay->hADCValues->GetNbinsX()) valnext=boardDisplay->hADCValues->GetBinContent(bix+2);
       Double_t delta=(val-mean);
       boardDisplay->hADCDeltaMeanValues->SetBinContent(bix+1,delta);
+
+
+      Double_t dnl=TMath::Abs(delta/mean);
+      boardDisplay->hADCNonLinDiff->SetBinContent(bix+1,dnl);
+
       // JAM TODO: differential/integral nonlinearity
 
-// definitions from http://www.maximintegrated.com/en/app-notes/index.mvp/id/283
-//      DNL = |[(VD+1- VD)/VLSB-IDEAL - 1] | , where 0 < D < 2N - 2.
-//     VD is the physical value corresponding to the digital output code D, N is the ADC resolution, and VLSB-IDEAL is the ideal spacing for two adjacent digital codes. By adding noise and spurious components beyond the effects of quantization, higher values of DNL usually limit the ADC's performance in terms of signal-to-noise ratio (SNR) and spurious-free dynamic range (SFDR).
-//
-
-      Double_t VLSB= 1;
-      Double_t dnl= TMath::Abs((valnext - val)/ VLSB -1);
-      boardDisplay->hADCNonLinDiff->SetBinContent(bix+1,dnl);
-//      INL = | [(VD - VZERO)/VLSB-IDEAL] - D | , where 0 < D < 2N-1.
-//
-//     VD is the analog value represented by the digital output code D, N is the ADC's resolution, VZERO is the minimum analog input corresponding to an all-zero output code, and VLSB-IDEAL is the ideal spacing for two adjacent output codes.
-//
-
-      Double_t inl= TMath::Abs((val - (-2048)) / VLSB - bix);
-      boardDisplay->hADCNonLinInt->SetBinContent(bix+1,inl);
 
   }
 
