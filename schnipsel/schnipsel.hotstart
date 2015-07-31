@@ -1,0 +1,173 @@
+// Automatically generated startup script
+// Do not change it!
+
+go4->SetMainWindowState(4,"000000ff00000000fd0000000200000000000001e300000339fc0200000001fb0000001600420072006f00770073006500720044006f0063006b0100000061000003390000007700ffffff00000003000007c600000062fc0100000003fb0000001a004d006200730056006900650077006500720044006f0063006b0000000000000007c60000049d00fffffffb00000016004c006f00670049006e0066006f0044006f0063006b0000000000000005280000003400fffffffb0000001e0044004100420043004d006f006e00690074006f00720044006f0063006b0000000000000005280000000000000000000005ea0000033900000004000000040000000800000008fc0000000300000002000000050000001600460069006c00650054006f006f006c0042006100720100000000000000e100000000000000000000001a0044006900760069006400650050006100640044006f0063006b000000018dffffffff0000000000000000000000180047006f0034005300740079006c00650044006f0063006b00000001a6ffffffff00000000000000000000001e0041006e0061006c00790073006900730054006f006f006c00420061007201000000e10000014a0000000000000000000000160047006f00340054006f006f006c0073004200610072010000022b000002fd000000000000000000000002000000040000001e0044007200610077004f007000740069006f006e00730044006f0063006b00000000000000037400000000000000000000002400420072006f0077007300650072004f007000740069006f006e00730044006f0063006b010000000000000156000000000000000000000020005300630061006c0065004f007000740069006f006e00730044006f0063006b0100000156000001b70000000000000000000000240048006900730044007200610077004f007000740069006f006e00730044006f0063006b010000030d0000021b000000000000000000000003000000020000001c00540072006500650056006900650077006500720044006f0063006b0000000000ffffffff00000000000000000000001e0043006f006d006d0061006e0064004c0069006e00650044006f0063006b0100000000ffffffff0000000000000000");
+go4->SetMainWindowGeometry(4,"01d9d0cb00010000000007810000000000000f5b000003f8000007850000001700000f57000003f4000000010000");
+go4->LoadLibrary("/data.local1/adamczew/root/root/lib/libFFTW.so");
+
+go4->LaunchAnalysis("MyAnalysis", "/misc/adamczew/go4work/go4-app/schnipsel", "/misc/adamczew/go4work/go4-app/schnipsel/libGo4UserAnalysis.so", "localhost:8091", Go4_sh, Go4_qt, Go4_lib);
+go4->WaitAnalysis(300);
+
+// configuration of analysis
+go4->AnalysisAutoSave("Go4AutoSave.root", 500, 5, kTRUE, kFALSE);
+go4->AnalysisConfigName("Go4AnalysisPrefs.root");
+
+// step Analysis
+go4->ConfigStep("Analysis", kTRUE, kTRUE, kFALSE);
+go4->StepMbsFileSource("Analysis", "/data.local1/adamczew/lmd/hitdet/peter/hitdetschnipsel.lmd", 1, "");
+go4->StepFileStore("Analysis", "NoOutputDefined", kTRUE, 32000, 99, 5, 10000);
+
+go4->SubmitAnalysisConfig(20);
+
+go4->SetAnalysisConfigMode(0);
+go4->SetAnalysisTerminalMode(1);
+
+
+go4->RefreshNamesList();
+
+TGo4Picture *pic1 = new TGo4Picture("pic1", "temporary object to setup viewpanel");
+pic1->SetCrosshair(false);
+pic1->SetRangeX(0.5, 3999.5);
+pic1->SetRangeY(-2428.76, 14213.6);
+pic1->SetLineAtt(1, 1, 1, -1);
+pic1->SetFillAtt(10, 1001, -1);
+pic1->SetHisStats(true);
+pic1->SetHisTitle(true);
+pic1->SetTitleAttr(0.15, 0.9343, 0.85, 0.995);
+pic1->SetTitleTime(true);
+pic1->SetTitleDate(true);
+pic1->SetTitleItem(true);
+pic1->SetAutoScale(true);
+pic1->SetSuperimpose(true);
+pic1->SetLegendDraw(true);
+pic1->SetPadAtt(0, 2, 0, 0, 30, 30, 0, 0);
+pic1->SetDrawOption("hist", -1);
+pic1->SetXAxisAttTime(0, "%H:%M:%S", -1);
+pic1->AddObjName("localhost:8091/Histograms/Traces/FFT/TRACE Sample");
+pic1->SetLineAtt(1, 1, 1, 0);
+pic1->SetFillAtt(0, 1001, 0);
+pic1->SetMarkerAtt(1, 1, 1, 0);
+pic1->SetAxisAtt(0, 1, 1, 42, 0.005, 0.035, 510, 0.03, 1, 42, 1, 0.035, kFALSE, "+", 0, 0);
+pic1->SetAxisAtt(1, 1, 1, 42, 0.005, 0.035, 510, 0.03, 1, 42, 1, 0.035, kFALSE, "+", 0, 0);
+pic1->SetAxisAtt(2, 1, 1, 42, 0.005, 0.035, 510, 0.03, 1, 42, 1, 0.035, kFALSE, "+", 0, 0);
+pic1->AddObjName("localhost:8091/Histograms/Traces/FFT/TRACE Reference");
+pic1->SetLineAtt(2, 1, 1, 1);
+pic1->SetFillAtt(0, 1001, 1);
+pic1->SetMarkerAtt(1, 1, 1, 1);
+pic1->SetAxisAtt(0, 1, 1, 42, 0.005, 0.035, 510, 0.03, 1, 42, 1, 0.035, kFALSE, "+", 0, 1);
+pic1->SetAxisAtt(1, 1, 1, 42, 0.005, 0.035, 510, 0.03, 1, 42, 1, 0.035, kFALSE, "+", 0, 1);
+pic1->SetAxisAtt(2, 1, 1, 42, 0.005, 0.035, 510, 0.03, 1, 42, 1, 0.035, kFALSE, "+", 0, 1);
+pic1->AddObjName("localhost:8091/Histograms/Traces/FFT/TRACE Difference");
+pic1->SetLineAtt(3, 1, 1, 2);
+pic1->SetFillAtt(0, 1001, 2);
+pic1->SetMarkerAtt(1, 1, 1, 2);
+pic1->SetAxisAtt(0, 1, 1, 42, 0.005, 0.035, 510, 0.03, 1, 42, 1, 0.035, kFALSE, "+", 0, 2);
+pic1->SetAxisAtt(1, 1, 1, 42, 0.005, 0.035, 510, 0.03, 1, 42, 1, 0.035, kFALSE, "+", 0, 2);
+pic1->SetAxisAtt(2, 1, 1, 42, 0.005, 0.035, 510, 0.03, 1, 42, 1, 0.035, kFALSE, "+", 0, 2);
+go4->StartViewPanel(501, 407, 501, 405, Go4_normal, pic1);
+delete pic1;
+
+TGo4Picture *pic2 = new TGo4Picture("pic2", "temporary object to setup viewpanel");
+pic2->SetCrosshair(false);
+pic2->SetRangeX(0.5, 3999.5);
+pic2->SetRangeY(0, 8.63731e+06);
+pic2->SetLineAtt(1, 1, 1, -1);
+pic2->SetFillAtt(10, 1001, -1);
+pic2->SetHisStats(true);
+pic2->SetStatsAttr(0.78, 0.775, 0.98, 0.935, 11111111, "6.4g", 0, "5.4g");
+pic2->SetHisTitle(true);
+pic2->SetTitleAttr(0.15, 0.9343, 0.85, 0.995);
+pic2->SetTitleTime(true);
+pic2->SetTitleDate(true);
+pic2->SetTitleItem(true);
+pic2->SetAutoScale(true);
+pic2->SetPadAtt(0, 2, 0, 0, 30, 30, 0, 0);
+pic2->SetXAxisAttTime(0, "%H:%M:%S%F1995-01-01 00:00:00s0", -1);
+pic2->AddObjName("localhost:8091/Histograms/Traces/FFT/FFT Sample", "HIST");
+pic2->SetLineAtt(602, 1, 1, 0);
+pic2->SetFillAtt(0, 1001, 0);
+pic2->SetMarkerAtt(1, 1, 1, 0);
+pic2->SetAxisAtt(0, 1, 1, 42, 0.005, 0.035, 510, 0.03, 1, 42, 1, 0.035, kFALSE, "+", 0, 0);
+pic2->SetAxisAtt(1, 1, 1, 42, 0.005, 0.035, 510, 0.03, 1, 42, 1, 0.035, kFALSE, "+", 0, 0);
+pic2->SetAxisAtt(2, 1, 1, 42, 0.005, 0.035, 510, 0.03, 1, 42, 1, 0.035, kFALSE, "+", 0, 0);
+go4->StartViewPanel(0, 407, 501, 405, Go4_normal, pic2);
+delete pic2;
+
+TGo4Picture *pic3 = new TGo4Picture("pic3", "temporary object to setup viewpanel");
+pic3->SetCrosshair(false);
+pic3->SetRangeX(0.5, 3999.5);
+pic3->SetRangeY(0, 8.55938e+06);
+pic3->SetLineAtt(1, 1, 1, -1);
+pic3->SetFillAtt(10, 1001, -1);
+pic3->SetHisStats(true);
+pic3->SetStatsAttr(0.78, 0.775, 0.98, 0.935, 11111111, "6.4g", 0, "5.4g");
+pic3->SetHisTitle(true);
+pic3->SetTitleAttr(0.15, 0.936634, 0.85, 0.995);
+pic3->SetTitleTime(true);
+pic3->SetTitleDate(true);
+pic3->SetTitleItem(true);
+pic3->SetAutoScale(true);
+pic3->SetPadAtt(0, 2, 0, 0, 30, 30, 0, 0);
+pic3->SetXAxisAttTime(0, "%H:%M:%S%F1995-01-01 00:00:00s0", -1);
+pic3->AddObjName("localhost:8091/Histograms/Traces/FFT/FFT Reference", "HIST");
+pic3->SetLineAtt(602, 1, 1, 0);
+pic3->SetFillAtt(0, 1001, 0);
+pic3->SetMarkerAtt(1, 1, 1, 0);
+pic3->SetAxisAtt(0, 1, 1, 42, 0.005, 0.035, 510, 0.03, 1, 42, 1, 0.035, kFALSE, "+", 0, 0);
+pic3->SetAxisAtt(1, 1, 1, 42, 0.005, 0.035, 510, 0.03, 1, 42, 1, 0.035, kFALSE, "+", 0, 0);
+pic3->SetAxisAtt(2, 1, 1, 42, 0.005, 0.035, 510, 0.03, 1, 42, 1, 0.035, kFALSE, "+", 0, 0);
+go4->StartViewPanel(1002, 0, 499, 407, Go4_normal, pic3);
+delete pic3;
+
+TGo4Picture *pic4 = new TGo4Picture("pic4", "temporary object to setup viewpanel");
+pic4->SetCrosshair(false);
+pic4->SetRangeX(0.5, 3999.5);
+pic4->SetRangeY(-14500.1, 78653.9);
+pic4->SetLineAtt(1, 1, 1, -1);
+pic4->SetFillAtt(10, 1001, -1);
+pic4->SetHisStats(true);
+pic4->SetStatsAttr(0.78, 0.775, 0.98, 0.935, 11111111, "6.4g", 0, "5.4g");
+pic4->SetHisTitle(true);
+pic4->SetTitleAttr(0.15, 0.936634, 0.85, 0.995);
+pic4->SetTitleTime(true);
+pic4->SetTitleDate(true);
+pic4->SetTitleItem(true);
+pic4->SetAutoScale(true);
+pic4->SetPadAtt(0, 2, 0, 0, 30, 30, 0, 0);
+pic4->SetXAxisAttTime(0, "%H:%M:%S%F1995-01-01 00:00:00s0", -1);
+pic4->AddObjName("localhost:8091/Histograms/Traces/FFT/FFT Difference", "HIST");
+pic4->SetLineAtt(602, 1, 1, 0);
+pic4->SetFillAtt(0, 1001, 0);
+pic4->SetMarkerAtt(1, 1, 1, 0);
+pic4->SetAxisAtt(0, 1, 1, 42, 0.005, 0.035, 510, 0.03, 1, 42, 1, 0.035, kFALSE, "+", 0, 0);
+pic4->SetAxisAtt(1, 1, 1, 42, 0.005, 0.035, 510, 0.03, 1, 42, 1, 0.035, kFALSE, "+", 0, 0);
+pic4->SetAxisAtt(2, 1, 1, 42, 0.005, 0.035, 510, 0.03, 1, 42, 1, 0.035, kFALSE, "+", 0, 0);
+go4->StartViewPanel(501, 0, 501, 407, Go4_normal, pic4);
+delete pic4;
+
+TGo4Picture *pic5 = new TGo4Picture("pic5", "temporary object to setup viewpanel");
+pic5->SetCrosshair(false);
+pic5->SetRangeX(0.5, 3999.5);
+pic5->SetRangeY(0, 2.17622e+06);
+pic5->SetLineAtt(1, 1, 1, -1);
+pic5->SetFillAtt(10, 1001, -1);
+pic5->SetHisStats(true);
+pic5->SetStatsAttr(0.78, 0.775, 0.98, 0.935, 11111111, "6.4g", 0, "5.4g");
+pic5->SetHisTitle(true);
+pic5->SetTitleAttr(0.15, 0.9343, 0.85, 0.995);
+pic5->SetTitleTime(true);
+pic5->SetTitleDate(true);
+pic5->SetTitleItem(true);
+pic5->SetAutoScale(true);
+pic5->SetPadAtt(0, 2, 0, 0, 30, 30, 0, 0);
+pic5->SetXAxisAttTime(0, "%H:%M:%S%F1995-01-01 00:00:00s0", -1);
+pic5->AddObjName("localhost:8091/Histograms/Traces/FFT/TRACE from FFT Difference", "HIST");
+pic5->SetLineAtt(602, 1, 1, 0);
+pic5->SetFillAtt(0, 1001, 0);
+pic5->SetMarkerAtt(1, 1, 1, 0);
+pic5->SetAxisAtt(0, 1, 1, 42, 0.005, 0.035, 510, 0.03, 1, 42, 1, 0.035, kFALSE, "+", 0, 0);
+pic5->SetAxisAtt(1, 1, 1, 42, 0.005, 0.035, 510, 0.03, 1, 42, 1, 0.035, kFALSE, "+", 0, 0);
+pic5->SetAxisAtt(2, 1, 1, 42, 0.005, 0.035, 510, 0.03, 1, 42, 1, 0.035, kFALSE, "+", 0, 0);
+go4->StartViewPanel(0, 0, 501, 407, Go4_normal, pic5);
+delete pic5;
+
