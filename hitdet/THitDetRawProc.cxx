@@ -561,9 +561,13 @@ Bool_t THitDetRawProc::UpdateDisplays()
       // begin of calibration, reset value histograms
       boardDisplay->hADCValues->Reset("");
       boardDisplay->hADCCorrection->Reset("");
+      TGo4Log::Info("THitDetBoardDisplay: Begin new ADC calibration for Board %d ", boardDisplay->GetDevId());
 
     }
-
+    if (CalibrateWasOn && !fPar->fDoCalibrate)
+       {
+          TGo4Log::Info("THitDetBoardDisplay: End ADC calibration for Board %d ", boardDisplay->GetDevId());
+       }
     Double_t mean = boardDisplay->hADCValues->GetEntries() / boardDisplay->hADCValues->GetNbinsX();
     Double_t inl = 0;
     Double_t corr = 0;
@@ -574,7 +578,7 @@ Bool_t THitDetRawProc::UpdateDisplays()
       boardDisplay->hADCDeltaMeanValues->SetBinContent(bix + 1, delta);
       Double_t dnl = 0;
       if (mean)
-        dnl = TMath::Abs(delta / mean);
+        dnl = delta / mean;//dnl = TMath::Abs(delta / mean);
       boardDisplay->hADCNonLinDiff->SetBinContent(bix + 1, dnl);
       if (mean)
         inl += delta / mean;
@@ -582,7 +586,7 @@ Bool_t THitDetRawProc::UpdateDisplays()
       // calibrate for ADC nonlinearity corrections:
       if (fPar->fDoCalibrate)
       {
-        corr=inl; // this is point to evaluate other kind of correction optionally
+        corr=-inl; // this is point to evaluate other kind of correction optionally
         boardDisplay->hADCCorrection->SetBinContent(bix + 1, corr);
       }
     }
