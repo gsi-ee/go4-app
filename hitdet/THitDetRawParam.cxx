@@ -34,6 +34,7 @@ void THitDetRawParam::InitBoardMapping()
   fNumSnapshots = 64;
   fTraceLength = 8; //HitDet_TRACEBINS;
   fDoFFT=kTRUE;
+  fDoCalibrate=kFALSE;
   fFFTOptions="R2C M";
   fFilterType=0;
   for (int i = 0; i < HitDet_FILTERCOEFFS; ++i)
@@ -71,6 +72,7 @@ Bool_t THitDetRawParam::UpdateFrom(TGo4Parameter *pp)
   fNumSnapshots = from->fNumSnapshots;
   fTraceLength = from->fTraceLength;
   fDoFFT=from->fDoFFT;
+  fDoCalibrate=from->fDoCalibrate;
   fFFTOptions=from->fFFTOptions;
   fFilterType=from->fFilterType;
 

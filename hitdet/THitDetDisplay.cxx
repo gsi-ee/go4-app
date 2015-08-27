@@ -105,18 +105,38 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
       hTraceSnapshot2d[ch]=MakeTH2('I', obname.Data(), obtitle.Data(), tracelength, 0, tracelength, numsnapshots, 0, numsnapshots -1,"time (bins)", "message sequence", "counts");
 
     }// for ch
+
     obname.Form("Board%d/TraceLong_%d", brd, brd);
     obtitle.Form("HitDetection Board %d Stitched Trace (direct ADC only)", brd);
     Int_t totlength= 8 * HitDet_MAXTRACELONG; // JAM todo: different variable for stitched length here later
     hTraceLong=MakeTH1('I', obname.Data(), obtitle.Data(), totlength, 0, totlength, "time (bins)", "counts");
 
+
+    obname.Form("Board%d/TraceLongCorrected_%d", brd, brd);
+    obtitle.Form("HitDetection Board %d Stitched Trace corrected (direct ADC only)", brd);
+    totlength= 8 * HitDet_MAXTRACELONG; // JAM todo: different variable for stitched length here later
+    hTraceLongCorrected=MakeTH1('I', obname.Data(), obtitle.Data(), totlength, 0, totlength, "time (bins)", "counts");
+
+
     obname.Form("Board%d/TraceLongFull_%d", brd, brd);
     obtitle.Form("HitDetection Board %d Last complete Stitched Trace (direct ADC only)", brd);
     hTraceLongPrev=MakeTH1('I', obname.Data(), obtitle.Data(), totlength, 0, totlength, "time (bins)", "counts");
 
+    obname.Form("Board%d/TraceLongFullCorrected_%d", brd, brd);
+    obtitle.Form("HitDetection Board %d Last complete Stitched Trace corrected (direct ADC only)", brd);
+    hTraceLongPrevCorrected=MakeTH1('I', obname.Data(), obtitle.Data(), totlength, 0, totlength, "time (bins)", "counts");
+
+
+
     obname.Form("Board%d/TraceLongSum_%d", brd, brd);
     obtitle.Form("HitDetection Board %d Stitched Trace Sums(direct ADC only)", brd);
     hTraceLongSum=MakeTH1('I', obname.Data(), obtitle.Data(), totlength, 0, totlength, "time (bins)", "counts");
+
+    obname.Form("Board%d/TraceLongSumCorrected_%d", brd, brd);
+    obtitle.Form("HitDetection Board %d Stitched Trace Sums Corrected (direct ADC only)", brd);
+    hTraceLongSumCorrected=MakeTH1('I', obname.Data(), obtitle.Data(), totlength, 0, totlength, "time (bins)", "counts");
+
+
 
     obname.Form("Board%d/TraceLongFFT_%d", brd, brd);
     obtitle.Form("HitDetection Board %d Stitched Trace FFT (direct ADC only)", brd);
@@ -127,22 +147,37 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
     obtitle.Form("HitDetection Board %d Stitched Trace FFT from window(direct ADC only)", brd);
     hTracePartFFT=MakeTH1('I', obname.Data(), obtitle.Data(), totlength, 0, totlength, "1/t ", "counts");
 
+    obname.Form("Board%d/TracePartFFT_Corrected_%d", brd, brd);
+    obtitle.Form("HitDetection Board %d Corrected Trace FFT from window (direct ADC only)", brd);
+    hTracePartCorrectedFFT=MakeTH1('I', obname.Data(), obtitle.Data(), totlength, 0, totlength, "1/t ", "counts");
+
+
 
     obname.Form("Board%d/ADC_Values_%d", brd, brd);
     obtitle.Form("HitDetection Board %d Accumulated ADC values", brd);
-    hADCValues=MakeTH1('I', obname.Data(), obtitle.Data(), 4095, -2048, 2047, "ADC value", "counts");
+    hADCValues=MakeTH1('I', obname.Data(), obtitle.Data(), 4096, -2048, 2048, "ADC value", "counts");
 
     obname.Form("Board%d/ADC_DeltaValues_%d", brd, brd);
     obtitle.Form("HitDetection Board %d Accumulated ADC mean deviation", brd);
-    hADCDeltaMeanValues=MakeTH1('D', obname.Data(), obtitle.Data(), 4095, -2048, 2047, "ADC value", "#delta Mean");
+    hADCDeltaMeanValues=MakeTH1('D', obname.Data(), obtitle.Data(), 4096, -2048, 2048, "ADC value", "#delta Mean");
 
     obname.Form("Board%d/ADC_DiffNL_%d", brd, brd);
     obtitle.Form("HitDetection Board %d Differential nonlinearity", brd);
-    hADCNonLinDiff=MakeTH1('D', obname.Data(), obtitle.Data(), 4095, -2048, 2047, "ADC value", "DNL");
+    hADCNonLinDiff=MakeTH1('D', obname.Data(), obtitle.Data(), 4096, -2048, 2048, "ADC value", "DNL");
 
     obname.Form("Board%d/ADC_IntNL_%d", brd, brd);
     obtitle.Form("HitDetection Board %d Integral nonlinearity", brd);
-    hADCNonLinInt=MakeTH1('D', obname.Data(), obtitle.Data(), 4095, -2048, 2047, "ADC value", "INL");
+    hADCNonLinInt=MakeTH1('D', obname.Data(), obtitle.Data(), 4096, -2048, 2048, "ADC value", "INL");
+
+    obname.Form("Board%d/Calibration/ADC_Correction_%d", brd, brd);
+    obtitle.Form("HitDetection Board %d Correction vector", brd);
+    hADCCorrection=MakeTH1('D', obname.Data(), obtitle.Data(), 4096, -2048, 2048, "ADC value", "Calibrated correction");
+
+    TGo4Analysis::Instance()->ProtectObjects("Calibration","+C"); // protect calibration histograms against clear from GUI
+
+
+
+
 
 
     obname.Form("Board%d/MsgTypes_%d", brd, brd);
@@ -207,6 +242,27 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
     pic->Pic(1, 1)->SetFillAtt(4, 3001);
     AddPicture(pic, Form("Board%d", brd));
   }
+
+  obname.Form("ADC_direct_Brd%d_Corrected", brd);
+ pic = GetPicture(obname.Data());
+ if (pic == 0)
+ {
+   obtitle.Form("ADC direct corrected trace Board%d", brd);
+   pic = new TGo4Picture(obname.Data(), obtitle.Data());
+
+   pic->SetDivision(2, 1);
+   pic->Pic(0, 0)->AddObject(hTraceLongPrevCorrected);
+   pic->Pic(0, 0)->SetLineAtt(5, 1, 1);    // solid line
+   pic->Pic(0, 0)->AddObject(cWindowFFT);
+
+   pic->Pic(1, 0)->AddObject(hTracePartCorrectedFFT);
+   pic->Pic(1, 0)->SetLogScale(1);
+   pic->Pic(1, 0)->SetLineAtt(4, 1, 1);
+   pic->Pic(1, 0)->SetFillAtt(4, 3001);
+   AddPicture(pic, Form("Board%d", brd));
+ }
+
+
 }
 
 

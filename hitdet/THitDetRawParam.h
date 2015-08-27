@@ -33,6 +33,7 @@ class THitDetRawParam : public TGo4Parameter {
 
       Int_t fNumSnapshots; // number of trace snapshots per mbs event
       Int_t fTraceLength; // length of trace to visualize (8, 16, 32)
+      Bool_t fDoCalibrate; // switch on calibrate mode for adc correction
       Bool_t fDoFFT; // do fast fourier transform on trace long when complete
       TString fFFTOptions; // ROOT fft option string
       Int_t fFilterType; // pre-FFT filter type 0-none 1-VonHann 2-Hamming 3-Blackmann 4-Nutall 5-BlackmannNutall 6-Blackmann-Harris 7-FlatTop 8-User
@@ -51,7 +52,7 @@ class THitDetRawParam : public TGo4Parameter {
 
 
 
-   ClassDef(THitDetRawParam,2)
+   ClassDef(THitDetRawParam,3)
 };
 
 #endif // THitDetRawParam_H

@@ -66,7 +66,7 @@ public:
    /** for direct ADC readout: accumulated subsequent traces stitched together in one display, no channel info here!*/
    TH1 *hTraceLongSum;
 
-   /** FFT transformed result of hTraceLong*/
+   /** FFT transformed result of hTraceLongPrev*/
    TH1 *hTraceLongFFT;
 
    /** Previously full filled hTraceLong. Coressponds to contents of hTraceLongFFT*/
@@ -87,6 +87,23 @@ public:
 
    /** Integral ADC nonlinearity*/
    TH1 *hADCNonLinInt;
+
+   /** ADC correction vector. Derived from hADCNonLinInt during adc calibrate mode*/
+   TH1 *hADCCorrection;
+
+   /** for direct ADC readout: subsequent traces stitched together and corrected for inl*/
+   TH1 *hTraceLongCorrected;
+
+   /** for direct ADC readout: subsequent traces stitched together and corrected for inl*/
+   TH1 *hTraceLongPrevCorrected;
+
+   /** FFT transformed result of condition window inside hTraceLongPrevCorrected*/
+   TH1 *hTracePartCorrectedFFT;
+
+   /** for direct ADC readout: accumulated subsequent traces stitched together and corrected for inl*/
+   TH1 *hTraceLongSumCorrected;
+
+
 
 
    /** statistics of message types*/

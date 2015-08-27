@@ -21,13 +21,10 @@
 #include "TGo4UserException.h"
 
 static unsigned long skipped_events = 0;
-static unsigned long skipped_msgs = 0;
+//static unsigned long skipped_msgs = 0;
 
 /* helper macros for BuildEvent to check if payload pointer is still inside delivered region:*/
 /* this one to be called at top data processing loop*/
-
-
-
 
 #define  HitDetEVENT_CHECK_PDATA                                    \
 if((pdata - psubevt->GetDataField()) > lwords ) \
@@ -36,7 +33,6 @@ if((pdata - psubevt->GetDataField()) > lwords ) \
   GO4_SKIP_EVENT \
   continue; \
 }
-
 
 #define  HitDetRAW_CHECK_PDATA                                    \
 if((pdata - pdatastart) > HitDetRawEvent->fDataCount ) \
@@ -63,7 +59,6 @@ if((pdata - psubevt->GetDataField()) >= lwords ) \
 }
 
 /*printf("############ pdata offset 0x%x exceeds  subevent size :0x%x, skip message %ld\n", (unsigned int) (pdata - psubevt->GetDataField()), lwords, skipped_msgs++);\*/
-
 
 //***********************************************************
 THitDetRawProc::THitDetRawProc() :
@@ -184,7 +179,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
     {
       GO4_SKIP_EVENT_MESSAGE("**** THitDetRawProc: Found BAD mbs event (marked 0x%x), skip it.", (*pdata));
     }
-    Bool_t skipmessage=kFALSE;
+    Bool_t skipmessage = kFALSE;
     // loop over single subevent data:
     while (pdata - psubevt->GetDataField() < lwords)
     {
@@ -202,7 +197,6 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
       }
 
       Int_t* pdatastart = pdata;    // remember begin of asic payload data section
-
 
       pdata++;    // skip first  word?
 
@@ -268,75 +262,92 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
 
                 //printf(" - data[%d]=0x%x \n",j,adcdata[j]);
               }
-              if(!skipmessage)
+              if (!skipmessage)
               {
-              // decode sample bin data (0-7)
-              theMsg->SetBinData(0, ((adcdata[0] >> 8) & 0xFFF));
-              theMsg->SetBinData(1, ((adcdata[0] & 0xFF) << 4) | ((adcdata[1] >> 28) & 0xF));
-              theMsg->SetBinData(2, (adcdata[1] >> 16) & 0xFFF);
-              theMsg->SetBinData(3, (adcdata[1] >> 4) & 0xFFF);
-              theMsg->SetBinData(4, ((adcdata[1] & 0xF) << 8) | ((adcdata[2] >> 24) & 0xFF));
-              theMsg->SetBinData(5, (adcdata[2] >> 12) & 0xFFF);
-              theMsg->SetBinData(6, adcdata[2] & 0xFFF);
-              theMsg->SetBinData(7, (adcdata[3] >> 20) & 0xFFF);
+                // decode sample bin data (0-7)
+                theMsg->SetBinData(0, ((adcdata[0] >> 8) & 0xFFF));
+                theMsg->SetBinData(1, ((adcdata[0] & 0xFF) << 4) | ((adcdata[1] >> 28) & 0xF));
+                theMsg->SetBinData(2, (adcdata[1] >> 16) & 0xFFF);
+                theMsg->SetBinData(3, (adcdata[1] >> 4) & 0xFFF);
+                theMsg->SetBinData(4, ((adcdata[1] & 0xF) << 8) | ((adcdata[2] >> 24) & 0xFF));
+                theMsg->SetBinData(5, (adcdata[2] >> 12) & 0xFFF);
+                theMsg->SetBinData(6, adcdata[2] & 0xFFF);
+                theMsg->SetBinData(7, (adcdata[3] >> 20) & 0xFFF);
 
-              // here directly evaluate display:
+                // here directly evaluate display:
 
-              TH1* tracesnapshot = 0;
-              TH1* tracelong = 0;
-              TH1* tracelongsum = 0;
-              TH2* trace2d = 0;
-              if (snapshotcount < HitDet_MAXSNAPSHOTS)
-              {
-                tracesnapshot = boardDisplay->hTraceSnapshots[0][snapshotcount];
-                trace2d = boardDisplay->hTraceSnapshot2d[0];
-              }
-              if (tracelongcount < HitDet_MAXTRACELONG)
-              {
-                tracelong = boardDisplay->hTraceLong;
-                tracelongsum = boardDisplay->hTraceLongSum;
-                if (tracelongcount == 0)
+                TH1* tracesnapshot = 0;
+                TH1* tracelong = 0;
+                TH1* tracelongcorr = 0;
+                TH1* tracelongsum = 0;
+                TH1* tracelongcorrsum = 0;
+                TH2* trace2d = 0;
+                if (snapshotcount < HitDet_MAXSNAPSHOTS)
                 {
-                  // begin of new trace, provide FFT of previous one here:
-                  DoFFT(boardDisplay);
-                  boardDisplay->hTraceLongPrev->Reset("");
-                  boardDisplay->hTraceLongPrev->Add(tracelong);    // copy previous full trace to buffer histogram
-                  tracelong->Reset("");
+                  tracesnapshot = boardDisplay->hTraceSnapshots[0][snapshotcount];
+                  trace2d = boardDisplay->hTraceSnapshot2d[0];
+                }
+                if (tracelongcount < HitDet_MAXTRACELONG)
+                {
+                  tracelong = boardDisplay->hTraceLong;
+                  tracelongcorr = boardDisplay->hTraceLongCorrected;
+                  tracelongsum = boardDisplay->hTraceLongSum;
+                  tracelongcorrsum = boardDisplay->hTraceLongSumCorrected;
+                  if (tracelongcount == 0)
+                  {
+                    // begin of new trace, provide FFT of previous one here:
+                    DoFFT(boardDisplay);
+                    boardDisplay->hTraceLongPrev->Reset("");
+                    boardDisplay->hTraceLongPrev->Add(tracelong);    // copy previous full trace to buffer histogram
+
+                    // now provide corrected trace long:
+                    boardDisplay->hTraceLongPrevCorrected->Reset("");
+                    boardDisplay->hTraceLongPrevCorrected->Add(tracelongcorr);    // copy previous full trace to buffer histogram
+
+                    tracelong->Reset("");
+                    tracelongcorr->Reset("");
+                  }
+
                 }
 
-              }
+                for (Int_t k = 0; k < 8; ++k)
+                {
 
-              for (Int_t k = 0; k < 8; ++k)
-              {
-
-                Short_t val = theMsg->GetBinData(k);
-                // convert raw data to signed 8bit (2 complement) representation:
+                  Short_t val = theMsg->GetBinData(k);
+                  // convert raw data to signed 8bit (2 complement) representation:
 //                  if (val & 0x800 != 0)
 //                    val |= 0xf000;
 
-                if (val > 0x7FF)
-                  val = val - 0x1000;
+                  if (val > 0x7FF)
+                    val = val - 0x1000;
 
-                if (tracesnapshot)
-                  tracesnapshot->SetBinContent(k + 1, val);
-                if (trace2d)
-                  trace2d->Fill(k, 0.5+snapshotcount, val);
+                  Double_t corrval = CorrectedADCVal(val, boardDisplay);
 
-                if (tracelong)
-                  tracelong->SetBinContent(1 + k + (8 * tracelongcount), val);
-                if (tracelongsum)
-                  tracelongsum->AddBinContent(1 + k + (8 * tracelongcount), val);
-                boardDisplay->hTrace[0]->SetBinContent(1 + k, val);
-                boardDisplay->hTraceSum[0]->AddBinContent(1 + k, val);
+                  if (tracesnapshot)
+                    tracesnapshot->SetBinContent(k + 1, val);
+                  if (trace2d)
+                    trace2d->Fill(k, 0.5 + snapshotcount, val);
 
+                  if (tracelong)
+                    tracelong->SetBinContent(1 + k + (8 * tracelongcount), val);
+                  if (tracelongsum)
+                    tracelongsum->AddBinContent(1 + k + (8 * tracelongcount), val);
 
-                // value histograms:
-                boardDisplay->hADCValues->Fill(val);
+                  if (tracelongcorr)
+                    tracelongcorr->SetBinContent(1 + k + (8 * tracelongcount), corrval);
+                  if (tracelongcorrsum)
+                    tracelongcorrsum->AddBinContent(1 + k + (8 * tracelongcount), corrval);
 
-              }
+                  boardDisplay->hTrace[0]->SetBinContent(1 + k, val);
+                  boardDisplay->hTraceSum[0]->AddBinContent(1 + k, val);
 
-              theBoard->AddMessage(theMsg, 0);    // direct ADC messages assigned to channel 0
-              } // if !skipmessage
+                  // value histograms:
+                  boardDisplay->hADCValues->Fill(val);
+
+                }
+
+                theBoard->AddMessage(theMsg, 0);    // direct ADC messages assigned to channel 0
+              }    // if !skipmessage
             }
             break;
 
@@ -520,46 +531,65 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
 
 Bool_t THitDetRawProc::UpdateDisplays()
 {
+  static Bool_t CalibrateWasOn = kFALSE;
 
 // maybe later some advanced analysis from output event data here
 
-for (unsigned i = 0; i < THitDetRawEvent::fgConfigHitDetBoards.size(); ++i)
-{
-  UInt_t brdid = THitDetRawEvent::fgConfigHitDetBoards[i];
-  THitDetBoard* theBoard = HitDetRawEvent->GetBoard(brdid);
-  if (theBoard == 0)
+  for (unsigned i = 0; i < THitDetRawEvent::fgConfigHitDetBoards.size(); ++i)
   {
-    GO4_SKIP_EVENT_MESSAGE("FillDisplays Configuration error: Board id %d does not exist!", brdid);
-    //return kFALSE;
-  }
-  THitDetBoardDisplay* boardDisplay = GetBoardDisplay(brdid);
-  if (boardDisplay == 0)
-  {
-    GO4_SKIP_EVENT_MESSAGE(
-        "FillDisplays Configuration error: Board id %d does not exist as histogram display set!", brdid);
-    //return kFALSE;
-  }
+    UInt_t brdid = THitDetRawEvent::fgConfigHitDetBoards[i];
+    THitDetBoard* theBoard = HitDetRawEvent->GetBoard(brdid);
+    if (theBoard == 0)
+    {
+      GO4_SKIP_EVENT_MESSAGE("FillDisplays Configuration error: Board id %d does not exist!", brdid);
+      //return kFALSE;
+    }
+    THitDetBoardDisplay* boardDisplay = GetBoardDisplay(brdid);
+    if (boardDisplay == 0)
+    {
+      GO4_SKIP_EVENT_MESSAGE(
+          "FillDisplays Configuration error: Board id %d does not exist as histogram display set!", brdid);
+      //return kFALSE;
+    }
 
-  // here calculate integral and differential ADC nonlinearities:
-  boardDisplay->hADCNonLinInt->Reset("");
-  boardDisplay->hADCNonLinDiff->Reset("");
+    // here calculate integral and differential ADC nonlinearities:
+    boardDisplay->hADCNonLinInt->Reset("");
+    boardDisplay->hADCNonLinDiff->Reset("");
 
-  Double_t mean=boardDisplay->hADCValues->GetEntries()/boardDisplay->hADCValues->GetNbinsX();
-  Double_t inl=0;
-  for(Int_t bix=0; bix<boardDisplay->hADCValues->GetNbinsX(); ++bix)
-  {
-      Double_t val=boardDisplay->hADCValues->GetBinContent(bix+1);
-      Double_t delta=(val-mean);
-      boardDisplay->hADCDeltaMeanValues->SetBinContent(bix+1,delta);
-      Double_t dnl=TMath::Abs(delta/mean);
-      boardDisplay->hADCNonLinDiff->SetBinContent(bix+1,dnl);
-      inl+=delta/mean;
-      boardDisplay->hADCNonLinInt->SetBinContent(bix+1,inl);
-  }
+    if (!CalibrateWasOn && fPar->fDoCalibrate)
+    {
+      // begin of calibration, reset value histograms
+      boardDisplay->hADCValues->Reset("");
+      boardDisplay->hADCCorrection->Reset("");
 
+    }
 
+    Double_t mean = boardDisplay->hADCValues->GetEntries() / boardDisplay->hADCValues->GetNbinsX();
+    Double_t inl = 0;
+    Double_t corr = 0;
+    for (Int_t bix = 0; bix < boardDisplay->hADCValues->GetNbinsX(); ++bix)
+    {
+      Double_t val = boardDisplay->hADCValues->GetBinContent(bix + 1);
+      Double_t delta = (val - mean);
+      boardDisplay->hADCDeltaMeanValues->SetBinContent(bix + 1, delta);
+      Double_t dnl = 0;
+      if (mean)
+        dnl = TMath::Abs(delta / mean);
+      boardDisplay->hADCNonLinDiff->SetBinContent(bix + 1, dnl);
+      if (mean)
+        inl += delta / mean;
+      boardDisplay->hADCNonLinInt->SetBinContent(bix + 1, inl);
+      // calibrate for ADC nonlinearity corrections:
+      if (fPar->fDoCalibrate)
+      {
+        corr=inl; // this is point to evaluate other kind of correction optionally
+        boardDisplay->hADCCorrection->SetBinContent(bix + 1, corr);
+      }
+    }
 
-}    // i board
+  }    // i board
+
+  CalibrateWasOn = fPar->fDoCalibrate;
 
   return kTRUE;
 }
@@ -643,6 +673,27 @@ void THitDetRawProc::DoFFT(THitDetBoardDisplay* boardDisplay)
       boardDisplay->hTracePartFFT->SetBinContent(i + 1, TMath::Sqrt(re * re + im * im));
     }
 
+    // finally partial fft from window at corrected trace:
+    boardDisplay->hTracePartCorrectedFFT->Reset("");
+    Npart = 0;
+    for (Int_t ix = 0; ix < N; ++ix)
+    {
+      if (boardDisplay->cWindowFFT->Test(ix))
+      {
+        in[ix] = boardDisplay->hTraceLongPrevCorrected->GetBinContent(ix + 1);
+        Npart++;
+      }
+    }
+    DoFilter(in, Npart);
+    thefft = TVirtualFFT::FFT(1, &Npart, opt.Data());
+    thefft->SetPoints(in);
+    thefft->Transform();
+    for (Int_t i = 0; i < Npart; i++)
+    {
+      thefft->GetPointComplex(i, re, im);
+      boardDisplay->hTracePartCorrectedFFT->SetBinContent(i + 1, TMath::Sqrt(re * re + im * im));
+    }
+
     delete[] in;
   }    // if dofft
 }
@@ -650,18 +701,28 @@ void THitDetRawProc::DoFFT(THitDetBoardDisplay* boardDisplay)
 void THitDetRawProc::DoFilter(Double_t* array, Int_t N)
 {
   // please compare https://en.wikipedia.org/wiki/Window_function
-  if(fPar->fFilterType==THitDetRawParam::FIL_NONE) return;
-  Double_t factor=0;
+  if (fPar->fFilterType == THitDetRawParam::FIL_NONE)
+    return;
+  Double_t factor = 0;
   for (Int_t i = 0; i < N; i++)
   {
     // generalized cosine filter:
-    factor = fPar->fFilterCoeff[0]; // JAM put this out of sum loop to avoid nasty numerical problems with TMath::Cos ???
+    factor = fPar->fFilterCoeff[0];    // JAM put this out of sum loop to avoid nasty numerical problems with TMath::Cos ???
     for (Int_t j = 1; j < HitDet_FILTERCOEFFS; ++j)
     {
-      factor += fPar->fFilterCoeff[j] * TMath::Cos((double) j * 2.0 * TMath::Pi() * (double) i / (double)(N - 1));
+      factor += fPar->fFilterCoeff[j] * TMath::Cos((double) j * 2.0 * TMath::Pi() * (double) i / (double) (N - 1));
     }    // for j
     array[i] *= factor;
   }    // for i
 
+}
+
+Double_t THitDetRawProc::CorrectedADCVal(Short_t raw, THitDetBoardDisplay* boardDisplay)
+{
+  Double_t res = raw;
+  Int_t corbin = boardDisplay->hADCCorrection->FindBin(raw);
+  Double_t corr = boardDisplay->hADCCorrection->GetBinContent(corbin);
+  res -= corr;
+  return res;
 }
 
