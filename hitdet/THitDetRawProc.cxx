@@ -586,7 +586,7 @@ Bool_t THitDetRawProc::UpdateDisplays()
       // calibrate for ADC nonlinearity corrections:
       if (fPar->fDoCalibrate)
       {
-        corr=-inl; // this is point to evaluate other kind of correction optionally
+        corr=inl; // this is point to evaluate other kind of correction optionally
         boardDisplay->hADCCorrection->SetBinContent(bix + 1, corr);
       }
     }
@@ -726,7 +726,7 @@ Double_t THitDetRawProc::CorrectedADCVal(Short_t raw, THitDetBoardDisplay* board
   Double_t res = raw;
   Int_t corbin = boardDisplay->hADCCorrection->FindBin(raw);
   Double_t corr = boardDisplay->hADCCorrection->GetBinContent(corbin);
-  res -= corr;
+  res += corr;
   return res;
 }
 
