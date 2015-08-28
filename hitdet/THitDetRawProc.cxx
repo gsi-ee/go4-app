@@ -565,9 +565,9 @@ Bool_t THitDetRawProc::UpdateDisplays()
 
     }
     if (CalibrateWasOn && !fPar->fDoCalibrate)
-       {
-          TGo4Log::Info("THitDetBoardDisplay: End ADC calibration for Board %d ", boardDisplay->GetDevId());
-       }
+    {
+      TGo4Log::Info("THitDetBoardDisplay: End ADC calibration for Board %d ", boardDisplay->GetDevId());
+    }
     Double_t mean = boardDisplay->hADCValues->GetEntries() / boardDisplay->hADCValues->GetNbinsX();
     Double_t inl = 0;
     Double_t corr = 0;
@@ -578,7 +578,7 @@ Bool_t THitDetRawProc::UpdateDisplays()
       boardDisplay->hADCDeltaMeanValues->SetBinContent(bix + 1, delta);
       Double_t dnl = 0;
       if (mean)
-        dnl = delta / mean;//dnl = TMath::Abs(delta / mean);
+        dnl = delta / mean;    //dnl = TMath::Abs(delta / mean);
       boardDisplay->hADCNonLinDiff->SetBinContent(bix + 1, dnl);
       if (mean)
         inl += delta / mean;
@@ -586,7 +586,7 @@ Bool_t THitDetRawProc::UpdateDisplays()
       // calibrate for ADC nonlinearity corrections:
       if (fPar->fDoCalibrate)
       {
-        corr=inl; // this is point to evaluate other kind of correction optionally
+        corr = inl;    // this is point to evaluate other kind of correction optionally
         boardDisplay->hADCCorrection->SetBinContent(bix + 1, corr);
       }
     }
@@ -605,6 +605,7 @@ void THitDetRawProc::DoFFT(THitDetBoardDisplay* boardDisplay)
     // JAM taken from example $GO4SYS/macros/fft.C
     boardDisplay->hTraceLongFFT->Reset("");
     TString opt = fPar->fFFTOptions;    // ROOT fft parameters, user defined
+    //opt.Append(" K"); // "keep" flag - use different instances of fft for each transformation.
 //         Available transform types:
 //         FFT:
 //         - "C2CFORWARD" - a complex input/output discrete Fourier transform (DFT)
@@ -655,50 +656,53 @@ void THitDetRawProc::DoFFT(THitDetBoardDisplay* boardDisplay)
       // in case of option DHT (real 2 real)
 
     }
-
     // now partial fft from window condition:
     boardDisplay->hTracePartFFT->Reset("");
+    Double_t *inpart = new Double_t[N];
     Int_t Npart = 0;
     for (Int_t ix = 0; ix < N; ++ix)
     {
       if (boardDisplay->cWindowFFT->Test(ix))
       {
-        in[ix] = boardDisplay->hTraceLongPrev->GetBinContent(ix + 1);
+        inpart[ix] = boardDisplay->hTraceLongPrev->GetBinContent(ix + 1);
         Npart++;
       }
     }
     DoFilter(in, Npart);
+    //delete thefft; // for keep option
     thefft = TVirtualFFT::FFT(1, &Npart, opt.Data());
-    thefft->SetPoints(in);
+    thefft->SetPoints(inpart);
     thefft->Transform();
     for (Int_t i = 0; i < Npart; i++)
     {
       thefft->GetPointComplex(i, re, im);
       boardDisplay->hTracePartFFT->SetBinContent(i + 1, TMath::Sqrt(re * re + im * im));
     }
-
     // finally partial fft from window at corrected trace:
     boardDisplay->hTracePartCorrectedFFT->Reset("");
+    Double_t *incorr = new Double_t[N];
     Npart = 0;
     for (Int_t ix = 0; ix < N; ++ix)
     {
       if (boardDisplay->cWindowFFT->Test(ix))
       {
-        in[ix] = boardDisplay->hTraceLongPrevCorrected->GetBinContent(ix + 1);
+        incorr[ix] = boardDisplay->hTraceLongPrevCorrected->GetBinContent(ix + 1);
         Npart++;
       }
     }
     DoFilter(in, Npart);
+    //delete thefft; // for keep option
     thefft = TVirtualFFT::FFT(1, &Npart, opt.Data());
-    thefft->SetPoints(in);
+    thefft->SetPoints(incorr);
     thefft->Transform();
     for (Int_t i = 0; i < Npart; i++)
     {
       thefft->GetPointComplex(i, re, im);
       boardDisplay->hTracePartCorrectedFFT->SetBinContent(i + 1, TMath::Sqrt(re * re + im * im));
     }
-
     delete[] in;
+    delete[] inpart;
+    delete[] incorr;
   }    // if dofft
 }
 
