@@ -668,7 +668,7 @@ void THitDetRawProc::DoFFT(THitDetBoardDisplay* boardDisplay)
         Npart++;
       }
     }
-    DoFilter(in, Npart);
+    DoFilter(inpart, Npart);
     //delete thefft; // for keep option
     thefft = TVirtualFFT::FFT(1, &Npart, opt.Data());
     thefft->SetPoints(inpart);
@@ -690,7 +690,7 @@ void THitDetRawProc::DoFFT(THitDetBoardDisplay* boardDisplay)
         Npart++;
       }
     }
-    DoFilter(in, Npart);
+    DoFilter(incorr, Npart);
     //delete thefft; // for keep option
     thefft = TVirtualFFT::FFT(1, &Npart, opt.Data());
     thefft->SetPoints(incorr);
