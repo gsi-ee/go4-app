@@ -140,16 +140,16 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
 
     obname.Form("Board%d/TraceLongFFT_%d", brd, brd);
     obtitle.Form("HitDetection Board %d Stitched Trace FFT (direct ADC only)", brd);
-    hTraceLongFFT=MakeTH1('I', obname.Data(), obtitle.Data(), totlength, 0, totlength, "1/t ", "counts");
+    hTraceLongFFT=MakeTH1('D', obname.Data(), obtitle.Data(), totlength, 0, totlength, "1/t ", "counts");
 
 
     obname.Form("Board%d/TracePartFFT_%d", brd, brd);
     obtitle.Form("HitDetection Board %d Stitched Trace FFT from window(direct ADC only)", brd);
-    hTracePartFFT=MakeTH1('I', obname.Data(), obtitle.Data(), totlength, 0, totlength, "1/t ", "counts");
+    hTracePartFFT=MakeTH1('D', obname.Data(), obtitle.Data(), totlength, 0, totlength, "1/t ", "counts");
 
     obname.Form("Board%d/TracePartFFT_Corrected_%d", brd, brd);
     obtitle.Form("HitDetection Board %d Corrected Trace FFT from window (direct ADC only)", brd);
-    hTracePartCorrectedFFT=MakeTH1('I', obname.Data(), obtitle.Data(), totlength, 0, totlength, "1/t ", "counts");
+    hTracePartCorrectedFFT=MakeTH1('D', obname.Data(), obtitle.Data(), totlength, 0, totlength, "1/t ", "counts");
 
 
 
