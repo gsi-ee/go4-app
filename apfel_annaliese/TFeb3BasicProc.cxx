@@ -657,60 +657,9 @@ Bool_t TFeb3BasicProc::BuildEvent(TGo4EventElement* target)
   }
 
 
-  // JAM here is mapping of traceBLR to grid wires-
+  FillGrids(); // JAM here is mapping of traceBLR to grid wires-
 
 
-  for (int g=0; (g< fPar->fNumGrids) && (g< PEXOR_APFEL_GRIDS); g++)
-       {
-          h_grid_x_profile[g]->Reset("");
-          h_grid_y_profile[g]->Reset("");
-          h_grid_xvstrace[g]->Reset("");
-          h_grid_yvstrace[g]->Reset("");
-
-          Double_t val=0;
-          Int_t sfp=-1, febex=-1;
-          for(int wire=0; wire< PEXOR_APFEL_WIRES;++wire)
-          {
-            int bid=fPar->fGridBoardID_X[g][wire];
-            if(bid<0) continue;
-            // evaluate sfp and slave from board id here:
-            fPar->FindBoardIndices(bid,sfp,febex);
-            //printf("FFFFFFFF find board %d  indices sfp:%d, febex:%d \n",bid, sfp,febex); std::cout<<std::endl;
-
-            int channelX=fPar->fGridChannel_X[g][wire];
-            if(channelX>0)
-            {
-              TH1* theTrace=h_trace_blr[sfp][febex][channelX];
-              //printf("FFFFFFFF trace pointer of channelX %d: 0x%x \n",channelX, (ulong) theTrace); std::cout<<std::endl;
-              for(int t=0; (theTrace!=0) && (t<theTrace->GetNbinsX()); ++t)
-              {
-                  val=theTrace->GetBinContent(t+1);
-                  h_grid_x_profile[g]->Fill(wire,val);
-                  h_grid_x_profile_sum[g]->Fill(wire,val);
-                  h_grid_xvstrace[g]->Fill(wire,t,val);
-                  h_grid_xvstrace_sum[g]->Fill(wire,t,val);
-
-              }
-            } // if channelX
-
-            int channelY=fPar->fGridChannel_Y[g][wire];
-            if(channelY>0)
-            {
-                TH1* theTrace=h_trace_blr[sfp][febex][channelY];
-                //printf("FFFFFFFF trace pointer of channelY %d: 0x%x \n",channelY,(ulong) theTrace); std::cout<<std::endl;
-                for(int t=0; (theTrace!=0) && (t<theTrace->GetNbinsX()); ++t)
-                {
-                  val=theTrace->GetBinContent(t+1);
-                  h_grid_y_profile[g]->Fill(wire,val);
-                  h_grid_y_profile_sum[g]->Fill(wire,val);
-                  h_grid_yvstrace[g]->Fill(wire,t,val);
-                  h_grid_yvstrace_sum[g]->Fill(wire,t,val);
-                }
-            } // if channelY
-          }// wires
-       } // grid index
-
-  // JAM end mapping of traceBLR to grid wires-
 
 bad_event:
 
@@ -736,6 +685,100 @@ bad_event:
 
   return kTRUE;
 }
+
+
+
+void TFeb3BasicProc::FillGrids()
+{
+  // JAM here is mapping of traceBLR to grid wires-
+  if (!fPar->fDoGridMapping)
+    return;
+  for (int g = 0; (g < fPar->fNumGrids) && (g < PEXOR_APFEL_GRIDS); g++)
+  {
+    h_grid_x_profile[g]->Reset("");
+    h_grid_y_profile[g]->Reset("");
+    h_grid_xvstrace[g]->Reset("");
+    h_grid_yvstrace[g]->Reset("");
+
+    Double_t val = 0;
+    Int_t sfp = -1, febex = -1;
+    for (int wire = 0; wire < PEXOR_APFEL_WIRES; ++wire)
+    {
+      int bidX = fPar->fGridBoardID_X[g][wire];
+      if (bidX >= 0)
+      {
+        // evaluate sfp and slave from board id here:
+        fPar->FindBoardIndices(bidX, sfp, febex);
+        if (sfp >= 0 && febex >= 0)
+        {
+          //printf("FFFFFFFF find board %d  indices sfp:%d, febex:%d \n",bidX, sfp,febex); std::cout<<std::endl;
+
+          int channelX = fPar->fGridChannel_X[g][wire];
+          if (channelX >= 0)
+          {
+            TH1* theTrace = h_trace_blr[sfp][febex][channelX];
+            //printf("FFFFFFFF trace pointer of channelX %d: 0x%x \n",channelX, (ulong) theTrace); std::cout<<std::endl;
+            for (int t = 0; (theTrace != 0) && (t < theTrace->GetNbinsX() - 1); ++t)
+            {
+              val = theTrace->GetBinContent(t + 1);
+//              if (val < 0)
+//                printf("FFFFFFFF negative value %f for t=%d in board %d, channelX %d wire %d:\n", val, t, bidX,
+//                    channelX, wire);
+//              std::cout << std::endl;
+// JAM negatve values may happen with baseline corrected traces...
+              h_grid_x_profile[g]->Fill(wire, val);
+              h_grid_x_profile_sum[g]->Fill(wire, val);
+              h_grid_xvstrace[g]->Fill(wire, t, val);
+              h_grid_xvstrace_sum[g]->Fill(wire, t, val);
+
+            }
+          }    // if channelX
+        }    // if sfp febex
+        else
+        {
+          printf("Warning: sfp=%d febex=%d for board %d, please check configuration!\n", sfp, febex, bidX);
+          std::cout << std::endl;
+        }
+      }    // if bidX
+      int bidY = fPar->fGridBoardID_Y[g][wire];
+      if (bidY >= 0)
+      {
+        // evaluate sfp and slave from board id here:
+        fPar->FindBoardIndices(bidY, sfp, febex);
+        if (sfp >= 0 && febex >= 0)
+        {
+          int channelY = fPar->fGridChannel_Y[g][wire];
+          if (channelY >= 0)
+          {
+            TH1* theTrace = h_trace_blr[sfp][febex][channelY];
+            //printf("FFFFFFFF trace pointer of channelY %d: 0x%x \n",channelY,(ulong) theTrace); std::cout<<std::endl;
+            for (int t = 0; (theTrace != 0) && (t < theTrace->GetNbinsX() - 1); ++t)
+            {
+              val = theTrace->GetBinContent(t + 1);
+//              if (val < 0)
+//                printf("FFFFFFFF negative value %f for t=%d in board %d, channelY %d :\n", val, t, bidY, channelY);
+//              std::cout << std::endl;
+
+              h_grid_y_profile[g]->Fill(wire, val);
+              h_grid_y_profile_sum[g]->Fill(wire, val);
+              h_grid_yvstrace[g]->Fill(wire, t, val);
+              h_grid_yvstrace_sum[g]->Fill(wire, t, val);
+            }
+          }    // if channelY
+        }    // if sfp febex
+        else
+        {
+          printf("Warning: sfp=%d febex=%d for board %d, please check configuration!\n", sfp, febex, bidY);
+          std::cout << std::endl;
+        }
+
+      }    // if bidY
+    }    // wires
+  }    // grid index
+}
+
+
+
 
 //--------------------------------------------------------------------------------------------------------
 

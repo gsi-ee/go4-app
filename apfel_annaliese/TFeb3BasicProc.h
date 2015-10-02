@@ -63,6 +63,7 @@ class TFeb3BasicProc : public TGo4EventProcessor {
       TFeb3BasicProc(const char* name);
       virtual ~TFeb3BasicProc() ;
       void f_make_histo (Int_t); 
+      void FillGrids();
 
       Bool_t BuildEvent(TGo4EventElement* target); // event processing function
 

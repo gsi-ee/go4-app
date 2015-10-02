@@ -42,6 +42,7 @@ class TFeb3BasicParam : public TGo4Parameter {
 
       void InitMapping();
       void FindBoardIndices(Int_t boardid, Int_t &ch, Int_t &slave);
+      Bool_t fDoGridMapping; // switch beam profile grid mapping on or off
 
       Int_t fBoardID[PEXOR_MAXSFP][PEXOR_MAXDEVS]; // mapping of board numbers to pexor chains
 
