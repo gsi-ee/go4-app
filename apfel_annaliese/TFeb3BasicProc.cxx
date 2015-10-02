@@ -894,44 +894,109 @@ void TFeb3BasicProc:: f_make_histo (Int_t l_mode)
 
  // JAM put here additional histograms with mapped grid wires:
 
-  for (int g=0; (g< fPar->fNumGrids) && (g< PEXOR_APFEL_GRIDS); g++)
-     {
-       int gid=fPar->fGridDeviceID[g];
+  for (int g = 0; (g < fPar->fNumGrids) && (g < PEXOR_APFEL_GRIDS); g++)
+  {
+    int gid = fPar->fGridDeviceID[g];
 
-       sprintf(chis,"Grids/Grid_%2d/X_Profile_%2d", gid, gid);
-       sprintf(chead,"Grid %2d X Profile (single event)",gid);
-       h_grid_x_profile[g] = MakeTH1('D', chis,chead,PEXOR_APFEL_WIRES,0,PEXOR_APFEL_WIRES, "X wire number", "N");
-       sprintf(chis,"Grids/Grid_%2d/X_ProfileSum_%2d", gid, gid);
-       sprintf(chead,"Grid %2d X Profile (accumulated)",gid);
-       h_grid_x_profile_sum[g] = MakeTH1('D', chis,chead,PEXOR_APFEL_WIRES,0,PEXOR_APFEL_WIRES, "X wire number", "N");
+    sprintf(chis, "Grids/Grid_%2d/X_Profile_%2d", gid, gid);
+    sprintf(chead, "Grid %2d X Profile (single event)", gid);
+    h_grid_x_profile[g] = MakeTH1('D', chis, chead, PEXOR_APFEL_WIRES, 0, PEXOR_APFEL_WIRES, "X wire number", "N");
+    if (IsObjMade())
+    {
+      for (int bin = 0; bin < PEXOR_APFEL_WIRES; ++bin)
+      {
+        sprintf(chead, "%2d", bin);
+        h_grid_x_profile[g]->GetXaxis()->SetBinLabel(1 + bin, chead);
+      }
+    }
 
-       sprintf(chis,"Grids/Grid_%2d/Y_Profile_%2d", gid, gid);
-       sprintf(chead,"Grid %2d Y Profile (single event)",gid);
-       h_grid_y_profile[g] = MakeTH1('D', chis,chead,PEXOR_APFEL_WIRES,0, PEXOR_APFEL_WIRES, "Y wire number", "N");
+    sprintf(chis, "Grids/Grid_%2d/X_ProfileSum_%2d", gid, gid);
+    sprintf(chead, "Grid %2d X Profile (accumulated)", gid);
+    h_grid_x_profile_sum[g] = MakeTH1('D', chis, chead, PEXOR_APFEL_WIRES, 0, PEXOR_APFEL_WIRES, "X wire number", "N");
+    if (IsObjMade())
+    {
+      for (int bin = 0; bin < PEXOR_APFEL_WIRES; ++bin)
+      {
+        sprintf(chead, "%2d", bin);
+        h_grid_x_profile_sum[g]->GetXaxis()->SetBinLabel(1 + bin, chead);
+      }
+    }
+    sprintf(chis, "Grids/Grid_%2d/Y_Profile_%2d", gid, gid);
+    sprintf(chead, "Grid %2d Y Profile (single event)", gid);
+    h_grid_y_profile[g] = MakeTH1('D', chis, chead, PEXOR_APFEL_WIRES, 0, PEXOR_APFEL_WIRES, "Y wire number", "N");
+    if (IsObjMade())
+    {
+      for (int bin = 0; bin < PEXOR_APFEL_WIRES; ++bin)
+      {
+        sprintf(chead, "%2d", bin);
+        h_grid_y_profile[g]->GetXaxis()->SetBinLabel(1 + bin, chead);
+      }
+    }
+    sprintf(chis, "Grids/Grid_%2d/Y_ProfileSum_%2d", gid, gid);
+    sprintf(chead, "Grid %2d Y Profile (accumulated)", gid);
+    h_grid_y_profile_sum[g] = MakeTH1('D', chis, chead, PEXOR_APFEL_WIRES, 0, PEXOR_APFEL_WIRES, "Y wire number", "N");
+    if (IsObjMade())
+    {
+      for (int bin = 0; bin < PEXOR_APFEL_WIRES; ++bin)
+      {
+        sprintf(chead, "%2d", bin);
+        h_grid_y_profile_sum[g]->GetXaxis()->SetBinLabel(1 + bin, chead);
+      }
+    }
+    int binscaledown = 10;    // use this to decrease granularity for the 2d plots
+    sprintf(chis, "Grids/Grid_%2d/X_Trace_%2d", gid, gid);
+    sprintf(chead, "Grid %2d X vs Trace time (single event)", gid);
+    h_grid_xvstrace[g] = MakeTH2('D', chis, chead, PEXOR_APFEL_WIRES, 0, PEXOR_APFEL_WIRES, l_tra_size / binscaledown,
+        0, l_tra_size, "X wire number", "trace time", "N");
+    if (IsObjMade())
+    {
+      for (int bin = 0; bin < PEXOR_APFEL_WIRES; ++bin)
+      {
+        sprintf(chead, "%2d", bin);
+        h_grid_xvstrace[g]->GetXaxis()->SetBinLabel(1 + bin, chead);
+      }
+    }
 
-       sprintf(chis,"Grids/Grid_%2d/Y_ProfileSum_%2d", gid, gid);
-       sprintf(chead,"Grid %2d Y Profile (accumulated)",gid);
-       h_grid_y_profile_sum[g] = MakeTH1('D', chis,chead,PEXOR_APFEL_WIRES,0,PEXOR_APFEL_WIRES, "Y wire number", "N");
+    sprintf(chis, "Grids/Grid_%2d/X_TraceSum_%2d", gid, gid);
+    sprintf(chead, "Grid %2d X vs Trace time (accumulated)", gid);
+    h_grid_xvstrace_sum[g] = MakeTH2('D', chis, chead, PEXOR_APFEL_WIRES, 0, PEXOR_APFEL_WIRES,
+        l_tra_size / binscaledown, 0, l_tra_size, "X wire number", "trace time", "N");
+    if (IsObjMade())
+    {
+      for (int bin = 0; bin < PEXOR_APFEL_WIRES; ++bin)
+      {
+        sprintf(chead, "%2d", bin);
+        h_grid_xvstrace_sum[g]->GetXaxis()->SetBinLabel(1 + bin, chead);
+      }
+    }
 
-       int binscaledown=10; // use this to decrease granularity for the 2d plots
-       sprintf(chis,"Grids/Grid_%2d/X_Trace_%2d", gid, gid);
-       sprintf(chead,"Grid %2d X vs Trace time (single event)",gid);
-       h_grid_xvstrace[g] = MakeTH2('D', chis,chead,PEXOR_APFEL_WIRES,0,PEXOR_APFEL_WIRES, l_tra_size/binscaledown, 0, l_tra_size,"X wire number","t", "N");
+    sprintf(chis, "Grids/Grid_%2d/Y_Trace_%2d", gid, gid);
+    sprintf(chead, "Grid %2d Y vs Trace time (single event)", gid);
+    h_grid_yvstrace[g] = MakeTH2('D', chis, chead, PEXOR_APFEL_WIRES, 0, PEXOR_APFEL_WIRES, l_tra_size / binscaledown,
+        0, l_tra_size, "Y wire number", "t", "N");
+    if (IsObjMade())
+    {
+      for (int bin = 0; bin < PEXOR_APFEL_WIRES; ++bin)
+      {
+        sprintf(chead, "%2d", bin);
+        h_grid_yvstrace[g]->GetXaxis()->SetBinLabel(1 + bin, chead);
+      }
+    }
 
-       sprintf(chis,"Grids/Grid_%2d/X_TraceSum_%2d", gid, gid);
-       sprintf(chead,"Grid %2d X vs Trace time (accumulated)",gid);
-       h_grid_xvstrace_sum[g] = MakeTH2('D', chis,chead,PEXOR_APFEL_WIRES,0,PEXOR_APFEL_WIRES, l_tra_size/binscaledown, 0, l_tra_size,"X wire number","t", "N");
+    sprintf(chis, "Grids/Grid_%2d/Y_TraceSum_%2d", gid, gid);
+    sprintf(chead, "Grid %2d Y vs Trace time (single event)", gid);
+    h_grid_yvstrace_sum[g] = MakeTH2('D', chis, chead, PEXOR_APFEL_WIRES, 0, PEXOR_APFEL_WIRES,
+        l_tra_size / binscaledown, 0, l_tra_size, "Y wire number", "t", "N");
+    if (IsObjMade())
+    {
+      for (int bin = 0; bin < PEXOR_APFEL_WIRES; ++bin)
+      {
+        sprintf(chead, "%2d", bin);
+        h_grid_yvstrace_sum[g]->GetXaxis()->SetBinLabel(1 + bin, chead);
+      }
+    }
 
-
-
-       sprintf(chis,"Grids/Grid_%2d/Y_Trace_%2d", gid, gid);
-       sprintf(chead,"Grid %2d Y vs Trace time (single event)",gid);
-       h_grid_yvstrace[g] = MakeTH2('D', chis,chead,PEXOR_APFEL_WIRES,0,PEXOR_APFEL_WIRES, l_tra_size/binscaledown, 0, l_tra_size, "Y wire number","t", "N");
-
-       sprintf(chis,"Grids/Grid_%2d/Y_TraceSum_%2d", gid, gid);
-       sprintf(chead,"Grid %2d Y vs Trace time (single event)",gid);
-       h_grid_yvstrace_sum[g] = MakeTH2('D', chis,chead,PEXOR_APFEL_WIRES,0,PEXOR_APFEL_WIRES, l_tra_size/binscaledown, 0, l_tra_size, "Y wire number","t", "N");
-     } // grid
+  }    // grid
 
 
 } // end function

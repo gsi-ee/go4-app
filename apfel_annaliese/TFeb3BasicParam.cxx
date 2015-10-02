@@ -35,6 +35,8 @@ TFeb3BasicParam::~TFeb3BasicParam()
 
 void TFeb3BasicParam::InitMapping()
 {
+  fDoGridMapping=kTRUE; // optionally disable this for debugging
+
    // init to non valid here:
    for (int sfp = 0; sfp < PEXOR_MAXSFP; ++sfp)
          {
