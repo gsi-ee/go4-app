@@ -943,7 +943,7 @@ void TFeb3BasicProc:: f_make_histo (Int_t l_mode)
         h_grid_y_profile_sum[g]->GetXaxis()->SetBinLabel(1 + bin, chead);
       }
     }
-    int binscaledown = 10;    // use this to decrease granularity for the 2d plots
+    int binscaledown = 1;    // use this to decrease granularity for the 2d plots
     sprintf(chis, "Grids/Grid_%2d/X_Trace_%2d", gid, gid);
     sprintf(chead, "Grid %2d X vs Trace time (single event)", gid);
     h_grid_xvstrace[g] = MakeTH2('D', chis, chead, PEXOR_APFEL_WIRES, 0, PEXOR_APFEL_WIRES, l_tra_size / binscaledown,
@@ -984,7 +984,7 @@ void TFeb3BasicProc:: f_make_histo (Int_t l_mode)
     }
 
     sprintf(chis, "Grids/Grid_%2d/Y_TraceSum_%2d", gid, gid);
-    sprintf(chead, "Grid %2d Y vs Trace time (single event)", gid);
+    sprintf(chead, "Grid %2d Y vs Trace time (accumulated)", gid);
     h_grid_yvstrace_sum[g] = MakeTH2('D', chis, chead, PEXOR_APFEL_WIRES, 0, PEXOR_APFEL_WIRES,
         l_tra_size / binscaledown, 0, l_tra_size, "Y wire number", "t", "N");
     if (IsObjMade())
