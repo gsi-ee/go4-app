@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 
 print "Entering Python script"
 
