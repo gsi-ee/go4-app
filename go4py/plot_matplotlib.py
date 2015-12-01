@@ -4,27 +4,35 @@ import ROOT
 import matplotlib.pyplot as plt
 
 
-def hist2array(h):
-	xs = []
-	ys = []
-	for i in range(h.GetNbinsX()):
-		x = hist.GetBinLowEdge(i+1)
-		y = hist.GetBinContent(i+1)
-		xs.append(x)
-		ys.append(y)
-	return xs, ys
+def hist2list(h):
+    """
+    Read points from histogram h into two lists (x and y coordinates)
+    Format is chosen such that matplotlib.pyplot.step() can be used for plotting
+    hence (x, y) == (low edge, content)
+    """
+    xs = []
+    ys = []
+    for i in range(h.GetNbinsX()):
+        x = h.GetBinLowEdge(i+1)
+        y = h.GetBinContent(i+1)
+        xs.append(x)
+        ys.append(y)
+    return xs, ys
 
 
 def eval_func(xs, tf):
-	ys = []
-	for x in xs:
-		y = tf.Eval(x)
-		ys.append(y)
-	return ys
+    """
+    Evaluate the TF1 tf for all values in xs, return list of y values
+    """
+    ys = []
+    for x in xs:
+        y = tf.Eval(x)
+        ys.append(y)
+    return ys
 
 
 
-hist = next(go4py.MatchingObjects("TdcChan2", "Histograms"))
+hist = next(go4py.MatchingObjects("a_1d_hist", "Histograms"))
 hist.Rebin(5)
 
 
@@ -34,7 +42,7 @@ f.SetParName(0, "slope")
 f.SetParameter(0, 0.1)
 
 
-xs, ys = hist2array(hist)
+xs, ys = hist2list(hist)
 #xs, ys = zip(*[(x, y) for x, y in zip(xs, ys) if y > 35])
 
 yfs = eval_func(xs, f)
