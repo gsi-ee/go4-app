@@ -20,6 +20,10 @@
 
 #include "TGo4UserException.h"
 
+/** enable this definition to print out event sample data explicitely*/
+//#define HITDET_DATA_VERBOSE 1
+
+
 static unsigned long skipped_events = 0;
 //static unsigned long skipped_msgs = 0;
 
@@ -355,8 +359,12 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
             {
               UChar_t channel = ((header >> 28) & 0x3);
               UChar_t size12bit = ((header >> 20) & 0x3F);
-              UChar_t size32bit = 1 + size12bit * 3 / 8;    // account header word again in evdata
-              //printf("MSG_ADC_Event channel:%d size12:%d size32:%d\n",channel,size12bit,size32bit);
+              UChar_t size32bit = ((1 + size12bit) * 3) / 8;    // account header word again in evdata
+              // account partially filled last data word here:
+              if((Float_t) (1 + size12bit) * 3.0 /8.0 > (Float_t) size32bit) size32bit++;
+#ifdef HITDET_DATA_VERBOSE
+              printf("MSG_ADC_Event channel:%d size12:%d size32:%d\n",channel,size12bit,size32bit);
+#endif
               if ((pdata - pdatastart) + size32bit > lwords)
                 GO4_SKIP_EVENT_MESSAGE(
                     "ASIC Event header error: 12 bit size %d does not fit into mbs subevent buffer of restlen %d words", size12bit, lwords - (pdata - pdatastart));
@@ -367,6 +375,9 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
                 HitDetRAW_CHECK_PDATA;
                 HitDetMSG_CHECK_PDATA;
                 evdata[j] = *pdata++;
+#ifdef HITDET_DATA_VERBOSE
+                printf("MSG_ADC_Event copies 32bit data[%d]=0x%x \n",j,evdata[j]);
+#endif
               }
               THitDetMsgEvent* theMsg = new THitDetMsgEvent(channel);
               theMsg->SetEpoch(((evdata[0] & 0xFFFFF) << 4) | ((evdata[1] >> 28) & 0xF));
@@ -389,10 +400,17 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
                 Int_t dix_end = (Int_t) j_end / 32;    // data index containing last bit of sample
                 UChar_t k_start = 32 - (j_start - 32 * dix_start);    //  start bit number in evdata word
                 UChar_t k_end = 32 - (j_end - 32 * dix_end);    // end bit number in evdata word
+#ifdef HITDET_DATA_VERBOSE
+                printf("MSG_ADC_Event jstart:%d jend:%d dix_start:%d dix_end:%d k_start:%d k_end:%d \n",
+                    (int) j_start, (int) j_end, dix_start, dix_end, (int) k_start, (int) k_end);
+#endif
                 if (dix_start == dix_end)
                 {
                   // easy case, sample is inside one evdata word:
                   val = (evdata[dixoffset + dix_start] >> k_end) & 0xFFF;
+#ifdef HITDET_DATA_VERBOSE
+                  printf("MSG_ADC_Event sees NON spanning value\n");
+#endif
                 }
                 else if (dix_end == dix_start + 1)
                 {
@@ -405,7 +423,9 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
                     mask_end |= (1 << b);
                   val = ((evdata[dixoffset + dix_start] & mask_start) << (12 - k_start));
                   val |= (evdata[dixoffset + dix_end] >> k_end) & mask_end;
-
+#ifdef HITDET_DATA_VERBOSE
+                  printf("MSG_ADC_Event sees SPANNING value\n");
+#endif
                 }
                 else
                 {
@@ -414,7 +434,11 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
                       "NEVER COME HERE: mismatch of evsample indices - dix_end:%d and dix_start:%d", dix_end, dix_start)
 
                 }
+#ifdef HITDET_DATA_VERBOSE
+                printf("MSG_ADC_Event set bin:%d to val:%d\n",bin,val);
+#endif
                 theMsg->SetTraceData(bin, val);
+                j_start=j_end; // next 12 bit word
               }    // for bin
 
               // here do simple histogramming of traces:
