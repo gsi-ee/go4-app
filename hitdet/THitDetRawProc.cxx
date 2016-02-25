@@ -397,7 +397,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
               {
                 UChar_t j_end = j_start + 12;
                 Int_t dix_start = (Int_t) j_start / 32;    // data index containing first bit of sample
-                Int_t dix_end = (Int_t) j_end / 32;    // data index containing last bit of sample
+                Int_t dix_end = (Int_t) (j_end -1) / 32;    // data index containing last bit of sample
                 UChar_t k_start = 32 - (j_start - 32 * dix_start);    //  start bit number in evdata word
                 UChar_t k_end = 32 - (j_end - 32 * dix_end);    // end bit number in evdata word
 #ifdef HITDET_DATA_VERBOSE
