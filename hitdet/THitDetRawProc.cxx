@@ -392,10 +392,10 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
               Int_t dixoffset = 1;    // actual sample data begins after header and timestamp,
               // j counts global bit number in stream, j_start is first in stream, j_end is last
               // k is local bit number in evdata word (lsb=0)
-              UChar_t j_start = 16;    // begin of first 12 bit sample is after timestamp
+              UShort_t j_start = 16;    // begin of first 12 bit sample is after timestamp
               for (Int_t bin = 0; bin < binlen; ++bin)
               {
-                UChar_t j_end = j_start + 12;
+                UShort_t j_end = j_start + 12;
                 Int_t dix_start = (Int_t) j_start / 32;    // data index containing first bit of sample
                 Int_t dix_end = (Int_t) (j_end -1) / 32;    // data index containing last bit of sample
                 UChar_t k_start = 32 - (j_start - 32 * dix_start);    //  start bit number in evdata word
@@ -457,7 +457,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
                 if (val > 0x7FF)
                   val = val - 0x1000;
 
-                if (tracesnapshot)
+                if (tracesnapshot && bin<tracelength)
                   tracesnapshot->SetBinContent(bin + 1, val);
                 if (trace2d)
                   trace2d->Fill(bin, val, snapshotcount);
@@ -468,9 +468,12 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
                 }
                 else
                 {
-                  boardDisplay->hTrace[channel]->SetBinContent(1 + bin, val);
-                  boardDisplay->hTraceSum[channel]->AddBinContent(1 + bin, val);
-                }
+                  if (bin<tracelength)
+                    {
+                      boardDisplay->hTrace[channel]->SetBinContent(1 + bin, val);
+                      boardDisplay->hTraceSum[channel]->AddBinContent(1 + bin, val);
+                    }
+                 }
 
                 // value histograms:
                 boardDisplay->hADCValues->Fill(val);
