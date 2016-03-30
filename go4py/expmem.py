@@ -4,6 +4,7 @@ from go4py import ExpMem
 
 
 f = ExpMem("export.root")
+#f = ExpMem("Go4AutoSave.root")
 
 print "All objects:"
 for obj in f.Objects():
@@ -15,13 +16,13 @@ for obj in f.MatchingObjects("does_not_exist"):
     print obj
 
 print
-print "All objects containing \"x\":"
-for obj in f.MatchingObjects("*x*"):
+print "All objects containing \"Ch\":"
+for obj in f.MatchingObjects("*Ch*"):
     print obj
 
 print
-print "All histograms ending on \"_ele\":"
-for obj in f.MatchingObjects("*_ele", "Histograms"):
+print "All histograms ending on \"g\":"
+for obj in f.MatchingObjects("*g", "Histograms"):
     print obj
 
 

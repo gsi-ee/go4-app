@@ -21,7 +21,7 @@ print " no NextMatchingObject gives:", go4.NextMatchingObject("does_not_exist", 
 
 import go4py
 
-for h in go4py.MatchingObjects("*3", "Histograms"):
+for h in go4py.MatchingObjects("*g", "Histograms"):
     print h.GetName(), h.GetEntries()
 
 
