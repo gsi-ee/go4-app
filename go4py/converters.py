@@ -3,7 +3,7 @@
 import go4py
 
 
-f = go4py.ExpMem("export.root")
+f = go4py.ExpMem("example.root")
 
 ho = next(f.MatchingObjects("*g", "Histograms"))
 xo, yo = go4py.convert.hist2list(ho)

@@ -3,8 +3,7 @@
 from go4py import ExpMem
 
 
-f = ExpMem("export.root")
-#f = ExpMem("Go4AutoSave.root")
+f = ExpMem("example.root")
 
 print "All objects:"
 for obj in f.Objects():
