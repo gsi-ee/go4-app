@@ -18,8 +18,14 @@ sudo apt-get install python-wxtools
 #In principle, PyCrust should be usable like this, but it segfaults on 
 #the second execution despite the changed startup...
 
+try:
+    from wx.py import PyShell as shell
+except ImportError as e:
+    al, at = list(e.args), type(e.args)
+    al[0] += "\nDo you have wxPython and PyShell installed?"
+    e.args = at(al)
+    raise
 
-from wx.py import PyShell as shell
 shell.App().MainLoop()
 
 
