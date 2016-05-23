@@ -29,7 +29,7 @@
 #define PEXOR_APFEL_GRIDS 2
 
 /* default number of wires for first init:*/
-#define PEXOR_APFEL_WIRES 16
+#define PEXOR_APFEL_WIRES 32
 
 
 #include "TGo4Parameter.h"

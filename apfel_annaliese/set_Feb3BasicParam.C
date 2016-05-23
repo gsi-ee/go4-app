@@ -30,14 +30,14 @@ void set_Feb3BasicParam()
 
    // mapping of wires on grid to febex id
    int grid = 0;
-     for (int wire = 0; wire < 16; ++wire)
+     for (int wire = 0; wire < 32; ++wire)
      {
         param0->fGridBoardID_X[grid][wire] = 10;
         param0->fGridBoardID_Y[grid][wire] = 11;
      }
 
    grid = 1;
-          for (int wire = 0; wire < 16; ++wire)
+          for (int wire = 0; wire < 32; ++wire)
           {
              param0->fGridBoardID_X[grid][wire] = 10;
              param0->fGridBoardID_Y[grid][wire] = 11;
