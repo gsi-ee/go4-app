@@ -84,7 +84,7 @@ TFeb3BasicProc::TFeb3BasicProc(const char* name) : TGo4EventProcessor(name)
   cout << "**** TFeb3BasicProc: Create instance " << name << endl;
 
   //printf ("Histograms created \n");  fflush (stdout);
-  fPar = dynamic_cast<TFeb3BasicParam*>(MakeParameter("Feb3BasicParam", "TFeb3BasicParam", "set_Feb3BAsicParam.C"));
+  fPar = dynamic_cast<TFeb3BasicParam*>(MakeParameter("Feb3BasicParam", "TFeb3BasicParam", "set_Feb3BasicParam.C"));
   l_first=0; // JAM need this to avoid crash after second submit
 
 }
