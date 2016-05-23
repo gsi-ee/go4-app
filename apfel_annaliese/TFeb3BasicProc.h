@@ -51,11 +51,17 @@
 #define BASE_LINE_SUBT_START  0
 #define BASE_LINE_SUBT_SIZE   150
 
+/* this define switches on baseline substraction with user defined condition region*/
+#define USE_BASELINE_CONDITION 1
+
+
 #include "TGo4EventProcessor.h"
 
 //class TFeb3BasicParam;
 #include "TFeb3BasicParam.h"
 //class TGo4Fitter;
+
+class TGo4Condition;
 
 class TFeb3BasicProc : public TGo4EventProcessor {
    public:
@@ -94,6 +100,9 @@ class TFeb3BasicProc : public TGo4EventProcessor {
       TH1          *h_grid_y_profile_sum[PEXOR_APFEL_GRIDS]; //! grid lateral y profile accumulated
       TH2          *h_grid_xvstrace_sum[PEXOR_APFEL_GRIDS]; //! grid x versus trace time accumulated
       TH2          *h_grid_yvstrace_sum[PEXOR_APFEL_GRIDS]; //! grid y versus trace time accumulated
+
+
+      TGo4Condition* c_baseline_region; //! dynamically adjust region where baseline is evaluated
 
 
 

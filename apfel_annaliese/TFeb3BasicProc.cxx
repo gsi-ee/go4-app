@@ -22,6 +22,7 @@
 
 #include "TH1.h"
 #include "TH2.h"
+#include "TGo4WinCond.h"
 #include "TCutG.h"
 #include "snprintf.h"
 
@@ -598,12 +599,21 @@ Bool_t TFeb3BasicProc::BuildEvent(TGo4EventElement* target)
           }
 
           // find base line value of trace and correct it to baseline 0
+
+#ifdef USE_BASELINE_CONDITION
+          int denom=c_baseline_region->GetXUp()- c_baseline_region->GetXLow();
+          f_bls_val = 0.;
+          if(denom)
+            f_bls_val=c_baseline_region->GetIntegral(h_trace[l_sfp_id][l_feb_id][l_cha_id]) /denom;
+
+#else
           f_bls_val = 0.;
           for (l_l=l_bls_start; l_l<l_bls_stop; l_l++) 
           {
             f_bls_val += (Double_t)l_tr[l_l];
           }
-          f_bls_val = f_bls_val / (Double_t)(l_bls_stop - l_bls_start); 
+          f_bls_val = f_bls_val / (Double_t)(l_bls_stop - l_bls_start);
+#endif
           for (l_l=0; l_l<l_trace_size; l_l++)   // create baseline restored trace 
           {
             f_tr_blr[l_l] =  (Double_t)l_tr[l_l] - f_bls_val;
@@ -997,6 +1007,12 @@ void TFeb3BasicProc:: f_make_histo (Int_t l_mode)
     }
 
   }    // grid
+
+
+  // finally we add some condition to define actual baseline region:
+
+  c_baseline_region = MakeWinCond("BLR_Region",BASE_LINE_SUBT_START, BASE_LINE_SUBT_START+BASE_LINE_SUBT_SIZE);
+
 
 
 } // end function
