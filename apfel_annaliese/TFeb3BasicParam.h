@@ -32,6 +32,10 @@
 #define PEXOR_APFEL_WIRES 16	
 
 
+/* JAM default rebin of trace in 2d beam profile histograms*/
+#define PEXOR_TRACE_BINSCALE 100
+
+
 #include "TGo4Parameter.h"
 
 class TFeb3BasicParam : public TGo4Parameter {
@@ -43,6 +47,7 @@ class TFeb3BasicParam : public TGo4Parameter {
       void InitMapping();
       void FindBoardIndices(Int_t boardid, Int_t &ch, Int_t &slave);
       Bool_t fDoGridMapping; // switch beam profile grid mapping on or off
+      Int_t fGridTraceDownscale; // rebin scale of trace in 2d grid display
 
       Int_t fBoardID[PEXOR_MAXSFP][PEXOR_MAXDEVS]; // mapping of board numbers to pexor chains
 
@@ -58,7 +63,7 @@ class TFeb3BasicParam : public TGo4Parameter {
 
 
 
-   ClassDef(TFeb3BasicParam,1)
+   ClassDef(TFeb3BasicParam,2)
 };
 
 #endif //SPAR_H

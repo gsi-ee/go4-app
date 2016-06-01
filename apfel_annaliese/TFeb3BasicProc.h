@@ -51,8 +51,10 @@
 #define BASE_LINE_SUBT_START  0
 #define BASE_LINE_SUBT_SIZE   150
 
-/* this define switches on baseline substraction with user defined condition region*/
+/* JAM this define switches on baseline substraction with user defined condition region*/
 #define USE_BASELINE_CONDITION 1
+
+
 
 
 #include "TGo4EventProcessor.h"

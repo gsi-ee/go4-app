@@ -32,7 +32,9 @@
 #include "TGo4CondArray.h"
 #include "TGo4Picture.h"
 //#include "TFeb3BasicParam.h" // done in header file JAM
-#include "TGo4Fitter.h"
+//#include "TGo4Fitter.h"
+#include "TGo4Analysis.h"
+
 
 #ifdef USE_MBS_PARAM
  static UInt_t    l_tr    [MAX_TRACE_SIZE];
@@ -66,6 +68,9 @@ static UInt_t    l_more_1_hit_and_eeeeee_ct=0;
 static UInt_t    l_e_filt_out_of_trig_wind_ct=0;
 
 static UInt_t    l_first=0;
+
+/** JAM: this is used to check if we have to rebuild the 2d trace histos*/
+static Int_t l_lastbinscaledown=PEXOR_TRACE_BINSCALE;
 
 //***********************************************************
 TFeb3BasicProc::TFeb3BasicProc() : TGo4EventProcessor("Proc")
@@ -262,7 +267,7 @@ Bool_t TFeb3BasicProc::BuildEvent(TGo4EventElement* target)
   pl_tmp  += 4;
   #endif
 
-  if (l_first == 0)
+  if (l_first == 0 || l_lastbinscaledown!=fPar->fGridTraceDownscale)
   {
     l_first = 1;
     #ifdef USE_MBS_PARAM
@@ -904,6 +909,18 @@ void TFeb3BasicProc:: f_make_histo (Int_t l_mode)
 
  // JAM put here additional histograms with mapped grid wires:
 
+
+  int binscaledown =fPar->fGridTraceDownscale; // use this to decrease granularity for the 2d plots
+
+     if (l_lastbinscaledown!=binscaledown)
+       {
+           if(binscaledown<=0) binscaledown=1;
+           printf ("f_make_histo: rebuilding 2d grid displays with new scaledown %d (previous: %d) \n", binscaledown, l_lastbinscaledown);
+           l_lastbinscaledown=binscaledown;
+           TGo4Analysis::Instance()->SetMakeWithAutosave(false); // overwrite old ones if any
+       }
+
+
   for (int g = 0; (g < fPar->fNumGrids) && (g < PEXOR_APFEL_GRIDS); g++)
   {
     int gid = fPar->fGridDeviceID[g];
@@ -953,7 +970,12 @@ void TFeb3BasicProc:: f_make_histo (Int_t l_mode)
         h_grid_y_profile_sum[g]->GetXaxis()->SetBinLabel(1 + bin, chead);
       }
     }
-    int binscaledown = 10;    // use this to decrease granularity for the 2d plots
+
+
+
+
+
+
     sprintf(chis, "Grids/Grid_%2d/X_Trace_%2d", gid, gid);
     sprintf(chead, "Grid %2d X vs Trace time (single event)", gid);
     h_grid_xvstrace[g] = MakeTH2('D', chis, chead, PEXOR_APFEL_WIRES, 0, PEXOR_APFEL_WIRES, l_tra_size / binscaledown,
@@ -1006,8 +1028,11 @@ void TFeb3BasicProc:: f_make_histo (Int_t l_mode)
       }
     }
 
+
+
   }    // grid
 
+  TGo4Analysis::Instance()->SetMakeWithAutosave(true); // for dynamic bin scale down feature
 
   // finally we add some condition to define actual baseline region:
 
