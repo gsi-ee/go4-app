@@ -106,7 +106,7 @@ class TFeb3BasicProc : public TGo4EventProcessor {
 
       TGo4Condition* c_baseline_region; //! dynamically adjust region where baseline is evaluated
 
-
+      UInt_t fEventSequenceNumber; //! event number since begin
 
 
 

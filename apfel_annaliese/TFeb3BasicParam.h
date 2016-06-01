@@ -48,6 +48,8 @@ class TFeb3BasicParam : public TGo4Parameter {
       void FindBoardIndices(Int_t boardid, Int_t &ch, Int_t &slave);
       Bool_t fDoGridMapping; // switch beam profile grid mapping on or off
       Int_t fGridTraceDownscale; // rebin scale of trace in 2d grid display
+      UInt_t fSlowMotionStart; // event number in file to begin slow control mode (0=off)
+
 
       Int_t fBoardID[PEXOR_MAXSFP][PEXOR_MAXDEVS]; // mapping of board numbers to pexor chains
 
@@ -63,7 +65,7 @@ class TFeb3BasicParam : public TGo4Parameter {
 
 
 
-   ClassDef(TFeb3BasicParam,2)
+   ClassDef(TFeb3BasicParam,3)
 };
 
 #endif //SPAR_H

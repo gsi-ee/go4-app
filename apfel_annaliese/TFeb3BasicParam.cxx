@@ -37,6 +37,8 @@ void TFeb3BasicParam::InitMapping()
 {
   fDoGridMapping=kTRUE; // optionally disable this for debugging
   fGridTraceDownscale=PEXOR_TRACE_BINSCALE;
+  fSlowMotionStart=0;
+
    // init to non valid here:
    for (int sfp = 0; sfp < PEXOR_MAXSFP; ++sfp)
          {

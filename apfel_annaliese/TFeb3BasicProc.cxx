@@ -73,7 +73,7 @@ static UInt_t    l_first=0;
 static Int_t l_lastbinscaledown=PEXOR_TRACE_BINSCALE;
 
 //***********************************************************
-TFeb3BasicProc::TFeb3BasicProc() : TGo4EventProcessor("Proc")
+TFeb3BasicProc::TFeb3BasicProc() : TGo4EventProcessor("Proc"),fEventSequenceNumber(0)
 {
   cout << "**** TFeb3BasicProc: Create instance " << endl;
 }
@@ -84,7 +84,7 @@ TFeb3BasicProc::~TFeb3BasicProc()
 }
 //***********************************************************
 // this one is used in standard factory
-TFeb3BasicProc::TFeb3BasicProc(const char* name) : TGo4EventProcessor(name)
+TFeb3BasicProc::TFeb3BasicProc(const char* name) : TGo4EventProcessor(name),fEventSequenceNumber(0)
 {
   cout << "**** TFeb3BasicProc: Create instance " << name << endl;
 
@@ -790,6 +790,19 @@ void TFeb3BasicProc::FillGrids()
       }    // if bidY
     }    // wires
   }    // grid index
+
+
+  fEventSequenceNumber++; // for the moment, we just increase local number since last submit/analysis start
+
+
+  if (fPar->fSlowMotionStart > 0)
+      if (fEventSequenceNumber >=(Int_t) fPar->fSlowMotionStart)
+        GO4_STOP_ANALYSIS_MESSAGE("Stopped for slow motion mode at event of sequence number %d",
+            fEventSequenceNumber);
+
+
+
+
 }
 
 
