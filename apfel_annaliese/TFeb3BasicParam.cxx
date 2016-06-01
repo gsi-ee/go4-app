@@ -75,52 +75,54 @@ void TFeb3BasicParam::InitMapping()
     fGridDeviceID[1]=43; // low gain arbitrary id number
 
     // mapping of wires and grids to frontend boards:
-    for (int wire = 0; wire < PEXOR_APFEL_WIRES; ++wire)
+    for (int wire = 0; wire < 8; ++wire)
        {
 
          // high gain grid (index 0):
          fGridBoardID_X[0][wire] = 10; // x direction at febex0 -> board id 10
-         fGridBoardID_Y[0][wire] = 11; // y direction at febex1 -> board id 11
+         fGridBoardID_X[0][wire+8] = 11; // y direction at febex1 -> board id 11
          // high gain grid (index 1):
          fGridBoardID_X[1][wire] = 10; // x direction at febex0 -> board id 10
-         fGridBoardID_Y[1][wire] = 11;// y direction at febex1 -> board id 11
+         fGridBoardID_X[1][wire+8] = 11;// y direction at febex1 -> board id 11
        }
 
     // mapping of wires to frontend channels:
     int grid=0; // first high gain
-    fGridChannel_X[grid][9] = 0;
-    fGridChannel_X[grid][10] = 2;
-    fGridChannel_X[grid][12] = 10;
-    fGridChannel_X[grid][13] = 4;
-    fGridChannel_X[grid][14] = 6;
-    fGridChannel_X[grid][15] = 14;
 
-    fGridChannel_Y[grid][1] = 4;
-    fGridChannel_Y[grid][3] = 14;
-    fGridChannel_Y[grid][4] = 12;
-    fGridChannel_Y[grid][5] = 10;
-    fGridChannel_Y[grid][6] = 8;
-    fGridChannel_Y[grid][7] = 0;
-    fGridChannel_Y[grid][8] = 2;
+    fGridChannel_X[grid][0] = 12;  //0
+    fGridChannel_X[grid][1] = 14; //0
+    fGridChannel_X[grid][2] = 8;//0
+    fGridChannel_X[grid][3] = 10; //0
+    fGridChannel_X[grid][4] = 6; //0
+    fGridChannel_X[grid][5] = 4;//0
+    fGridChannel_X[grid][6] = 2;  //0
+    fGridChannel_X[grid][7] = 0; //0
+    fGridChannel_X[grid][8] = 12;//0
+    fGridChannel_X[grid][9] = 14; //0
+    fGridChannel_X[grid][10] = 8; //0
+    fGridChannel_X[grid][11] = 10;//0
+    fGridChannel_X[grid][12] = 6;  //0
+    fGridChannel_X[grid][13] = 4; //0
+    fGridChannel_X[grid][14] = 2;//0
+    fGridChannel_X[grid][15] = 0; //0
 
     grid=1; // secondly low gain:
-    fGridChannel_X[grid][9] = 1;
-
-    fGridChannel_X[grid][10] = 3;
-    fGridChannel_X[grid][12] = 11;
-    fGridChannel_X[grid][13] = 5;
-    fGridChannel_X[grid][14] = 7;
-    fGridChannel_X[grid][15] = 15;
-
-    fGridChannel_Y[grid][1] = 5;
-    fGridChannel_Y[grid][3] = 15;
-    fGridChannel_Y[grid][4] = 13;
-    fGridChannel_Y[grid][5] = 11;
-    fGridChannel_Y[grid][6] = 9;
-    fGridChannel_Y[grid][7] = 1;
-    fGridChannel_Y[grid][8] = 3;
-
-
+    fGridChannel_X[grid][0] = 13;  //0
+    fGridChannel_X[grid][1] = 15; //0
+    fGridChannel_X[grid][2] = 9;//0
+    fGridChannel_X[grid][3] = 11; //0
+    fGridChannel_X[grid][4] = 7; //0
+    fGridChannel_X[grid][5] = 5;//0
+    fGridChannel_X[grid][6] = 3;  //0
+    fGridChannel_X[grid][7] = 1; //0
+    fGridChannel_X[grid][8] = 13;//0
+    fGridChannel_X[grid][9] = 15; //0
+    fGridChannel_X[grid][10] = 9; //0
+    fGridChannel_X[grid][11] = 11;//0
+    fGridChannel_X[grid][12] = 7;  //0
+    fGridChannel_X[grid][13] = 5; //0
+    fGridChannel_X[grid][14] = 3;//0
+    fGridChannel_X[grid][15] = 1; //0
 
 }
 
