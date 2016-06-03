@@ -23,6 +23,7 @@ class TQFWRawParam : public TGo4Parameter {
       Int_t fTriggerBoardID; // id of board that contains trigger channels
       Int_t fTriggerFirstChannel; // lower boundary of trigger channel region
       Int_t fTriggerLastChannel; // upper boundary of trigger channel region
+      Bool_t fCheckEventSequence; // if true check if subsequent events have incrementing payload numbers
 
 
 
@@ -38,7 +39,7 @@ class TQFWRawParam : public TGo4Parameter {
 
 
 
-   ClassDef(TQFWRawParam,1)
+   ClassDef(TQFWRawParam,2)
 };
 
 #endif // TQFWRawParam_H

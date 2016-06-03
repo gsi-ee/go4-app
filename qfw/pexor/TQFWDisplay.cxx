@@ -332,6 +332,11 @@ void TQFWBoardDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
   hQFWOffsets= MakeTH1('I', Form("Board%d/Brd%d-Offsets", brd, brd), Form("QFW frontend measured channel offsets in board %d", brd),
       PEXOR_QFWCHANS, 0, PEXOR_QFWCHANS);
 
+
+  hEventDelta= MakeTH1('I', Form("Board%d/Brd%d-EventDelta", brd, brd), Form("Event sequence differences on board %d", brd),
+      100, 0, 100);
+
+
   obname.Form("QFW_Rawscalers_Brd%d", brd);
   pPexorQfws = GetPicture(obname.Data());
   if (pPexorQfws == 0)

@@ -87,12 +87,12 @@ TString TQFWLoop::GetSetupString()
 //************************************************************************//
 
 TQFWBoard::TQFWBoard() :
-    TGo4CompositeEvent()
+    TGo4CompositeEvent(),fLastEventNumber(-1)
 {
 
 }
 TQFWBoard::TQFWBoard(const char* name, UInt_t unid, Short_t index) :
-    TGo4CompositeEvent(name, name, index), fUniqueId(unid)
+    TGo4CompositeEvent(name, name, index), fUniqueId(unid),fLastEventNumber(-1)
 {
   TGo4Log::Info("TQFWBoard: Create instance %s with unique id: %d, index: %d", name, unid, index);
   TString modname;
@@ -183,6 +183,8 @@ std::vector<UInt_t> TQFWRawEvent::fgConfigQFWBoards;
 TQFWRawEvent::TQFWRawEvent() :
     TGo4CompositeEvent(), fSequenceNumber(-1)
 {
+
+
 }
 //***********************************************************
 TQFWRawEvent::TQFWRawEvent(const char* name, Short_t id) :

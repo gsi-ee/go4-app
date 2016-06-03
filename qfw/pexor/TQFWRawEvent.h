@@ -87,6 +87,8 @@ class TQFWLoop : public TGo4EventElement {
       Bool_t fHasData; //!
 
 
+
+
       ClassDef(TQFWLoop,2)
 };
 
@@ -137,6 +139,13 @@ class TQFWBoard : public TGo4CompositeEvent {
       }
 
 
+      Int_t GetLastEventNumber()
+      {
+        return fLastEventNumber;
+      }
+
+      void SetLastEventNumber(Int_t num) {fLastEventNumber=num;}
+
       /** Method called by the framework to clear the event element. */
       void Clear(Option_t *t="");
 
@@ -162,7 +171,10 @@ class TQFWBoard : public TGo4CompositeEvent {
       Int_t fQfwOffsets[PEXOR_QFWCHANS];
 
 
-      ClassDef(TQFWBoard,2)
+      /** check sequence number of events and report missing events*/
+      Int_t fLastEventNumber; //!
+
+      ClassDef(TQFWBoard,3)
 };
 
 
@@ -188,6 +200,7 @@ class TQFWRawEvent : public TGo4CompositeEvent {
       /* This array keeps the unique id numbers of configured qfw boards*/
        static std::vector<UInt_t> fgConfigQFWBoards;
        
+       /** Sequence number of events */
        Int_t fSequenceNumber;
 
        

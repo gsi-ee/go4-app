@@ -55,6 +55,8 @@ protected:
   /** this indicates if we have already a valid offset from correction loop*/
   Bool_t fbOffsetReady; //!
 
+
+
 private:
 
 

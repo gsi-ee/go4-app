@@ -207,6 +207,9 @@ public:
   TH1* hQFWOffsets;
 
 
+  /** Check of event sequence: display differences between subsequent qfw events*/
+  TH1* hEventDelta;
+
   TGo4Picture *pPexorQfws;
   TGo4Picture *pPexorQfwsTrace;
 

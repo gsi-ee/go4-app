@@ -19,6 +19,7 @@
 #include "TGo4UserException.h"
 
 static unsigned long skipped_events=0;
+static unsigned long missing_events=0;
 
 /* helper macro for BuildEvent to check if payload pointer is still inside delivered region:*/
 /* this one to be called at top data processing loop*/
@@ -26,10 +27,12 @@ static unsigned long skipped_events=0;
 if((pdata - pdatastart) > (opticlen/4)) \
 { \
   printf("############ unexpected end of payload for sfp:%d slave:%d with opticlen:0x%x, skip event %ld\n",sfp_id, device_id, opticlen, skipped_events++);\
-  psubevt->PrintMbsSubevent(kTRUE,kTRUE,kTRUE); \
   GO4_SKIP_EVENT \
   continue; \
 }
+
+// JAM took this out since the case is clear
+//psubevt->PrintMbsSubevent(kTRUE,kTRUE,kTRUE);
 
 /******************************************
  JAM: this one can flood go4 message socket
@@ -79,7 +82,7 @@ TQFWRawProc::TQFWRawProc(const char* name) :
     UInt_t uniqueid = TQFWRawEvent::fgConfigQFWBoards[i];
     fBoards.push_back(new TQFWBoardDisplay(uniqueid));
   }
-
+  missing_events=0;
 //InitDisplay(PEXOR_QFWSLICES);
 }
 
@@ -288,6 +291,9 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
       }
       QFWRAW_CHECK_PDATA;
       int eventcounter = *pdata;
+
+
+
       //TGo4Log::Info("Internal Event number 0x%x", eventcounter);
       // board id calculated from SFP and device id:
       UInt_t brdid = fPar->fBoardID[sfp_id][device_id];
@@ -299,12 +305,35 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
 
         return kFALSE;
       }
+
+      if(fPar->fCheckEventSequence)
+            {
+                if(theBoard->GetLastEventNumber()>=0 && eventcounter!= theBoard->GetLastEventNumber() +1)
+                {
+                  Int_t delta=(eventcounter - (theBoard->GetLastEventNumber() +1));
+                  printf("***** event sequence number mismatch at board %d: this event %d, last event %d, missing events:%d, total missing:%ld\n",
+                      brdid, eventcounter, theBoard->GetLastEventNumber(), delta, missing_events+=delta);\
+                }
+            }
+
+
       TQFWBoardDisplay* boardDisplay = GetBoardDisplay(brdid);
       if (boardDisplay == 0)
       {
         GO4_SKIP_EVENT_MESSAGE("Configuration error: Board id %d does not exist as histogram display set!", brdid);
         return kFALSE;
       }
+
+      if(fPar->fCheckEventSequence)
+                  {
+                    if(theBoard->GetLastEventNumber()>=0)
+                      {
+                        Int_t ediff=eventcounter - theBoard->GetLastEventNumber();
+                        boardDisplay->hEventDelta->Fill(ediff);
+                      }
+                    theBoard->SetLastEventNumber(eventcounter);
+                  }
+
 
       pdata += 1;
       QFWRAW_CHECK_PDATA;
