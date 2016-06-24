@@ -357,7 +357,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
         //   xmap.fBoardID, xchan, gridid, x);
         if (xchan < 0)
           continue;    // skip non configured channels
-        std::vector < Int_t > &trace = loopData->fQfwTrace[xchan];
+        std::vector < Double_t > &trace = loopData->fQfwTrace[xchan];
         Double_t sum = 0;
         Double_t CperCount = loopData->GetCoulombPerCount();    // unit C
         Double_t TperSlice = 1.0e-6 * loopData->GetMicroSecsPerTimeSlice();
@@ -510,7 +510,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
         //           ymap.fBoardID, ychan, gridid, y);
         if (ychan < 0)
           continue;    // skip non configured channels
-        std::vector < Int_t > &trace = loopData->fQfwTrace[ychan];
+        std::vector < Double_t > &trace = loopData->fQfwTrace[ychan];
         Double_t sum = 0;
         Double_t CperCount = loopData->GetCoulombPerCount();    // unit C
         Double_t TperSlice = 1.0e-6 * loopData->GetMicroSecsPerTimeSlice();
@@ -856,7 +856,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
         //   xmap.fBoardID, xchan, gridid, x);
         if (xchan < 0)
           continue;    // skip non configured channels
-        std::vector < Int_t > &trace = loopData->fQfwTrace[xchan];
+        std::vector < Double_t > &trace = loopData->fQfwTrace[xchan];
         Double_t sum = 0;
         Double_t CperCount = loopData->GetCoulombPerCount();    // unit C
         Double_t TperSlice = 1.0e-6 * loopData->GetMicroSecsPerTimeSlice();

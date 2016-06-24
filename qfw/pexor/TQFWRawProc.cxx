@@ -395,7 +395,7 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
           for (int ch = 0; ch < PEXOR_QFWCHANS; ++ch)
           {
             QFWRAW_CHECK_PDATA_BREAK;
-            Int_t value = *pdata++;
+            Double_t value = (Double_t) *pdata++;
 
             if(fPar->fUseFrontendOffsets)
             {
@@ -407,7 +407,7 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
                 Double_t correction=theBoard->GetOffset(ch) * loopData->GetMicroSecsPerTimeSlice()/1.0e+6;
                 // <- offset is measured for 1 second, evaluate for actual time slice period
 
-                value -= correction;
+                value -= correction; // JAM2016: here we may lose precision  due to integer clipping!!!
                 }
             }
 
@@ -540,7 +540,7 @@ Bool_t TQFWRawProc::FillDisplays()
       for (int sl = 0; sl < loopData->fQfwLoopSize; ++sl)
         for (int ch = 0; ch < PEXOR_QFWCHANS; ++ch)
         {
-          Int_t value = loopData->fQfwTrace[ch].at(sl);
+          Double_t value = loopData->fQfwTrace[ch].at(sl);
           //printf("loop %d slice %d ch %d = %d\n", loop, sl ,ch ,value);
 
           if (!fPar->fSimpleCompensation)
@@ -625,7 +625,7 @@ Bool_t TQFWRawProc::RefreshOffsetFromLoop(UInt_t loop)
         int sl = 0;    // always use first slice of loop only
         for (int ch = 0; ch < PEXOR_QFWCHANS; ++ch)
         {
-          Int_t value = loopData->fQfwTrace[ch].at(sl);
+          Double_t value = loopData->fQfwTrace[ch].at(sl);
           Double_t offset=value * 1.0e+6 /loopData->GetMicroSecsPerTimeSlice();
                          // <- offset is normalized here to 1 seconds measurement time!
           theBoard->SetOffset(ch, offset);

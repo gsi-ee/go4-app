@@ -70,8 +70,9 @@ class TQFWLoop : public TGo4EventElement {
       /* build setup string*/
       TString GetSetupString();
 
-      /* each vector contains trace of this loop for the channel*/
-      std::vector<Int_t> fQfwTrace[PEXOR_QFWCHANS];
+      /* each vector contains trace of this loop for the channel
+       * JAM2016: use double value here since we might need more precise background correction*/
+      std::vector<Double_t> fQfwTrace[PEXOR_QFWCHANS];
 
 
       /* the actual number of time slices used*/
@@ -89,7 +90,7 @@ class TQFWLoop : public TGo4EventElement {
 
 
 
-      ClassDef(TQFWLoop,2)
+      ClassDef(TQFWLoop,3)
 };
 
 
@@ -128,12 +129,12 @@ class TQFWBoard : public TGo4CompositeEvent {
             if(qfwid<PEXOR_QFWNUM) fQfwErr[qfwid]=value;
          }
 
-      Int_t GetOffset(UInt_t ch)
+      Double_t GetOffset(UInt_t ch)
       {
         if(ch>=PEXOR_QFWCHANS) return 0;
         return fQfwOffsets[ch];
       }
-      void SetOffset(UInt_t ch, UInt_t value)
+      void SetOffset(UInt_t ch, Double_t value)
       {
         if(ch<PEXOR_QFWCHANS) fQfwOffsets[ch]=value;
       }
@@ -168,13 +169,13 @@ class TQFWBoard : public TGo4CompositeEvent {
       UInt_t fQfwErr[PEXOR_QFWNUM];
 
       /* Offset values as measured by last frontend trigger*/
-      Int_t fQfwOffsets[PEXOR_QFWCHANS];
+      Double_t fQfwOffsets[PEXOR_QFWCHANS];
 
 
       /** check sequence number of events and report missing events*/
       Int_t fLastEventNumber; //!
 
-      ClassDef(TQFWBoard,3)
+      ClassDef(TQFWBoard,4)
 };
 
 
