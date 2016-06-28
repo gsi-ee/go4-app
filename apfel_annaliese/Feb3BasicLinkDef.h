@@ -21,6 +21,7 @@
 
 #pragma link C++ class TFeb3BasicParam+;
 #pragma link C++ class TFeb3BasicProc+;
+#pragma link C++ class TApfelModel+;
 
 #endif
 

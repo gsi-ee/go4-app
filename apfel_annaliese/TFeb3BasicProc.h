@@ -23,6 +23,8 @@
 #define MAX_SLAVE        16
 #define N_CHA            16
 
+
+
 #ifdef WR_TIME_STAMP
 #define SUB_SYSTEM_ID      0x100 // sub-system identifier pci express
 
@@ -54,12 +56,12 @@
 /* JAM this define switches on baseline substraction with user defined condition region*/
 #define USE_BASELINE_CONDITION 1
 
-
+/** number of fitted peak models for display*/
+#define MAX_SHOWN_FITMODELS 4
 
 
 #include "TGo4EventProcessor.h"
 
-//class TFeb3BasicParam;
 #include "TFeb3BasicParam.h"
 //class TGo4Fitter;
 
@@ -73,6 +75,11 @@ class TFeb3BasicProc : public TGo4EventProcessor {
       void f_make_histo (Int_t); 
       void FillGrids();
 
+      /** JAM: find out number of peaks in trace etc.*/
+      Bool_t DoMultiPeakFit(UInt_t sfp, UInt_t apfel, UInt_t chan, Int_t& numpeaks, Double_t& baseline, Double_t& ampl, Double_t& sigma,Double_t& pos, Double_t **posfit);
+
+
+
       Bool_t BuildEvent(TGo4EventElement* target); // event processing function
 
  private:
@@ -82,6 +89,10 @@ class TFeb3BasicProc : public TGo4EventProcessor {
 
       TH1          *h_trace        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
       TH1          *h_trace_blr    [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+
+
+
+
       TH1          *h_trapez_fpga  [MAX_SFP][MAX_SLAVE][N_CHA];  //!
       TH1          *h_fpga_e       [MAX_SFP][MAX_SLAVE][N_CHA];  //!
       TH1          *h_peak         [MAX_SFP][MAX_SLAVE][N_CHA];  //!
@@ -103,8 +114,32 @@ class TFeb3BasicProc : public TGo4EventProcessor {
       TH2          *h_grid_xvstrace_sum[PEXOR_APFEL_GRIDS]; //! grid x versus trace time accumulated
       TH2          *h_grid_yvstrace_sum[PEXOR_APFEL_GRIDS]; //! grid y versus trace time accumulated
 
+      // JAM additional histograms for multi peak fit in the traces:
+      TH1          *h_trace_blr_fit [MAX_SFP][MAX_SLAVE][N_CHA];    //!
+      TH1          *h_trace_blr_fitmodel[MAX_SFP][MAX_SLAVE][N_CHA][MAX_SHOWN_FITMODELS]; //!
+      TH1          *h_num_peaks      [MAX_SFP][MAX_SLAVE][N_CHA];    //!
+      TH1          *h_peak_fit      [MAX_SFP][MAX_SLAVE][N_CHA];    //!
+      TH1          *h_baseline      [MAX_SFP][MAX_SLAVE][N_CHA];    //!
+      TH1          *h_sigma         [MAX_SFP][MAX_SLAVE][N_CHA];    //!
+      TH1          *h_meanpos       [MAX_SFP][MAX_SLAVE][N_CHA];    //!
+      TH1          *h_fit_pos   [MAX_SFP][MAX_SLAVE][N_CHA];        //!
+      TH1          *h_fit_deltapos   [MAX_SFP][MAX_SLAVE][N_CHA];        //!
+
+      // summation over all channels:
+      TH1          *h_num_peaks_all;      //!
+      TH1          *h_peak_fit_all; //!
+      TH1          *h_baseline_all;      //!
+      TH1          *h_sigma_all;
+      TH1          *h_meanpos_all;    //!
+      TH1          *h_fit_pos_all;        //!
+      TH1          *h_fit_deltapos_all; //!
+
 
       TGo4Condition* c_baseline_region; //! dynamically adjust region where baseline is evaluated
+
+      TGo4Condition* c_peakfit_region; //! dynamically adjust region where multiple peaks shall be fitted
+
+      TGo4Condition* c_peakheight_threshold; //! threshold window for multipeak finding and fitting
 
       UInt_t fEventSequenceNumber; //! event number since begin
 

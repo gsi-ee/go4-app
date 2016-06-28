@@ -49,6 +49,9 @@ class TFeb3BasicParam : public TGo4Parameter {
       Bool_t fDoGridMapping; // switch beam profile grid mapping on or off
       Int_t fGridTraceDownscale; // rebin scale of trace in 2d grid display
       UInt_t fSlowMotionStart; // event number in file to begin slow control mode (0=off)
+      Bool_t fDoPeakFit; // switch APFEL peak finding and fitting for traces
+      Int_t fFitMaxPeaks; // maximum number of found peaks allowed for fit
+      Int_t fFitRootPF_Par; // linewidth parameter of ROOT peak finder (variant 2)
 
 
       Int_t fBoardID[PEXOR_MAXSFP][PEXOR_MAXDEVS]; // mapping of board numbers to pexor chains
