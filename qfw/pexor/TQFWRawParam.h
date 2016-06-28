@@ -24,6 +24,7 @@ class TQFWRawParam : public TGo4Parameter {
       Int_t fTriggerFirstChannel; // lower boundary of trigger channel region
       Int_t fTriggerLastChannel; // upper boundary of trigger channel region
       Bool_t fCheckEventSequence; // if true check if subsequent events have incrementing payload numbers
+      Bool_t fBadChannelCorrection; // if true correct contents of bad channels 5 and 8  (June2016)
 
 
 
@@ -39,7 +40,7 @@ class TQFWRawParam : public TGo4Parameter {
 
 
 
-   ClassDef(TQFWRawParam,2)
+   ClassDef(TQFWRawParam,3)
 };
 
 #endif // TQFWRawParam_H

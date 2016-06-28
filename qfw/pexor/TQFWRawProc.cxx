@@ -397,6 +397,16 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
             QFWRAW_CHECK_PDATA_BREAK;
             Double_t value = (Double_t) *pdata++;
 
+            ///////// JAM2016: here correction for FPGA problem (?) with channels 5 and 8
+            if(fPar->fBadChannelCorrection)
+            {
+              if((ch==5) || (ch==8)) // TODO: later we might specify this in parameter. But later this might be fixed in fpga :)
+                {
+                  value-=1.0;
+                }
+            }
+            ////// end FPGA correction
+
             if(fPar->fUseFrontendOffsets)
             {
 

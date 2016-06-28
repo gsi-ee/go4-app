@@ -17,7 +17,7 @@
 
 TQFWRawParam::TQFWRawParam(const char* name) :
    TGo4Parameter(name),
-   fSimpleCompensation(kFALSE),fCheckEventSequence(kFALSE)
+   fSimpleCompensation(kFALSE),fCheckEventSequence(kFALSE),fBadChannelCorrection(kFALSE)
 {
   InitBoardMapping();
 }
@@ -98,6 +98,7 @@ Bool_t TQFWRawParam::UpdateFrom(TGo4Parameter *pp)
    fUseFrontendOffsets=from->fUseFrontendOffsets;
    fFrontendOffsetLoop=from->fFrontendOffsetLoop;
    fCheckEventSequence=from->fCheckEventSequence;
+   fBadChannelCorrection=from->fBadChannelCorrection;
 
    SetConfigBoards();
    return kTRUE;
