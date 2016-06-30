@@ -50,6 +50,8 @@ class TFeb3BasicParam : public TGo4Parameter {
       Int_t fGridTraceDownscale; // rebin scale of trace in 2d grid display
       UInt_t fSlowMotionStart; // event number in file to begin slow control mode (0=off)
       Bool_t fDoPeakFit; // switch APFEL peak finding and fitting for traces
+      Bool_t fDoPeakIteration; // if true we do not use peak finder, but iterative APFELmodel fitting for traces
+      Double_t fPeakIterationDelta; // threshold to stop peak iteration: maximum allowed deviation between data and model
       Int_t fFitMaxPeaks; // maximum number of found peaks allowed for fit
       Int_t fFitRootPF_Par; // linewidth parameter of ROOT peak finder (variant 2)
 

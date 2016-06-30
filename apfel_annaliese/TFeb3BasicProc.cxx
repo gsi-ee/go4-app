@@ -646,47 +646,8 @@ Bool_t TFeb3BasicProc::BuildEvent(TGo4EventElement* target)
           // here optionally try to fit peaks with the apfel model:
           if (fPar->fDoPeakFit)
           {
-            Double_t baseline(0), ampl(0), position(0), sigma(0);
-            Int_t numpeaks(0);
-            //Double_t posfit[fPar->fFitMaxPeaks];
-            Double_t posfit[32];
-            Double_t* posarray= &posfit[0];
-           Bool_t fitres = DoMultiPeakFit(l_sfp_id, l_feb_id,l_cha_id, numpeaks, baseline, ampl, sigma, position, &posarray);
-           h_sigma[l_sfp_id][l_feb_id][l_cha_id]->Fill(sigma);
-           h_sigma_all->Fill(sigma);
-
-           if (fitres){
-             // on successful fit fill corresponding histograms with results!
-             h_num_peaks[l_sfp_id][l_feb_id][l_cha_id]->Fill(numpeaks);
-             h_num_peaks_all->Fill(numpeaks);
-             if(numpeaks>0)
-               {
-                 h_peak_fit[l_sfp_id][l_feb_id][l_cha_id]->Fill(ampl);
-                 h_peak_fit_all->Fill(ampl);
-
-                 h_meanpos[l_sfp_id][l_feb_id][l_cha_id]->Fill(position);
-                 h_meanpos_all->Fill(position);
-                 h_baseline[l_sfp_id][l_feb_id][l_cha_id]->Fill(baseline);
-                 h_baseline_all->Fill(baseline);
-
-                 for(int p=0; p<numpeaks;++p){
-                     h_fit_pos[l_sfp_id][l_feb_id][l_cha_id]->Fill(posfit[p]);
-                     h_fit_pos_all->Fill(posfit[p]);
-
-                     // TODO calculate differences between peaks <- extraction frequency?
-                     if(p>0)
-                     {
-                         Double_t deltap=posfit[p] - posfit[p-1];
-                         h_fit_deltapos[l_sfp_id][l_feb_id][l_cha_id]->Fill(deltap);
-                         h_fit_deltapos_all->Fill(deltap);
-                     }
-                 } // for p
-               } // numpeaks>0
-          } // fitres
-
+              DoMultiPeakFit(l_sfp_id, l_feb_id,l_cha_id);
           }
-
-
         }
 
         // jump over trace
@@ -1246,25 +1207,39 @@ void TFeb3BasicProc:: f_make_histo (Int_t l_mode)
 
   c_baseline_region = MakeWinCond("BLR_Region",BASE_LINE_SUBT_START, BASE_LINE_SUBT_START+BASE_LINE_SUBT_SIZE);
 
+
   // range for peak fitter. We begin directly after the baseline region at initialization time:
-  c_peakfit_region = MakeWinCond("Peakfit_Region",c_baseline_region->GetXUp(), c_baseline_region->GetXUp()+BASE_LINE_SUBT_SIZE);
+  //c_peakfit_region = MakeWinCond("Peakfit_Region",c_baseline_region->GetXUp(), c_baseline_region->GetXUp()+BASE_LINE_SUBT_SIZE);
+
+  c_peakfit_region = MakeWinCond("Peakfit_Region",600, 800); // better: defaults that work with test file JAM
 
   // threshold of peak maximum before we try to find peaks and fit:
- c_peakheight_threshold = MakeWinCond("Peakfit_Threshold",20, 2000);
+ c_peakheight_threshold = MakeWinCond("Peakfit_Threshold",1000, 20000);
 
 
 } // end function
 
 
-Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch, Int_t& numpeaks, Double_t& baseline, Double_t& ampl, Double_t& sigma, Double_t& position, Double_t** posfit)
+Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch)
 {
-  // JAM: this function is taken from old ApfelProc for DoublePeak fit (<-Sergei L. improvements)
-  // we change it slightly to allow more than one peak and use root peak finder more suitable for this kind of data?
+  // JAM: this function is originally taken from old ApfelProc for DoublePeak and other fit (<-Sergei L. improvements)
+  // we changed it a bit to allow more than one peak and use root peak finder more suitable for this kind of data?
+  //also new mode for iterative fit of peaks
+
+  Double_t baseline(0), ampl(0), position(0), sigma(0);
+  Int_t numpeaks(0);
+  Double_t posfit[fPar->fFitMaxPeaks + 1];
+  //           Double_t posfit[32];
+
+
 
   TH1* hist=h_trace_blr[sfp][feb][ch];
   TH1* fithist=h_trace_blr_fit[sfp][feb][ch];
   fithist->Reset(""); // need to remove previous fit display first!
-
+  for(int p=0; p<MAX_SHOWN_FITMODELS;++p)
+       {
+              h_trace_blr_fitmodel[sfp][feb][ch][p]->Reset("");
+       }
 
 
   // first we look for position of maximum in the intended peakfit region:
@@ -1317,6 +1292,12 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch, Int_t& 
 
     ampl = maxdiff;
 
+    h_sigma[sfp][feb][ch]->Fill(sigma);
+    h_sigma_all->Fill(sigma);
+
+
+
+
     //if ((maxdiff < fControl->fPeakThreashold) ||(maxdiff > fControl->fPeakMaxThreashold) || !fControl->fEnableFit) {
     if (!c_peakheight_threshold->Test(maxdiff)) {
        for (int n=0;n<fithist->GetNbinsX();n++)
@@ -1328,16 +1309,71 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch, Int_t& 
 
 
 
+    // here switch to  use either peak finder or successive apfelmodel
 
+  TGo4Fitter fitter("Fitter", TGo4Fitter::ff_chi_square, kTRUE);
+  if (fPar->fDoPeakIteration)
+  {
 
+      fitter.AddH1("data1", hist, kFALSE, c_peakfit_region->GetXLow(), c_peakfit_region->GetXUp());
+      fitter.AddPolynomX("data1", "Pol", 0);
+    // initial values for first apfelmodel peak from simple evaluation over condition
+    Double_t peakampl = maxdiff;
+    Double_t peakpos = maxpos;
 
+    for (int n = 0; n < fPar->fFitMaxPeaks; ++n)
+    {
+      TApfelModel* model = new TApfelModel(Form("Peak%d", n));
+      fitter.AddModel("data1", model);
+#ifdef       APFELMODEL_USE_AMPLITUDEESTIMATION
+      model->SetParsValues(peakampl * 25, 3., 12., peakpos - 15);
+#else
+      model->SetParsValues( 3., 12., peakpos - 15, peakampl * 25);
+#endif
+      model->FindPar("N")->SetFixed(kTRUE);
+      fitter.SetParValue("Pol_0.Ampl", k0);
+      //fitter.SetParValue("Pol_1.Ampl", k1);
 
+      fitter.SetMemoryUsage(2);
 
-// create fitter, select fit function and not add standard actions list
-   TGo4Fitter fitter("Fitter1", TGo4Fitter::ff_chi_square, kTRUE);
+      //   fitter.Print("Pars");
+      for(int t=0;t<3;++t)
+        fitter.DoActions();
 
+      numpeaks = n+1;
+      // here check if we need another model component:
+
+      TH1* allmodel = dynamic_cast<TH1*>(fitter.CreateDrawObject("abc", "data1", kTRUE));
+      if (allmodel == 0)
+      {
+        std::cout << "CreateDrawObject failed for " << hist->GetName() << std::endl;
+        return kFALSE;
+      }
+      double maxdeltafit(0);
+      int maxdeltapos(0);
+      for (int bin = int(c_peakfit_region->GetXLow()); bin <int(c_peakfit_region->GetXUp()) ; bin++)
+      {
+        double deltafit = TMath::Abs(allmodel->GetBinContent(bin + 1) - hist->GetBinContent(bin + 1));
+        if (deltafit > maxdeltafit)
+        {
+          maxdeltafit = deltafit;
+          maxdeltapos = bin;
+        }
+      }
+      delete allmodel;
+      if(maxdeltafit<fPar->fPeakIterationDelta) break; // do not add another apfel peak if we are "good enough"
+      peakpos=maxdeltapos; // point of maximum deviation will get another apfel peak
+      peakampl=maxdeltafit;
+    }    // for n
+
+    baseline = fitter.GetModel(0)->GetAmplValue();
+  }
+  else
+{
+
+  TGo4Fitter fitterpre("FitterPre", TGo4Fitter::ff_chi_square, kTRUE); // this one is just for peak finder
 // add histogram to fitter, which should be fitted
-   fitter.AddH1("data1", hist, kFALSE, c_peakfit_region->GetXLow(), c_peakfit_region->GetXUp());
+   fitterpre.AddH1("data1", hist, kFALSE, c_peakfit_region->GetXLow(), c_peakfit_region->GetXUp());
 // Add peak finder for data1, which not remove previous models and
 // will use 1-order polynom for background
    TGo4FitPeakFinder* finder = new TGo4FitPeakFinder("Finder", "data1", kFALSE, 0);
@@ -1347,16 +1383,16 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch, Int_t& 
    // we may adjust the finding by user parameter containing the "line width"
    // TODO: implement switches and parameters for other peak finders?
 
-   fitter.AddActionAt(finder, 0);
-   fitter.SetMemoryUsage(2);
+   fitterpre.AddActionAt(finder, 0);
+   fitterpre.SetMemoryUsage(2);
 
-   fitter.DoActions(kTRUE);
+   fitterpre.DoActions(kTRUE);
 
-   numpeaks = fitter.GetNumModel() - 1;
+   numpeaks = fitterpre.GetNumModel() - 1;
 
    if ((numpeaks < 1) || (numpeaks> fPar->fFitMaxPeaks)) return false;
 
-
+   baseline = fitterpre.GetModel(0)->GetAmplValue();
 
 
 
@@ -1365,33 +1401,42 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch, Int_t& 
 
    // if gaussian fit was successful, we replace gauss by apfel models and fit again!
 
-   TGo4Fitter fitter2("Fitter2", TGo4Fitter::ff_chi_square, kTRUE);
-   fitter2.AddH1("data1", hist, kFALSE, c_peakfit_region->GetXLow(), c_peakfit_region->GetXUp());
-   fitter2.AddPolynomX("data1", "Pol", 0);
 
-   for (int n=1; n<fitter.GetNumModel(); n++) {
-      TGo4FitModelGauss1* m = dynamic_cast<TGo4FitModelGauss1*> (fitter.GetModel(n));
+   fitter.AddH1("data1", hist, kFALSE, c_peakfit_region->GetXLow(), c_peakfit_region->GetXUp());
+   fitter.AddPolynomX("data1", "Pol", 0);
+
+   for (int n=1; n<fitterpre.GetNumModel(); n++) {
+      TGo4FitModelGauss1* m = dynamic_cast<TGo4FitModelGauss1*> (fitterpre.GetModel(n));
       double pos(0), ampl(0); //, width(0)
       m->GetPosition(0, pos);
 //      m->GetWidth(0, width);
       ampl = m->GetAmplValue();
 
-      TApfelModel* model = new TApfelModel(Form("Peak%d",n));
-      fitter2.AddModel("data1", model);
+      TApfelModel* model = new TApfelModel(Form("Peak%d",n-1));
+      fitter.AddModel("data1", model);
 
       model->SetParsValues(ampl*25, 3., 12., pos-15);
       model->FindPar("N")->SetFixed(kTRUE);
    }
 
-   fitter2.SetMemoryUsage(2);
-   fitter2.DoActions();
+   fitter.SetMemoryUsage(2);
+   for(int t=0;t<3;++t)
+     fitter.DoActions();
 
-   k0 = fitter2.GetParValue("Pol_0.Ampl");
-   k1 = fitter2.GetParValue("Pol_1.Ampl");
+
+
+
+   k0 = fitter.GetParValue("Pol_0.Ampl");
+   //k1 = fitter.GetParValue("Pol_1.Ampl");
+}
+//////////////////////// TODO: end variant with or without peak finder
+
+
+
 
 #ifdef   APFELFIT_USE_DRAWOBJECT
 // this does not work properly? try alternative approach with Eval
-   TH1* h1 = dynamic_cast<TH1*> (fitter2.CreateDrawObject("abc", "data1", kTRUE));
+   TH1* h1 = dynamic_cast<TH1*> (fitter.CreateDrawObject("abc", "data1", kTRUE));
    if (h1!=0) {
       std::cout <<"Created draw model for histogram "<<hist->GetName() <<" of size"<<  h1->GetNbinsX()<< std::endl;
       //int binsize= TMath::Min(fithist->GetNbinsX(), h1->GetNbinsX());
@@ -1404,7 +1449,7 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch, Int_t& 
    // now try to get apfel peaks separately:
    for(int p=0; p<numpeaks;++p)
       {
-         h1 = dynamic_cast<TH1*> (fitter2.CreateDrawObject("abc", "data1", kTRUE, Form("Peak%d",p+1)));
+         h1 = dynamic_cast<TH1*> (fitter.CreateDrawObject("abc", "data1", kTRUE, Form("Peak%d",p)));
          if (h1!=0) {
            for (int n=0;n<h1->GetNbinsX();n++)
              h_trace_blr_fitmodel[sfp][feb][ch][p]->SetBinContent(n+1, h1->GetBinContent(n+1));
@@ -1421,7 +1466,7 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch, Int_t& 
      val=k0 + n*k1;
     for(int p=0; p<numpeaks;++p)
        {
-         TApfelModel* model = dynamic_cast<TApfelModel*> (fitter2.GetModel(p+1));
+         TApfelModel* model = dynamic_cast<TApfelModel*> (fitter.GetModel(p+1));
          //ampl = model->GetAmplValue(); // JAM do we need this?
          val+= model->Evaluate(n);
        }
@@ -1430,22 +1475,72 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch, Int_t& 
    // todo: different histograms for the fit model components, or access fitter from gui to check components?
 #endif
 
-   baseline = fitter.GetModel(0)->GetAmplValue();
+
 
 
    std::cout <<"Found peak positions for "<<hist->GetName() <<": "<< std::endl;
    for(int p=0; p<numpeaks;++p)
    {
-     TApfelModel* apfel1 = dynamic_cast<TApfelModel*> (fitter2.GetModel(p+1));
+     TApfelModel* apfel1 = dynamic_cast<TApfelModel*> (fitter.GetModel(p+1));
    //cout << "tau = " << tau << "  shift = " << shift << endl;
+     if(apfel1==0) {
+       std::cout <<p<<": zero apfel model found!!!"<<std::endl;
+       continue;
+     }
 
-     (*posfit)[p] = apfel1->GetParValue("Tau") + apfel1->GetParValue("Shift"); // individual positions
+     posfit[p] = apfel1->GetParValue("Tau") + apfel1->GetParValue("Shift"); // individual positions
 
      std::cout <<p<<": tau="<<apfel1->GetParValue("Tau")<<", shift="<<apfel1->GetParValue("Shift");
-     std::cout <<", pos="<<  (*posfit)[p]<< std::endl;
-
+     std::cout <<", pos="<<  posfit[p];
+#ifdef       APFELMODEL_USE_AMPLITUDEESTIMATION
+     std::cout <<", amplitude:"<< apfel1->GetAmplValue()<<std::endl;
      ampl+=apfel1->GetAmplValue(); // add amplitudes of all apfel models for the first guess, later ind ampl arrays?
+#else
+     std::cout <<", amplitude:"<< apfel1->GetParValue("ApfelAmp")<<std::endl;;
+     ampl+=apfel1->GetParValue("ApfelAmp");
+#endif
    }
+
+
+
+   //////////////////////
+
+
+
+ // on successful fit fill corresponding histograms with results!
+  h_num_peaks[sfp][feb][ch]->Fill(numpeaks);
+  h_num_peaks_all->Fill(numpeaks);
+  if (numpeaks > 0)
+  {
+    h_peak_fit[sfp][feb][ch]->Fill(ampl);
+    h_peak_fit_all->Fill(ampl);
+
+    h_meanpos[sfp][feb][ch]->Fill(position);
+    h_meanpos_all->Fill(position);
+    h_baseline[sfp][feb][ch]->Fill(baseline);
+    h_baseline_all->Fill(baseline);
+
+    for (int p = 0; p < numpeaks; ++p)
+    {
+      h_fit_pos[sfp][feb][ch]->Fill(posfit[p]);
+      h_fit_pos_all->Fill(posfit[p]);
+
+      // TODO calculate differences between peaks <- extraction frequency?
+      if (p > 0)
+      {
+        Double_t deltap = posfit[p] - posfit[p - 1];
+        h_fit_deltapos[sfp][feb][ch]->Fill(deltap);
+        h_fit_deltapos_all->Fill(deltap);
+      }
+    }    // for p
+  }    // numpeaks>0
+
+
+
+
+
+
+
 
 
 

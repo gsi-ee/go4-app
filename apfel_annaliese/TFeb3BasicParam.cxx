@@ -39,7 +39,9 @@ void TFeb3BasicParam::InitMapping()
   fGridTraceDownscale=PEXOR_TRACE_BINSCALE;
   fSlowMotionStart=0;
   fDoPeakFit=kFALSE;
-  fFitMaxPeaks=5;
+  fDoPeakIteration=kTRUE;
+  fPeakIterationDelta=300;
+  fFitMaxPeaks=4;
   fFitRootPF_Par=1;
 
    // init to non valid here:

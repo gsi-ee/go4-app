@@ -51,7 +51,7 @@
 #define RES  "\x1B[0m"
 
 #define BASE_LINE_SUBT_START  0
-#define BASE_LINE_SUBT_SIZE   150
+#define BASE_LINE_SUBT_SIZE   300
 
 /* JAM this define switches on baseline substraction with user defined condition region*/
 #define USE_BASELINE_CONDITION 1
@@ -76,8 +76,7 @@ class TFeb3BasicProc : public TGo4EventProcessor {
       void FillGrids();
 
       /** JAM: find out number of peaks in trace etc.*/
-      Bool_t DoMultiPeakFit(UInt_t sfp, UInt_t apfel, UInt_t chan, Int_t& numpeaks, Double_t& baseline, Double_t& ampl, Double_t& sigma,Double_t& pos, Double_t **posfit);
-
+      Bool_t DoMultiPeakFit(UInt_t sfp, UInt_t apfel, UInt_t chan);
 
 
       Bool_t BuildEvent(TGo4EventElement* target); // event processing function
