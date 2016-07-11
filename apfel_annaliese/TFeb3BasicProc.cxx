@@ -18,6 +18,9 @@
 #include "TFeb3BasicProc.h"
 #include "stdint.h"
 
+#include <vector>
+#include <algorithm>
+
 #include "Riostream.h"
 
 #include "TH1.h"
@@ -25,6 +28,7 @@
 #include "TGo4WinCond.h"
 #include "TCutG.h"
 #include "snprintf.h"
+
 
 #include "TGo4MbsEvent.h"
 #include "TGo4WinCond.h"
@@ -1520,19 +1524,34 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch)
     h_baseline[sfp][feb][ch]->Fill(baseline);
     h_baseline_all->Fill(baseline);
 
+
+    std::vector<double> posfitsort;
     for (int p = 0; p < numpeaks; ++p)
     {
       h_fit_pos[sfp][feb][ch]->Fill(posfit[p]);
       h_fit_pos_all->Fill(posfit[p]);
 
-      // TODO calculate differences between peaks <- extraction frequency?
+      // sort positions before calculating difference
+      posfitsort.push_back(posfit[p]);
+
+    }    // for p unsorted
+
+    std::sort(posfitsort.begin(), posfitsort.end());
+
+    // differences between peaks from sorted centroid positions:
+    for (int p = 0; p < numpeaks; ++p)
+    {
       if (p > 0)
-      {
-        Double_t deltap = posfit[p] - posfit[p - 1];
-        h_fit_deltapos[sfp][feb][ch]->Fill(deltap);
-        h_fit_deltapos_all->Fill(deltap);
-      }
-    }    // for p
+           {
+             Double_t deltap = posfitsort[p] - posfitsort[p - 1];
+             h_fit_deltapos[sfp][feb][ch]->Fill(deltap);
+             h_fit_deltapos_all->Fill(deltap);
+           }
+
+    } // for p sorted
+
+
+
   }    // numpeaks>0
 
 

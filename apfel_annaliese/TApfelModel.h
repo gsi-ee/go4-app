@@ -41,7 +41,6 @@ class TApfelModel : public TGo4FitModel {
 
    }
 
-
    protected:
       virtual Double_t UserFunction(Double_t* Coordinates, Double_t* Parameters) 
    {
