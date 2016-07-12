@@ -123,6 +123,8 @@ class TFeb3BasicProc : public TGo4EventProcessor {
       TH1          *h_meanpos       [MAX_SFP][MAX_SLAVE][N_CHA];    //!
       TH1          *h_fit_pos   [MAX_SFP][MAX_SLAVE][N_CHA];        //!
       TH1          *h_fit_deltapos   [MAX_SFP][MAX_SLAVE][N_CHA];        //!
+      TH1          *h_fit_deltaedge   [MAX_SFP][MAX_SLAVE][N_CHA];        //!
+
 
       // summation over all channels:
       TH1          *h_num_peaks_all;      //!
@@ -132,6 +134,7 @@ class TFeb3BasicProc : public TGo4EventProcessor {
       TH1          *h_meanpos_all;    //!
       TH1          *h_fit_pos_all;        //!
       TH1          *h_fit_deltapos_all; //!
+      TH1          *h_fit_deltaedge_all; //!
 
 
       TGo4Condition* c_baseline_region; //! dynamically adjust region where baseline is evaluated

@@ -41,6 +41,7 @@
 #include "TApfelModel.h"
 #include "TGo4FitModelGauss1.h"
 #include "TGo4FitParameter.h"
+#include "TGo4FitDataHistogram.h"
 #include "TGo4Analysis.h"
 
 
@@ -954,9 +955,20 @@ void TFeb3BasicProc:: f_make_histo (Int_t l_mode)
           // differences between multiple peak position from fit
           sprintf(chis, "PEAKFITS/DELTAPOS/FitPulseDeltaPos SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
           sprintf(chead, "Fitted peak position differences %2d  %2d %2d", l_i, l_j, l_k);
-          h_fit_deltapos[l_i][l_j][l_k] = MakeTH1('I', chis, chead, l_tra_size, -1.0* (l_tra_size / 2.0), (l_tra_size / 2.0),
+          h_fit_deltapos[l_i][l_j][l_k] = MakeTH1('I', chis, chead, l_tra_size, 0, l_tra_size,
               "delta time");
         }
+
+
+        for (l_k = 0; l_k < N_CHA; l_k++)
+        {
+          // differences between multiple peak position from fit
+          sprintf(chis, "PEAKFITS/DELTAEDGE/FitPulseDeltaEdge SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+          sprintf(chead, "Fitted pulse edge differences %2d  %2d %2d", l_i, l_j, l_k);
+          h_fit_deltaedge[l_i][l_j][l_k] = MakeTH1('I', chis, chead, l_tra_size, 0, l_tra_size,
+              "delta time");
+        }
+
 
 ////////////////////// end multi peak fit
 
@@ -1054,10 +1066,11 @@ void TFeb3BasicProc:: f_make_histo (Int_t l_mode)
 
   sprintf(chis, "PEAKFITS/DELTAPOS/FitPulseDeltaPos_ALL");
   sprintf(chead, "Fitted peak position differences all slaves");
-  h_fit_deltapos_all = MakeTH1('I', chis, chead, l_tra_size, -1.0 * (l_tra_size / 2.0), (l_tra_size / 2.0),
-      "delta time");
+  h_fit_deltapos_all = MakeTH1('I', chis, chead, l_tra_size, 0, l_tra_size,   "delta time");
 
-
+  sprintf(chis, "PEAKFITS/DELTAEDGE/FitPulseDeltaEdge_ALL");
+  sprintf(chead, "Fitted pulse edge position differences all slaves");
+  h_fit_deltaedge_all = MakeTH1('I', chis, chead, l_tra_size, 0, l_tra_size,   "delta time");
 
 
 
@@ -1233,7 +1246,7 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch)
   Double_t baseline(0), ampl(0), position(0), sigma(0);
   Int_t numpeaks(0);
   Double_t posfit[fPar->fFitMaxPeaks + 1];
-  //           Double_t posfit[32];
+  Double_t edgefit[fPar->fFitMaxPeaks + 1];
 
 
 
@@ -1299,32 +1312,23 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch)
     h_sigma[sfp][feb][ch]->Fill(sigma);
     h_sigma_all->Fill(sigma);
 
-
-
-
-    //if ((maxdiff < fControl->fPeakThreashold) ||(maxdiff > fControl->fPeakMaxThreashold) || !fControl->fEnableFit) {
     if (!c_peakheight_threshold->Test(maxdiff)) {
        for (int n=0;n<fithist->GetNbinsX();n++)
           fithist->SetBinContent(n+1, k0+n*k1);
        return kFALSE;
-       //return maxdiff >= fControl->fPeakThreashold;
     }
 
-
-
-
-    // here switch to  use either peak finder or successive apfelmodel
-
+  // here switch to  use either peak finder or successive apfelmodel
   TGo4Fitter fitter("Fitter", TGo4Fitter::ff_chi_square, kTRUE);
   if (fPar->fDoPeakIteration)
   {
 
-      fitter.AddH1("data1", hist, kFALSE, c_peakfit_region->GetXLow(), c_peakfit_region->GetXUp());
+      TGo4FitDataHistogram* hd=fitter.AddH1("data1", hist, kFALSE, c_peakfit_region->GetXLow(), c_peakfit_region->GetXUp());
+      hd->SetExcludeLessThen(-1000.0); // TODO: parameter entry - usually fitter will exclude everything below 0 from fit!
       fitter.AddPolynomX("data1", "Pol", 0);
     // initial values for first apfelmodel peak from simple evaluation over condition
     Double_t peakampl = maxdiff;
     Double_t peakpos = maxpos;
-
     for (int n = 0; n < fPar->fFitMaxPeaks; ++n)
     {
       TApfelModel* model = new TApfelModel(Form("Peak%d", n));
@@ -1332,7 +1336,7 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch)
 #ifdef       APFELMODEL_USE_AMPLITUDEESTIMATION
       model->SetParsValues(peakampl * 25, 3., 12., peakpos - 15);
 #else
-      model->SetParsValues( 3., 12., peakpos - 15, peakampl * 25);
+      model->SetParsValues( 3., 12., peakpos - 15, peakampl*0.8);
 #endif
       model->FindPar("N")->SetFixed(kTRUE);
       fitter.SetParValue("Pol_0.Ampl", k0);
@@ -1370,6 +1374,9 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch)
       peakampl=maxdeltafit;
     }    // for n
 
+
+    if (numpeaks >= fPar->fFitMaxPeaks) return false; // do not account peaks that exceed limit
+
     baseline = fitter.GetModel(0)->GetAmplValue();
   }
   else
@@ -1397,18 +1404,11 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch)
    if ((numpeaks < 1) || (numpeaks> fPar->fFitMaxPeaks)) return false;
 
    baseline = fitterpre.GetModel(0)->GetAmplValue();
-
-
-
-
    /////////////////////////////
 
    // if gaussian fit was successful, we replace gauss by apfel models and fit again!
-
-
    fitter.AddH1("data1", hist, kFALSE, c_peakfit_region->GetXLow(), c_peakfit_region->GetXUp());
    fitter.AddPolynomX("data1", "Pol", 0);
-
    for (int n=1; n<fitterpre.GetNumModel(); n++) {
       TGo4FitModelGauss1* m = dynamic_cast<TGo4FitModelGauss1*> (fitterpre.GetModel(n));
       double pos(0), ampl(0); //, width(0)
@@ -1426,14 +1426,10 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch)
    fitter.SetMemoryUsage(2);
    for(int t=0;t<3;++t)
      fitter.DoActions();
-
-
-
-
-   k0 = fitter.GetParValue("Pol_0.Ampl");
+    k0 = fitter.GetParValue("Pol_0.Ampl");
    //k1 = fitter.GetParValue("Pol_1.Ampl");
 }
-//////////////////////// TODO: end variant with or without peak finder
+//////////////////////// end variant with or without peak finder
 
 
 
@@ -1451,7 +1447,7 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch)
    }
 
    // now try to get apfel peaks separately:
-   for(int p=0; p<numpeaks;++p)
+   for(int p=0; (p<numpeaks) && (p<MAX_SHOWN_FITMODELS) ;++p)
       {
          h1 = dynamic_cast<TH1*> (fitter.CreateDrawObject("abc", "data1", kTRUE, Form("Peak%d",p)));
          if (h1!=0) {
@@ -1492,7 +1488,8 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch)
        continue;
      }
 
-     posfit[p] = apfel1->GetParValue("Tau") + apfel1->GetParValue("Shift"); // individual positions
+     posfit[p] = apfel1->GetParValue("Tau") + apfel1->GetParValue("Shift"); // model centroid positions
+     edgefit[p] = apfel1->GetParValue("Tau")/2 + apfel1->GetParValue("Shift"); // model rising edge half maximum positions
 
      std::cout <<p<<": tau="<<apfel1->GetParValue("Tau")<<", shift="<<apfel1->GetParValue("Shift");
      std::cout <<", pos="<<  posfit[p];
@@ -1526,6 +1523,7 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch)
 
 
     std::vector<double> posfitsort;
+    std::vector<double> edgefitsort;
     for (int p = 0; p < numpeaks; ++p)
     {
       h_fit_pos[sfp][feb][ch]->Fill(posfit[p]);
@@ -1533,37 +1531,29 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch)
 
       // sort positions before calculating difference
       posfitsort.push_back(posfit[p]);
+      edgefitsort.push_back(edgefit[p]);
 
     }    // for p unsorted
 
     std::sort(posfitsort.begin(), posfitsort.end());
+    std::sort(edgefitsort.begin(), edgefitsort.end());
 
-    // differences between peaks from sorted centroid positions:
+    // differences between peaks from sorted centroid and rising edge positions:
     for (int p = 0; p < numpeaks; ++p)
     {
       if (p > 0)
            {
+
              Double_t deltap = posfitsort[p] - posfitsort[p - 1];
              h_fit_deltapos[sfp][feb][ch]->Fill(deltap);
              h_fit_deltapos_all->Fill(deltap);
+
+             deltap = edgefitsort[p] - edgefitsort[p - 1];
+             h_fit_deltaedge[sfp][feb][ch]->Fill(deltap);
+             h_fit_deltaedge_all->Fill(deltap);
            }
-
     } // for p sorted
-
-
-
   }    // numpeaks>0
-
-
-
-
-
-
-
-
-
-
-
    return kTRUE;
 }
 
