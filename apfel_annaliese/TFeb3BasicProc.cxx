@@ -920,7 +920,7 @@ void TFeb3BasicProc:: f_make_histo (Int_t l_mode)
           // peak position from bin
           sprintf(chis, "PEAKFITS/HEIGHT/FitPeakHeight SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
           sprintf(chead, "Peak %2d %2d %2d", l_i, l_j, l_k);
-          h_peak_fit[l_i][l_j][l_k] = MakeTH1('I', chis, chead, 2000, 0., 20000., "pulseheight");
+          h_peak_fit[l_i][l_j][l_k] = MakeTH1('I', chis, chead, 8000, 0., 80000., "pulseheight");
         }
 
         for (l_k = 0; l_k < N_CHA; l_k++)
@@ -968,7 +968,6 @@ void TFeb3BasicProc:: f_make_histo (Int_t l_mode)
           h_fit_deltaedge[l_i][l_j][l_k] = MakeTH1('I', chis, chead, l_tra_size, 0, l_tra_size,
               "delta time");
         }
-
 
 ////////////////////// end multi peak fit
 
@@ -1074,8 +1073,13 @@ void TFeb3BasicProc:: f_make_histo (Int_t l_mode)
 
 
 
+  sprintf(chis, "PEAKFITS/HEIGHT/FitPeakHeight_HI");
+  sprintf(chead, "Peakfit height of high amplification slaves");
+  h_peak_fit_high = MakeTH1('I', chis, chead, 2000, 0., 20000., "pulseheight");
 
-
+  sprintf(chis, "PEAKFITS/HEIGHT/FitPeakHeight_LO");
+  sprintf(chead, "Peakfit height of low amplification slaves");
+  h_peak_fit_low = MakeTH1('I', chis, chead, 2000, 0., 20000., "pulseheight");
 
 
  // JAM put here additional histograms with mapped grid wires:
@@ -1325,12 +1329,58 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch)
 
       TGo4FitDataHistogram* hd=fitter.AddH1("data1", hist, kFALSE, c_peakfit_region->GetXLow(), c_peakfit_region->GetXUp());
       hd->SetExcludeLessThen(-1000.0); // TODO: parameter entry - usually fitter will exclude everything below 0 from fit!
-      fitter.AddPolynomX("data1", "Pol", 0);
+
+      // optionally exclude range for clipping peaks:
+      // later we could do this with future method SetExcludeMoreThen...
+
+    Double_t cliplow(0),cliphigh(0);
+    Bool_t isclipfit(kFALSE);
+    if (fPar->fFitClipThreshold > 0)
+    {
+      for (int b = 0; b < hist->GetNbinsX(); b++)
+      {
+        if (hist->GetBinContent(b + 1) > fPar->fFitClipThreshold)
+        {
+          if (cliplow == 0)
+            cliplow = hist->GetBinCenter(b);
+        }
+        if ((cliplow > 0) && (hist->GetBinContent(b + 1) < fPar->fFitClipThreshold))
+        {
+          if (cliphigh == 0)
+            cliphigh = hist->GetBinCenter(b);
+        }
+        if (cliplow && cliphigh)
+        {
+          isclipfit=kTRUE;
+          break;
+        }
+      }    // for
+      if (isclipfit)
+      {
+        hd->ExcludeRange(0, cliplow, cliphigh);
+        std::cout << "Exclude CLIPPING RANGE (" << cliplow << "," << cliphigh << ") for " << hist->GetName() << ": "
+            << std::endl;
+      }
+    }    // if fFitClipThreshold
+
+
+
+
+
+
+    fitter.AddPolynomX("data1", "Pol", 0);
     // initial values for first apfelmodel peak from simple evaluation over condition
     Double_t peakampl = maxdiff;
     Double_t peakpos = maxpos;
+    if(isclipfit) {
+          peakampl=10*fPar->fFitClipThreshold; //10*maxdiff; // expect amplitude far above the clip threshold
+          peakpos=0.5*(cliphigh+cliplow); // start in the middle of the clipped region
+        }
+
     for (int n = 0; n < fPar->fFitMaxPeaks; ++n)
     {
+      if(isclipfit && n>=fPar->fFitMaxClipModels)
+          break; // for clipping peaks, do not use more than specified apfel model components!
       TApfelModel* model = new TApfelModel(Form("Peak%d", n));
       fitter.AddModel("data1", model);
 #ifdef       APFELMODEL_USE_AMPLITUDEESTIMATION
@@ -1361,6 +1411,11 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch)
       int maxdeltapos(0);
       for (int bin = int(c_peakfit_region->GetXLow()); bin <int(c_peakfit_region->GetXUp()) ; bin++)
       {
+          // exclude cliping region from delta consideration, if any:
+          if(isclipfit)
+          {
+              if((hist->GetBinCenter(bin) >= cliplow) && (hist->GetBinCenter(bin) <= cliphigh)) continue;
+          }
         double deltafit = TMath::Abs(allmodel->GetBinContent(bin + 1) - hist->GetBinContent(bin + 1));
         if (deltafit > maxdeltafit)
         {
@@ -1372,11 +1427,23 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch)
       if(maxdeltafit<fPar->fPeakIterationDelta) break; // do not add another apfel peak if we are "good enough"
       peakpos=maxdeltapos; // point of maximum deviation will get another apfel peak
       peakampl=maxdeltafit;
+      if(isclipfit) {
+        peakampl*=4;
+        //peakpos=0.5*(cliphigh+cliplow);
+      }
     }    // for n
 
+    //////// CLIP DEBUG:
+    if (isclipfit){
+      std::cout << "CLIPPING iteration found "<<numpeaks<< " peaks for " << hist->GetName() << std::endl;
+    }
+
+    //if (numpeaks >= fPar->fFitMaxPeaks && (cliplow==0) && (cliphigh==0)) return false; // do not account peaks that exceed limit
+    ////// END CLIP DEBUG
 
     if (numpeaks >= fPar->fFitMaxPeaks) return false; // do not account peaks that exceed limit
 
+    hd->ClearRanges(0); // we want to see complete models even in clipped part!
     baseline = fitter.GetModel(0)->GetAmplValue();
   }
   else
@@ -1438,9 +1505,9 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch)
 // this does not work properly? try alternative approach with Eval
    TH1* h1 = dynamic_cast<TH1*> (fitter.CreateDrawObject("abc", "data1", kTRUE));
    if (h1!=0) {
-      std::cout <<"Created draw model for histogram "<<hist->GetName() <<" of size"<<  h1->GetNbinsX()<< std::endl;
+      //std::cout <<"Created draw model for histogram "<<hist->GetName() <<" of size"<<  h1->GetNbinsX()<< std::endl;
       //int binsize= TMath::Min(fithist->GetNbinsX(), h1->GetNbinsX());
-      std::cout <<"Copy to display object "<<fithist->GetName() <<" of size"<<  fithist->GetNbinsX()<< std::endl;
+      //std::cout <<"Copy to display object "<<fithist->GetName() <<" of size"<<  fithist->GetNbinsX()<< std::endl;
       for (int n=0;n<fithist->GetNbinsX();n++)
         fithist->SetBinContent(n+1, h1->GetBinContent(n+1));
       delete h1;
@@ -1479,6 +1546,7 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch)
 
 
    std::cout <<"Found peak positions for "<<hist->GetName() <<": "<< std::endl;
+   ampl=0;
    for(int p=0; p<numpeaks;++p)
    {
      TApfelModel* apfel1 = dynamic_cast<TApfelModel*> (fitter.GetModel(p+1));
@@ -1489,7 +1557,8 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch)
      }
 
      posfit[p] = apfel1->GetParValue("Tau") + apfel1->GetParValue("Shift"); // model centroid positions
-     edgefit[p] = apfel1->GetParValue("Tau")/2 + apfel1->GetParValue("Shift"); // model rising edge half maximum positions
+     //edgefit[p] = apfel1->GetParValue("Tau")/2 + apfel1->GetParValue("Shift"); // model rising edge half maximum positions
+     edgefit[p] = apfel1->GetParValue("Shift"); // use shift parameter only?
 
      std::cout <<p<<": tau="<<apfel1->GetParValue("Tau")<<", shift="<<apfel1->GetParValue("Shift");
      std::cout <<", pos="<<  posfit[p];
@@ -1515,6 +1584,12 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch)
   {
     h_peak_fit[sfp][feb][ch]->Fill(ampl);
     h_peak_fit_all->Fill(ampl);
+
+    // TODO: user defined mapping of high and low amplification channels?
+    if((ch==0) || (ch%2)==0)
+      h_peak_fit_high->Fill(ampl); //  even channel is high amplification
+    else
+      h_peak_fit_low->Fill(ampl); // odd channel is high amplification
 
     h_meanpos[sfp][feb][ch]->Fill(position);
     h_meanpos_all->Fill(position);

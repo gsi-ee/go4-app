@@ -54,7 +54,8 @@ class TFeb3BasicParam : public TGo4Parameter {
       Double_t fPeakIterationDelta; // threshold to stop peak iteration: maximum allowed deviation between data and model
       Int_t fFitMaxPeaks; // maximum number of found peaks allowed for fit
       Int_t fFitRootPF_Par; // linewidth parameter of ROOT peak finder (variant 2)
-
+      Double_t fFitClipThreshold; // upper threshold to exclude clipping peaks, 0 to disable fit with clip exclusion
+      Int_t fFitMaxClipModels; // maximum number of peak models allowed for clipped peak fit
 
       Int_t fBoardID[PEXOR_MAXSFP][PEXOR_MAXDEVS]; // mapping of board numbers to pexor chains
 

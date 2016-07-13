@@ -135,6 +135,9 @@ class TFeb3BasicProc : public TGo4EventProcessor {
       TH1          *h_fit_pos_all;        //!
       TH1          *h_fit_deltapos_all; //!
       TH1          *h_fit_deltaedge_all; //!
+      TH1          *h_fit_amplitude_all; //!
+      TH1          *h_peak_fit_low; //!
+      TH1          *h_peak_fit_high; //!
 
 
       TGo4Condition* c_baseline_region; //! dynamically adjust region where baseline is evaluated
