@@ -1374,7 +1374,7 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch)
     Double_t peakpos = maxpos;
     if(isclipfit) {
           peakampl=10*fPar->fFitClipThreshold; //10*maxdiff; // expect amplitude far above the clip threshold
-          peakpos=0.5*(cliphigh+cliplow); // start in the middle of the clipped region
+          peakpos=0.5*(cliphigh+cliplow) - (cliphigh-cliplow)/4; // start in the middle of the clipped region
         }
 
     for (int n = 0; n < fPar->fFitMaxPeaks; ++n)
