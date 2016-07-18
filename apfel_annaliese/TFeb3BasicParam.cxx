@@ -44,7 +44,7 @@ void TFeb3BasicParam::InitMapping()
   fFitMaxPeaks=8;
   fFitRootPF_Par=1;
   fFitClipThreshold=0;
-  fFitMaxClipModels=3;
+  fFitMaxClipModels=1;
 
    // init to non valid here:
    for (int sfp = 0; sfp < PEXOR_MAXSFP; ++sfp)

@@ -105,11 +105,15 @@ class TFeb3BasicProc : public TGo4EventProcessor {
       // JAM here some test histograms for Sven Loechners APFEL grid test:
 
       TH1          *h_grid_x_profile[PEXOR_APFEL_GRIDS]; //! grid lateral x profile
+      TH1          *h_grid_x_profile_fit[PEXOR_APFEL_GRIDS]; //! grid lateral x profile from fit amplitudes
       TH1          *h_grid_y_profile[PEXOR_APFEL_GRIDS]; //! grid lateral y profile
+      TH1          *h_grid_y_profile_fit[PEXOR_APFEL_GRIDS]; //! grid lateral y profile from fit amplitudes
       TH2          *h_grid_xvstrace[PEXOR_APFEL_GRIDS]; //! grid x versus trace time
       TH2          *h_grid_yvstrace[PEXOR_APFEL_GRIDS]; //! grid y versus trace time
       TH1          *h_grid_x_profile_sum[PEXOR_APFEL_GRIDS]; //! grid lateral x profile accumulated
+      TH1          *h_grid_x_profile_fit_sum[PEXOR_APFEL_GRIDS]; //! grid lateral x profile from fit accumulated
       TH1          *h_grid_y_profile_sum[PEXOR_APFEL_GRIDS]; //! grid lateral y profile accumulated
+      TH1          *h_grid_y_profile_fit_sum[PEXOR_APFEL_GRIDS]; //! grid lateral y profile from fit accumulated
       TH2          *h_grid_xvstrace_sum[PEXOR_APFEL_GRIDS]; //! grid x versus trace time accumulated
       TH2          *h_grid_yvstrace_sum[PEXOR_APFEL_GRIDS]; //! grid y versus trace time accumulated
 
@@ -125,6 +129,8 @@ class TFeb3BasicProc : public TGo4EventProcessor {
       TH1          *h_fit_deltapos   [MAX_SFP][MAX_SLAVE][N_CHA];        //!
       TH1          *h_fit_deltaedge   [MAX_SFP][MAX_SLAVE][N_CHA];        //!
 
+      TH1          *h_fit_ampl_trace   [MAX_SFP][MAX_SLAVE];        //!
+
 
       // summation over all channels:
       TH1          *h_num_peaks_all;      //!
@@ -138,6 +144,8 @@ class TFeb3BasicProc : public TGo4EventProcessor {
       TH1          *h_fit_amplitude_all; //!
       TH1          *h_peak_fit_low; //!
       TH1          *h_peak_fit_high; //!
+      TH1          *h_peak_fit_low_sum; //!
+      TH1          *h_peak_fit_high_sum; //!
 
 
       TGo4Condition* c_baseline_region; //! dynamically adjust region where baseline is evaluated

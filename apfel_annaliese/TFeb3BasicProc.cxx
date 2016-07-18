@@ -168,8 +168,9 @@ Bool_t TFeb3BasicProc::BuildEvent(TGo4EventElement* target)
   Int_t       l_fpga_filt_mode;
   Int_t       l_dat_trace;
   Int_t       l_dat_filt;
-  Int_t       l_filt_sign;   
+  Int_t       l_filt_sign;
 
+  Double_t amphi=0, amplo=0;
   TGo4MbsSubEvent* psubevt;
 
   fInput = (TGo4MbsEvent* ) GetInputEvent();
@@ -290,6 +291,8 @@ Bool_t TFeb3BasicProc::BuildEvent(TGo4EventElement* target)
     f_make_histo (0);
   }
 
+  h_peak_fit_high_sum->Reset ("");
+  h_peak_fit_low_sum->Reset ("");
   for (l_i=0; l_i<MAX_SFP; l_i++)
   {
     if (l_sfp_slaves[l_i] != 0)
@@ -310,7 +313,8 @@ Bool_t TFeb3BasicProc::BuildEvent(TGo4EventElement* target)
         h_hitpat     [l_i][l_j]->Fill (-2, 1);  
         h_hitpat_tr  [l_i][l_j]->Fill (-2, 1);  
         l_first_trace[l_i][l_j] = 0;
-      }
+        h_fit_ampl_trace[l_i][l_j]->Reset ("");
+        }
     }
   }
 
@@ -676,6 +680,7 @@ Bool_t TFeb3BasicProc::BuildEvent(TGo4EventElement* target)
   }
 
 
+
   for (l_i=0; l_i<MAX_SFP; l_i++)
   {
     if (l_sfp_slaves[l_i] != 0)
@@ -686,11 +691,18 @@ Bool_t TFeb3BasicProc::BuildEvent(TGo4EventElement* target)
         {
           h_ch_hitpat   [l_i][l_j][l_k]->Fill (l_ch_hitpat   [l_i][l_j][l_k]);  
           h_ch_hitpat_tr[l_i][l_j][l_k]->Fill (l_ch_hitpat_tr[l_i][l_j][l_k]);  
+          // JAM here is place to insert accumulated amplitudes for even and odd channels:
+          if((l_k==0) || (l_k%2)==0)
+            amphi+=h_fit_ampl_trace[l_i][l_j]->GetBinContent(l_k+1);
+          else
+            amplo+=h_fit_ampl_trace[l_i][l_j]->GetBinContent(l_k+1);
         }
+
       }
     }
   }
-
+  h_peak_fit_high_sum->Fill(amphi);
+  h_peak_fit_low_sum->Fill(amplo);
 
   FillGrids(); // JAM here is mapping of traceBLR to grid wires-
 
@@ -731,11 +743,13 @@ void TFeb3BasicProc::FillGrids()
   for (int g = 0; (g < fPar->fNumGrids) && (g < PEXOR_APFEL_GRIDS); g++)
   {
     h_grid_x_profile[g]->Reset("");
+    h_grid_x_profile_fit[g]->Reset("");
     h_grid_y_profile[g]->Reset("");
+    h_grid_y_profile_fit[g]->Reset("");
     h_grid_xvstrace[g]->Reset("");
     h_grid_yvstrace[g]->Reset("");
 
-    Double_t val = 0;
+    Double_t val = 0, fitval=0;
     Int_t sfp = -1, febex = -1;
     for (int wire = 0; wire < PEXOR_APFEL_WIRES; ++wire)
     {
@@ -767,6 +781,13 @@ void TFeb3BasicProc::FillGrids()
               h_grid_xvstrace_sum[g]->Fill(wire, t, val);
 
             }
+
+            fitval=h_fit_ampl_trace[sfp][febex]->GetBinContent(channelX + 1);
+            h_grid_x_profile_fit[g]->Fill(wire, fitval);
+            h_grid_x_profile_fit_sum[g]->Fill(wire, fitval);
+
+
+
           }    // if channelX
         }    // if sfp febex
         else
@@ -799,6 +820,10 @@ void TFeb3BasicProc::FillGrids()
               h_grid_yvstrace[g]->Fill(wire, t, val);
               h_grid_yvstrace_sum[g]->Fill(wire, t, val);
             }
+
+            fitval=h_fit_ampl_trace[sfp][febex]->GetBinContent(channelY + 1);
+            h_grid_y_profile_fit[g]->Fill(wire, fitval);
+            h_grid_y_profile_fit_sum[g]->Fill(wire, fitval);
           }    // if channelY
         }    // if sfp febex
         else
@@ -923,6 +948,17 @@ void TFeb3BasicProc:: f_make_histo (Int_t l_mode)
           h_peak_fit[l_i][l_j][l_k] = MakeTH1('I', chis, chead, 8000, 0., 80000., "pulseheight");
         }
 
+
+        // temporary trace of fitted charge amplitudes per channel
+        sprintf(chis, "PEAKFITS/HEIGHT/FitPeakHeightChanneltrace SFP: %2d FEBEX: %2d", l_i, l_j);
+        sprintf(chead, "Channelwise fit amplitude sum trace %2d  %2d", l_i, l_j);
+        h_fit_ampl_trace[l_i][l_j] = MakeTH1('D', chis, chead, N_CHA, 0, N_CHA,
+            "channel");
+
+
+
+
+
         for (l_k = 0; l_k < N_CHA; l_k++)
         {
 
@@ -968,6 +1004,10 @@ void TFeb3BasicProc:: f_make_histo (Int_t l_mode)
           h_fit_deltaedge[l_i][l_j][l_k] = MakeTH1('I', chis, chead, l_tra_size, 0, l_tra_size,
               "delta time");
         }
+
+
+
+
 
 ////////////////////// end multi peak fit
 
@@ -1044,7 +1084,7 @@ void TFeb3BasicProc:: f_make_histo (Int_t l_mode)
   h_num_peaks_all = MakeTH1('I', chis, chead, 20, 0., 20., "number of peaks");
 
   sprintf(chis, "PEAKFITS/HEIGHT/FitPeakHeight_ALL");
-  sprintf(chead, "Peakfit height all slaves");
+  sprintf(chead, "Peakfit height all slaves (accum)");
   h_peak_fit_all = MakeTH1('I', chis, chead, 2000, 0., 20000., "pulseheight");
 
   sprintf(chis, "PEAKFITS/BASELINE/FitBaseline_ALL");
@@ -1074,13 +1114,21 @@ void TFeb3BasicProc:: f_make_histo (Int_t l_mode)
 
 
   sprintf(chis, "PEAKFITS/HEIGHT/FitPeakHeight_HI");
-  sprintf(chead, "Peakfit height of high amplification slaves");
-  h_peak_fit_high = MakeTH1('I', chis, chead, 2000, 0., 20000., "pulseheight");
+  sprintf(chead, "Peakfit height of high amplification slaves (accum)");
+  h_peak_fit_high = MakeTH1('I', chis, chead, 4000, 0., 40000., "pulseheight");
 
   sprintf(chis, "PEAKFITS/HEIGHT/FitPeakHeight_LO");
-  sprintf(chead, "Peakfit height of low amplification slaves");
-  h_peak_fit_low = MakeTH1('I', chis, chead, 2000, 0., 20000., "pulseheight");
+  sprintf(chead, "Peakfit height of low amplification slaves (accum");
+  h_peak_fit_low = MakeTH1('I', chis, chead, 4000, 0., 40000., "pulseheight");
 
+
+  sprintf(chis, "PEAKFITS/HEIGHT/FitPeakHeightAmpl_HI");
+  sprintf(chead, "Peakfit height amplitude of all high amplification slaves");
+  h_peak_fit_high_sum = MakeTH1('I', chis, chead, 20000, 0., 200000., "pulseheight");
+
+  sprintf(chis, "PEAKFITS/HEIGHT/FitPeakHeightAmpl_LO");
+  sprintf(chead, "Peakfit height amplitude all low amplification slaves");
+  h_peak_fit_low_sum = MakeTH1('I', chis, chead, 20000, 0., 200000., "pulseheight");
 
  // JAM put here additional histograms with mapped grid wires:
 
@@ -1112,6 +1160,20 @@ void TFeb3BasicProc:: f_make_histo (Int_t l_mode)
       }
     }
 
+    sprintf(chis, "Grids/Grid_%2d/X_ProfileFit_%2d", gid, gid);
+       sprintf(chead, "Grid %2d X Profile from Trace Fit (single event)", gid);
+       h_grid_x_profile_fit[g] = MakeTH1('D', chis, chead, PEXOR_APFEL_WIRES, 0, PEXOR_APFEL_WIRES, "X wire number", "Ampl");
+       if (IsObjMade())
+       {
+         for (int bin = 0; bin < PEXOR_APFEL_WIRES; ++bin)
+         {
+           sprintf(chead, "%2d", bin);
+           h_grid_x_profile_fit[g]->GetXaxis()->SetBinLabel(1 + bin, chead);
+         }
+       }
+
+
+
     sprintf(chis, "Grids/Grid_%2d/X_ProfileSum_%2d", gid, gid);
     sprintf(chead, "Grid %2d X Profile (accumulated)", gid);
     h_grid_x_profile_sum[g] = MakeTH1('D', chis, chead, PEXOR_APFEL_WIRES, 0, PEXOR_APFEL_WIRES, "X wire number", "N");
@@ -1123,6 +1185,20 @@ void TFeb3BasicProc:: f_make_histo (Int_t l_mode)
         h_grid_x_profile_sum[g]->GetXaxis()->SetBinLabel(1 + bin, chead);
       }
     }
+
+    sprintf(chis, "Grids/Grid_%2d/X_ProfileFitSum_%2d", gid, gid);
+       sprintf(chead, "Grid %2d X Profile from Trace Fit (accumulated)", gid);
+       h_grid_x_profile_fit_sum[g] = MakeTH1('D', chis, chead, PEXOR_APFEL_WIRES, 0, PEXOR_APFEL_WIRES, "X wire number", "Ampl");
+       if (IsObjMade())
+       {
+         for (int bin = 0; bin < PEXOR_APFEL_WIRES; ++bin)
+         {
+           sprintf(chead, "%2d", bin);
+           h_grid_x_profile_fit_sum[g]->GetXaxis()->SetBinLabel(1 + bin, chead);
+         }
+       }
+
+
     sprintf(chis, "Grids/Grid_%2d/Y_Profile_%2d", gid, gid);
     sprintf(chead, "Grid %2d Y Profile (single event)", gid);
     h_grid_y_profile[g] = MakeTH1('D', chis, chead, PEXOR_APFEL_WIRES, 0, PEXOR_APFEL_WIRES, "Y wire number", "N");
@@ -1134,6 +1210,20 @@ void TFeb3BasicProc:: f_make_histo (Int_t l_mode)
         h_grid_y_profile[g]->GetXaxis()->SetBinLabel(1 + bin, chead);
       }
     }
+
+
+    sprintf(chis, "Grids/Grid_%2d/Y_ProfileFit_%2d", gid, gid);
+    sprintf(chead, "Grid %2d Y Profile from Trace Fit (single event)", gid);
+       h_grid_y_profile_fit[g] = MakeTH1('D', chis, chead, PEXOR_APFEL_WIRES, 0, PEXOR_APFEL_WIRES, "Y wire number", "Ampl");
+       if (IsObjMade())
+       {
+         for (int bin = 0; bin < PEXOR_APFEL_WIRES; ++bin)
+         {
+           sprintf(chead, "%2d", bin);
+           h_grid_y_profile_fit[g]->GetXaxis()->SetBinLabel(1 + bin, chead);
+         }
+       }
+
     sprintf(chis, "Grids/Grid_%2d/Y_ProfileSum_%2d", gid, gid);
     sprintf(chead, "Grid %2d Y Profile (accumulated)", gid);
     h_grid_y_profile_sum[g] = MakeTH1('D', chis, chead, PEXOR_APFEL_WIRES, 0, PEXOR_APFEL_WIRES, "Y wire number", "N");
@@ -1147,7 +1237,17 @@ void TFeb3BasicProc:: f_make_histo (Int_t l_mode)
     }
 
 
-
+    sprintf(chis, "Grids/Grid_%2d/Y_ProfileFitSum_%2d", gid, gid);
+       sprintf(chead, "Grid %2d Y Profile from Trace Fit(accumulated)", gid);
+       h_grid_y_profile_fit_sum[g] = MakeTH1('D', chis, chead, PEXOR_APFEL_WIRES, 0, PEXOR_APFEL_WIRES, "Y wire number", "Ampl");
+       if (IsObjMade())
+       {
+         for (int bin = 0; bin < PEXOR_APFEL_WIRES; ++bin)
+         {
+           sprintf(chead, "%2d", bin);
+           h_grid_y_profile_fit_sum[g]->GetXaxis()->SetBinLabel(1 + bin, chead);
+         }
+       }
 
 
 
@@ -1585,11 +1685,14 @@ Bool_t TFeb3BasicProc::DoMultiPeakFit(UInt_t sfp, UInt_t feb, UInt_t ch)
     h_peak_fit[sfp][feb][ch]->Fill(ampl);
     h_peak_fit_all->Fill(ampl);
 
+    h_fit_ampl_trace[sfp][feb]->Fill(ch,ampl); // store fitmodel amplitudes channelwise for further mapping
+
+
     // TODO: user defined mapping of high and low amplification channels?
     if((ch==0) || (ch%2)==0)
       h_peak_fit_high->Fill(ampl); //  even channel is high amplification
     else
-      h_peak_fit_low->Fill(ampl); // odd channel is high amplification
+      h_peak_fit_low->Fill(ampl); // odd channel is low amplification
 
     h_meanpos[sfp][feb][ch]->Fill(position);
     h_meanpos_all->Fill(position);
