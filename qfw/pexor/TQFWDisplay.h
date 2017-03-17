@@ -73,6 +73,10 @@ public:
   /* Evaluate description of measurement range from qfw setup value*/
 //  TString GetSetupString(UChar_t qfwsetup);
 
+  /** helper function for trending histograms. stolen from go4 framework*/
+  static void IncTrending( TH1 * histo, int value, bool forwards );
+
+
 protected:
 
   /* helper function to register variable binsize histogram
@@ -209,6 +213,20 @@ public:
 
   /** Check of event sequence: display differences between subsequent qfw events*/
   TH1* hEventDelta;
+
+
+  // temperatures of sensors in Celsius. accumulated distribution
+  TH1* hTemps[PEXOR_NUMTHERMS];
+
+  // temperatures of sensors in Celsius. trending over event
+  TH1* hTempsTrend[PEXOR_NUMTHERMS];
+
+  // fan speed in rpm. accumulated distribution
+  TH1* hFans[PEXOR_NUMFANS];
+
+  // fan speed in rpm. accumulated distribution
+   TH1* hFansTrend[PEXOR_NUMFANS];
+
 
   TGo4Picture *pPexorQfws;
   TGo4Picture *pPexorQfwsTrace;

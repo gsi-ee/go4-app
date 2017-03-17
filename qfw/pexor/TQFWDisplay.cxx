@@ -164,6 +164,33 @@ TH1* TQFWDisplay::MakeVarbinsTH1(Bool_t replace, char type, const char* fullname
   return newh;
 }
 
+
+// stolen from go4 mbs viewer
+void TQFWDisplay::IncTrending( TH1 * histo, int value, bool forwards )
+{
+   if(histo==0) return;
+   int bins=histo->GetNbinsX();
+   //bool forwards=true;
+   int j,dj;
+   if(forwards)
+      dj=-1;
+   else
+      dj=+1;
+   for(int i=0;i<bins;i++)
+   {
+      if(forwards)
+         j=bins-i;
+      else
+         j=i;
+      int oldval=histo->GetBinContent(j+dj);
+      histo->SetBinContent(j,oldval);
+   }
+   histo->SetBinContent(j+dj,value);
+}
+
+
+
+
 ////////////////////////////////////////////////
 
 TQFWLoopDisplay::TQFWLoopDisplay(Int_t deviceid, Int_t loopid) :
@@ -337,6 +364,33 @@ void TQFWBoardDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
       100, 0, 100);
 
 
+
+  for(int i=0; i<PEXOR_NUMTHERMS;++i)
+  {
+  // temperatures of sensors in Celsius. accumulated distribution
+   hTemps[i]= MakeTH1('I', Form("Board%d/Sensors/Distribution/TempDist_%d_%d", brd, brd,i),
+       Form("Thermometer %d board %d distribution", i, brd), 3000, -150, 150, "Celsius","Events");
+
+   hTempsTrend[i]=MakeTH1('D', Form("Board%d/Sensors/Trend/TempTrend_%d_%d", brd, brd,i),
+       Form("Thermometer %d board %d trending", i, brd), 1000, 0, 1000, "Seconds","Celsius");
+
+  }
+
+  for(int f=0; f<PEXOR_NUMFANS;++f)
+   {
+   // temperatures of sensors in Celsius. accumulated distribution
+    hFans[f]= MakeTH1('I', Form("Board%d/Sensors/Distribution/FanDist_%d_%d", brd, brd,f),
+        Form("Fan %d board %d RPM distribution", f, brd), 1000, 0, 10000, "RPM","Events");
+
+    hFansTrend[f]=MakeTH1('D', Form("Board%d/Sensors/Trend/FanTrend_%d_%d", brd, brd,f),
+        Form("Fan %d board %d RPM trending", f, brd), 1000, 0, 1000, "Seconds","RPM");
+
+   }
+
+
+
+
+
   obname.Form("QFW_Rawscalers_Brd%d", brd);
   pPexorQfws = GetPicture(obname.Data());
   if (pPexorQfws == 0)
@@ -374,6 +428,10 @@ void TQFWBoardDisplay::InitDisplay(Int_t timeslices, Bool_t replace)
     }
     AddPicture(pPexorQfwsTrace, Form("Board%d", brd));
   }
+
+
+
+
 
 }
 

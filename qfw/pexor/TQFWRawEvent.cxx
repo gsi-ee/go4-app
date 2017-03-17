@@ -118,11 +118,22 @@ void TQFWBoard::Clear(Option_t *t)
   //TGo4Log::Info("TQFWBoard: Clear ");
   TGo4CompositeEvent::Clear();
   fQfwSetup = 0;
+  fSensorId=0;
 
   for (int q = 0; q < PEXOR_QFWNUM; ++q)
   {
     fQfwErr[q] = 0;
   }
+
+  for (int t = 0; t < PEXOR_NUMTHERMS; ++t)
+  {
+    fTemperature[t] = 0;
+  }
+  for (int f = 0; f < PEXOR_NUMFANS; ++f)
+  {
+    fFanSpeed[f] = 0;
+  }
+
 }
 
 TString TQFWBoard::GetSetupString()

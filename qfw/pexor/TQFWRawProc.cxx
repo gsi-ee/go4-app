@@ -6,6 +6,8 @@
 #include "TH2.h"
 #include "TROOT.h"
 #include "TMath.h"
+#include "TStopwatch.h"
+
 #include "TGo4Analysis.h"
 #include "TGo4Log.h"
 
@@ -30,6 +32,14 @@ if((pdata - pdatastart) > (opticlen/4)) \
   GO4_SKIP_EVENT \
   continue; \
 }
+
+/* JAM2016: do not skip event if we have naked poland test without data:*/
+#define  QFWRAW_CHECK_PDATA_CONTINUE                                    \
+if((pdata - pdatastart) > (opticlen/4)) \
+{ \
+  return 0;\
+}
+
 
 // JAM took this out since the case is clear
 //psubevt->PrintMbsSubevent(kTRUE,kTRUE,kTRUE);
@@ -118,13 +128,15 @@ void TQFWRawProc::InitDisplay(int timeslices, Bool_t replace)
   {
     fBoards[i]->InitDisplay(timeslices, replace);
   }
-
 }
 
 //-----------------------------------------------------------
 // event function
 Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
 {
+  //static int debugcounter=0;
+
+
 // called by framework from TQFWRawEvent to fill it
   Bool_t isOffsetTrigger=kFALSE;
   QFWRawEvent = (TQFWRawEvent*) target;
@@ -306,15 +318,15 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
         return kFALSE;
       }
 
-      if(fPar->fCheckEventSequence)
-            {
-                if(theBoard->GetLastEventNumber()>=0 && eventcounter!= theBoard->GetLastEventNumber() +1)
-                {
-                  Int_t delta=(eventcounter - (theBoard->GetLastEventNumber() +1));
-                  printf("***** event sequence number mismatch at board %d: this event %d, last event %d, missing events:%d, total missing:%ld\n",
-                      brdid, eventcounter, theBoard->GetLastEventNumber(), delta, missing_events+=delta);\
-                }
-            }
+//       if(fPar->fCheckEventSequence)
+//             {
+//                 if(theBoard->GetLastEventNumber()>=0 && eventcounter!= theBoard->GetLastEventNumber() +1)
+//                 {
+//                   Int_t delta=(eventcounter - (theBoard->GetLastEventNumber() +1));
+//                   printf("***** event sequence number mismatch at board %d: this event %d, last event %d, missing events:%d, total missing:%ld\n",
+//                       brdid, eventcounter, theBoard->GetLastEventNumber(), delta, missing_events+=delta);
+//                 }
+//             }
 
 
       TQFWBoardDisplay* boardDisplay = GetBoardDisplay(brdid);
@@ -336,7 +348,11 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
 
 
       pdata += 1;
-      QFWRAW_CHECK_PDATA;
+
+      // JAM 02-sep-2016:: for naked poland free running test
+      QFWRAW_CHECK_PDATA_CONTINUE;
+
+      //QFWRAW_CHECK_PDATA;
       theBoard->fQfwSetup = *pdata;
       //TGo4Log::Info("QFW SEtup %d", theBoard->fQfwSetup);
       for (int j=0; j<4;++j)
@@ -345,8 +361,13 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
         pdata++;
 
       }
+
+      // JAM 02-sep-2016:: for naked poland free running test
+           QFWRAW_CHECK_PDATA_CONTINUE;
+
+
       //pdata += 4;
-      QFWRAW_CHECK_PDATA;
+      //QFWRAW_CHECK_PDATA;
       for (int loop = 0; loop < theBoard->getNElements(); loop++)
       {
         TQFWLoop* theLoop = theBoard->GetLoop(loop);
@@ -445,6 +466,62 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
       }
       QFWRAW_CHECK_PDATA;
 
+      // JAM2017: evaluate optional temperature and fan values:
+
+      // fast forward to the sensor header keyword
+      while(*((UInt_t*)pdata++) != 0xcbcbcbcb)
+      {
+        QFWRAW_CHECK_PDATA_BREAK;
+      }
+
+      // unpack  temperatures:
+      UShort_t temp = 0;
+      for (int t = 0; t < PEXOR_NUMTHERMS; t += 2)
+      {
+        QFWRAW_CHECK_PDATA_BREAK;
+        temp = (*pdata & 0xFFFF);
+        //if(debugcounter<10) printf("!!!!!!!!!!!!! temp(%d) = 0x%x\n",t,temp);
+        theBoard->SetTempRaw(t, temp);
+        temp = (*pdata >> 16) & 0xFFFF;
+        //if(debugcounter<10) printf("!!!!!!!!!!!!! temp(%d) = 0x%x\n",t+1,temp);
+        theBoard->SetTempRaw(t + 1, temp);    // wrong index  7 will be suppressed in setter method.
+        pdata++;
+      }
+
+      // unpack fans:
+      for (int f = 0; f < PEXOR_NUMFANS; f += 2)
+      {
+        QFWRAW_CHECK_PDATA_BREAK;
+        temp = (*pdata & 0xFFFF);
+        //if(debugcounter<10) printf("!!!!!!!!!!!!! fan(%d) = 0x%x\n",f,temp);
+        theBoard->SetFanRaw(f, temp);
+        temp = (*pdata >> 16) & 0xFFFF;
+        theBoard->SetFanRaw(f + 1, temp);
+        //if(debugcounter<10) printf("!!!!!!!!!!!!! fan(%d) = 0x%x\n",f+1,temp);
+        pdata++;
+      }
+
+      //debugcounter++;
+      // get sensor id:
+      ULong64_t sid=*pdata++;
+      sid=(sid<<32);
+      QFWRAW_CHECK_PDATA;
+      ULong64_t lsb=*pdata++;
+      sid |= lsb;
+      theBoard->SetSensorId(sid);
+      // end temperature and fan
+
+      //evaluate firmware version id:
+      // fast forward to the firmwareheader keyword
+      while(*pdata++ != 0x000aaaaa)
+           {
+             QFWRAW_CHECK_PDATA_BREAK;
+           }
+      theBoard->SetVersionId(*pdata);
+      // end version id unpack
+
+
+
       // skip filler words at the end of gosip payload:
       while (pdata - pdatastart <= (opticlen / 4))    // note that trailer is outside opticlen!
       {
@@ -499,6 +576,10 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
 
 Bool_t TQFWRawProc::FillDisplays()
 {
+  static TStopwatch trendWatch;
+  static double lasttime=0;
+
+
   for (unsigned i = 0; i < TQFWRawEvent::fgConfigQFWBoards.size(); ++i)
   {
     UInt_t brdid = TQFWRawEvent::fgConfigQFWBoards[i];
@@ -535,7 +616,25 @@ Bool_t TQFWRawProc::FillDisplays()
       }
     }
     if (rebinned)
+    {
       boardDisplay->InitDisplay(-1, kTRUE);    // rebin overview histograms with true timeslices of subloops
+
+      // initially print out the unique ids here:
+      TGo4Log::Info("Board %d has sensor id 0x%lx, firmware id:0x%x", i, theBoard->GetSensorId(),
+          theBoard->GetVersionId());
+
+      for (int t = 0; t < PEXOR_NUMTHERMS; ++t)
+      {
+        printf("T[%d]=0x%x -> %f Celsius \n", t, theBoard->GetTempRaw(t), theBoard->GetTempCelsius(t));
+      }
+
+      for (int t = 0; t < PEXOR_NUMFANS; ++t)
+      {
+        printf("FAN[%d]=0x%x -> %f RPM \n", t, theBoard->GetFanRaw(t), theBoard->GetFanRPM(t));
+      }
+
+    }
+
 
     // now fill histograms from already unpacked data in ouput event:
     boardDisplay->hQFWRaw2DTrace->Reset("");
@@ -607,6 +706,40 @@ Bool_t TQFWRawProc::FillDisplays()
     // need to update this here, since histograms are initialized after offset is retrieved!
     for (int c = 0; c < PEXOR_QFWCHANS; ++c)
       boardDisplay->hQFWOffsets->SetBinContent(c+1,theBoard->GetOffset(c));
+
+
+    // Put display of sensor values thermos and fans here:
+
+    bool filltrending=kFALSE;
+    if(trendWatch.RealTime()>1.0)
+    {
+      filltrending=kTRUE;
+      trendWatch.Start(kTRUE);
+    }
+    trendWatch.Continue();
+
+
+    for (int t = 0; t < PEXOR_NUMTHERMS; ++t)
+       {
+          boardDisplay->hTemps[t]->Fill(theBoard->GetTempCelsius(t));
+          // TODO fill trending only if second is elapsed:
+
+          if(filltrending)
+          {
+            TQFWDisplay::IncTrending(boardDisplay->hTempsTrend[t],theBoard->GetTempCelsius(t),true);
+          }
+       }
+
+    for (int f = 0; f < PEXOR_NUMFANS; ++f)
+          {
+             boardDisplay->hFans[f]->Fill(theBoard->GetFanRPM(f));
+             // TODO fill trending only if second is elapsed:
+             if(filltrending)
+             {
+               TQFWDisplay::IncTrending(boardDisplay->hFansTrend[f],theBoard->GetFanRPM(f),true);
+             }
+          }
+
 
 
   }    // i board
