@@ -446,6 +446,7 @@ TQFWGridLoopDisplay::TQFWGridLoopDisplay(Int_t gridid, Int_t loopid) :
         hBeamChargeXSlice(0), hBeamChargeYSlice(0), hBeamAccChargeXSlice(0), hBeamAccChargeYSlice(0),
         hBeamCurrentXSlice(0), hBeamCurrentYSlice(0), hBeamAveCurrentXSlice(0), hBeamAveCurrentYSlice(0),
         hBeamLoopX(0), hBeamLoopY(0), hBeamAccLoopX(0), hBeamAccLoopY(0),
+        hBeamTimeX(0), hBeamTimeY(0), hBeamAccTimeX(0),hBeamAccTimeY(0),
         hPosLoopX(0), hPosLoopY(0), hPosAccLoopX(0), hPosAccLoopY(0),
         hPosQLoopX(0), hPosQLoopY(0), hPosQAccLoopX(0), hPosQAccLoopY(0),
         hPosILoopX(0), hPosILoopY(0), hPosIAveLoopX(0), hPosIAveLoopY(0),
@@ -609,6 +610,8 @@ void TQFWGridLoopDisplay::InitDisplay(int timeslices, Bool_t replace)
       }
 
   }
+
+#ifdef   QFW_FILL_POSITION_PROFILES
 
   if (fParam && (gix >= 0))
   {
@@ -779,6 +782,8 @@ void TQFWGridLoopDisplay::InitDisplay(int timeslices, Bool_t replace)
 
 
   }    //  if (fParam && (gix >= 0))
+#endif
+
 
 }
 
@@ -787,8 +792,17 @@ void TQFWGridLoopDisplay::AdjustDisplay(TQFWLoop* loopdata)
   // check if we have different timeslices:
   if (loopdata->fHasData && (loopdata->fQfwLoopSize != GetTimeSlices()))
   {
+    //printf("TQFWGridLoopDisplay::AdjustDisplay with InitDisplay for loopdata %s with new timeslizes %d\n",
+//        loopdata->GetName(),
+//        loopdata->fQfwLoopSize);
     InitDisplay(loopdata->fQfwLoopSize, kTRUE);
+
   }
+
+//  printf("TQFWGridLoopDisplay::AdjustDisplay for loopdata %s \n",
+//       loopdata->GetName());
+
+
 // change histogram titels according setup:
   //Double_t mtime = loopdata->fQfwLoopTime * 20 / 1000;    // measurement time in us
   Double_t mtime = loopdata->GetMicroSecsPerTimeSlice();
@@ -804,6 +818,7 @@ void TQFWGridLoopDisplay::AdjustDisplay(TQFWLoop* loopdata)
 
   hBeamLoopX->Reset("");
   hBeamLoopY->Reset("");
+#ifdef  QFW_FILL_POSITION_PROFILES
   hPosLoopX->Reset("");
   hPosLoopY->Reset("");
   hPosQLoopX->Reset("");
@@ -812,6 +827,7 @@ void TQFWGridLoopDisplay::AdjustDisplay(TQFWLoop* loopdata)
   hPosILoopY->Reset("");
   hPosIAveLoopX->Reset("");
   hPosIAveLoopY->Reset("");
+#endif
 
   hBeamXSlice->Reset("");
   hBeamYSlice->Reset("");
@@ -825,12 +841,14 @@ void TQFWGridLoopDisplay::AdjustDisplay(TQFWLoop* loopdata)
   hBeamTimeX->SetTitle(mtitle.Data());
   hBeamTimeY->SetTitle(mtitle.Data());
 
+#ifdef  QFW_FILL_POSITION_PROFILES
   hBeamChargeXSlice->Reset("");
   hBeamChargeYSlice->Reset("");
   hBeamCurrentXSlice->Reset("");
   hBeamCurrentYSlice->Reset("");
   hBeamAveCurrentXSlice->Reset("");
   hBeamAveCurrentYSlice->Reset("");
+#endif
 
 }
 
@@ -996,6 +1014,8 @@ void TQFWGridDisplay::InitDisplay(int timeslices, Bool_t replace)
 
   }
 
+#ifdef  QFW_FILL_POSITION_PROFILES
+
   // position histogram with non equidistant bins
   if (fParam && gix >= 0)
   {
@@ -1145,6 +1165,7 @@ void TQFWGridDisplay::InitDisplay(int timeslices, Bool_t replace)
 //        Form("Y Current profile average Grid%2d", grid), binsY, yposition, "Position [mm]", "I [A]");
 
   }    // if (fParam && gix >= 0)
+#endif
 
 }
 
@@ -1164,6 +1185,7 @@ void TQFWGridDisplay::AdjustDisplay(TQFWBoard* boarddata)
   hBeamY->Reset("");
   hBeamX->SetTitle(mtitle.Data());
   hBeamY->SetTitle(mtitle.Data());
+#ifdef   QFW_FILL_POSITION_PROFILES
   hPosX->Reset("");
   hPosY->Reset("");
   hPosX->SetTitle(mtitle.Data());
@@ -1174,6 +1196,8 @@ void TQFWGridDisplay::AdjustDisplay(TQFWBoard* boarddata)
 //  hPosI_Y->Reset("");
 //  hPosIAve_X->Reset("");
 //  hPosIAve_Y->Reset("");
+
+#endif
 
 //      mtitle.Form("%s dt=%.2E us", setup.Data(),premtime);
 

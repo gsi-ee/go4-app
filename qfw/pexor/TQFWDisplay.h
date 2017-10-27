@@ -12,6 +12,11 @@ class TQFWRawParam;
 
 #include "TGo4Analysis.h"
 
+
+/* enable position calibrated profile histograms */
+#define QFW_FILL_POSITION_PROFILES 1
+
+
 /*
  * Base Class for all histogram containers ("displays") that are used in qfw analysis
  *  (JAM December 2013)

@@ -23,6 +23,10 @@
 static unsigned long skipped_events=0;
 static unsigned long missing_events=0;
 
+
+//#define QFWRAW_FREERUNTEST 1
+
+
 /* helper macro for BuildEvent to check if payload pointer is still inside delivered region:*/
 /* this one to be called at top data processing loop*/
 #define  QFWRAW_CHECK_PDATA                                    \
@@ -134,9 +138,10 @@ void TQFWRawProc::InitDisplay(int timeslices, Bool_t replace)
 // event function
 Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
 {
-  //static int debugcounter=0;
-
-
+  static int debugcounter=0;
+  static int badcounter=0;
+  //printf ("RRRRRRRRRRRRRRRRR  TQFWRawProc::BuildEvent ..\n");
+  debugcounter++;
 // called by framework from TQFWRawEvent to fill it
   Bool_t isOffsetTrigger=kFALSE;
   QFWRawEvent = (TQFWRawEvent*) target;
@@ -158,6 +163,19 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
                                      triggertype);
     //return kFALSE; // this would let the second step execute!
   }
+
+///////////// JAM debug of oversized after bad events OCT2017
+//  if(debugcounter<2)
+//  {
+//    source->PrintEvent();
+//    Int_t eventsize=source->GetIntLen();
+//    TGo4Log::Message(1, "Dump first event, size=%d ints!",eventsize);
+//  }
+//
+//  if(badcounter>=2) badcounter++;
+//
+//  if(badcounter>10) GO4_STOP_ANALYSIS_MESSAGE("stopped after first not bad event.");
+//////////////////////////////////////////////////////////////////////////////////////
 
 // first we fill the TQFWRawEvent with data from MBS source
 // we have up to two subevents, crate 1 and 2
@@ -273,7 +291,13 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
       }
       else if ((unsigned) *pdata == 0xbad00bad)
       {
+
+        printf("############ found bad event %d  at count  %d\n",badcounter, debugcounter);
+        source->PrintEvent();
+        badcounter++;
         GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: Found BAD mbs event (marked 0x%x), skip it.", (*pdata));
+
+
       }
       else if ((*pdata & 0xff) != 0x34)    // regular channel data
       {
@@ -285,6 +309,14 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
         //return kFALSE;
       }
 
+
+//      if((debugcounter > 2) && (debugcounter <5))
+//      {
+//        GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: skip events %d for testing!", debugcounter);
+//
+//      }
+
+
       Int_t* pdatastart = pdata;    // remember begin of optic payload data section
       // unsigned trig_type   = (*pdata & 0xf00) >> 8;
       unsigned sfp_id = (*pdata & 0xf000) >> 12;
@@ -293,6 +325,12 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
       pdata++;
 
       Int_t opticlen = *pdata++;
+
+
+
+
+
+
       if (opticlen > lwords * 4)
       {
         //TGo4Log::Error("Mismatch with subevent len %d and optic len %d", lwords * 4, opticlen);
@@ -350,9 +388,11 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
       pdata += 1;
 
       // JAM 02-sep-2016:: for naked poland free running test
+#ifdef QFWRAW_FREERUNTEST
       QFWRAW_CHECK_PDATA_CONTINUE;
-
-      //QFWRAW_CHECK_PDATA;
+#else
+      QFWRAW_CHECK_PDATA;
+#endif
       theBoard->fQfwSetup = *pdata;
       //TGo4Log::Info("QFW SEtup %d", theBoard->fQfwSetup);
       for (int j=0; j<4;++j)
@@ -363,11 +403,13 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
       }
 
       // JAM 02-sep-2016:: for naked poland free running test
-           QFWRAW_CHECK_PDATA_CONTINUE;
-
+#ifdef QFWRAW_FREERUNTEST
+      QFWRAW_CHECK_PDATA_CONTINUE;
+#else
 
       //pdata += 4;
-      //QFWRAW_CHECK_PDATA;
+      QFWRAW_CHECK_PDATA;
+#endif
       for (int loop = 0; loop < theBoard->getNElements(); loop++)
       {
         TQFWLoop* theLoop = theBoard->GetLoop(loop);
@@ -380,6 +422,23 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
         theLoop->fQfwSetup = theBoard->fQfwSetup;    // propagate setup id to subevent
         QFWRAW_CHECK_PDATA_BREAK;
         theLoop->fQfwLoopSize = *pdata++;
+
+//////////// JAM2017 Debug October 2017
+//        if(debugcounter<2)
+//               {
+//                 TGo4Log::Message(1,"Header has opticlen: %d, loopsize(%d)=%d",opticlen,loop,theLoop->fQfwLoopSize);
+//               }
+//
+//        if(badcounter>=2 && badcounter <5)
+//              {
+//                //source->PrintEvent();
+//                Int_t eventsize=source->GetIntLen();
+//                TGo4Log::Message(1,"%d Events after bad event, size=%d ints, opticlen:%d, loopsize(%d):%d",
+//                    badcounter,eventsize,opticlen, loop, theLoop->fQfwLoopSize);
+//              }
+///////////////////////////////////////////////////
+
+
         theLoop->fHasData=kTRUE; // dynamic rebinning of timeslices only if we really have valid event
 
 //      if (theLoop->fQfwLoopSize >= PEXOR_QFWSLICES)
@@ -571,13 +630,24 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
   // do not fill histograms of second analysis step with data of uncorrected first event:
   if((fPar->fFrontendOffsetLoop>=0) && !offsetreadyold)  GO4_SKIP_EVENT_MESSAGE("Skip event of seqnr %d because first offset!", QFWRawEvent->fSequenceNumber);
   QFWRawEvent->SetValid(kTRUE);    // to store
+
+
+
+/////////// JAM2017 - debug events after bad eventOCT2017
+//  if(badcounter==3)
+//  {
+//    source->PrintEvent();
+//    GO4_STOP_ANALYSIS_MESSAGE("stopped after first not bad event.");
+//  }
+
+
   return kTRUE;
 }
 
 Bool_t TQFWRawProc::FillDisplays()
 {
   static TStopwatch trendWatch;
-  static double lasttime=0;
+  //static double lasttime=0;
 
 
   for (unsigned i = 0; i < TQFWRawEvent::fgConfigQFWBoards.size(); ++i)

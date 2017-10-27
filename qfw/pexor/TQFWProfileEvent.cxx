@@ -124,8 +124,9 @@ void TQFWProfileEvent::SetupGrids()
     {
       Int_t board = TQFWProfileEvent::fParameter->fGridBoardID_X[i][wx];
       if (board < 0)
-        continue;
+          continue;
       Int_t channel = TQFWProfileEvent::fParameter->fGridChannel_X[i][wx];
+      //printf("TQFWProfileEvent::SetupGrids() X grid:%d wire:%d board:%d channel:%d \n",i,wx, board, channel);
       //if(channel<0) // we keep negative channel numbers to mask out broken wires later
       grid->AddXMapping(board, channel);
     }
@@ -185,7 +186,7 @@ TQFWProfileEvent::~TQFWProfileEvent()
 //-----------------------------------------------------------
 void TQFWProfileEvent::Clear(Option_t *t)
 {
-
+  //printf("PPPPPPPPP TQFWProfileEvent::Clear NOP\n");
 }
 
 

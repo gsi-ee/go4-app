@@ -293,7 +293,7 @@ void TQFWProfileProc::InitDisplay(int timeslices, Bool_t replace)
 Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 {
   // called by framework from TQFWRawEvent to fill it
-
+  //printf ("PPPPPPPPPPPPPPPPPP TQFWProfileProc::BuildEvent ..\n");
   if (fOutput == 0)
   {
     fOutput = (TQFWProfileEvent*) target;
@@ -302,6 +302,8 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 
   TQFWRawEvent* QFWRawEvent = (TQFWRawEvent*) GetInputEvent();
   fOutput->SetValid(kFALSE);    // not store
+
+//  printf("TQFWProfileProc::BuildEvent has input event %x (%s) \n",QFWRawEvent, QFWRawEvent->GetName());
 
   TString mtitle;
   // first loop over grids:
@@ -312,6 +314,12 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
     TQFWGridDisplay* gridDisplay = fGrids[g];    // g      =vector index of display component
     Int_t gridid = gridDisplay->GetDevId();    // gridid =unique hardware id
     Int_t gix = fParam->FindGridIndex(gridid);    // gix    =index in grid parameter array
+    if(gix<0)
+    {
+      TGo4Log::Error("Configuration error: Grid hardware id %d is not configured, skip it!", gridid);
+      continue;
+    }
+
     TQFWGrid* gridData = fOutput->GetGrid(gridid);
     TQFWBoard* boardData = 0;
     Int_t oldboardid = -1;
@@ -326,8 +334,11 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
         TQFWChannelMap xmap = gridData->GetXChannelMap(x);
         if (oldboardid != (Int_t) xmap.fBoardID)
         {
-          //TGo4Log::Info("Grid %d Retrieving X Board of id %d",gridid, xmap.fBoardID);
+ //         TGo4Log::Info("Grid %d Retrieving X Board of id %d",gridid, xmap.fBoardID);
           boardData = QFWRawEvent->GetBoard(xmap.fBoardID);
+//          printf("TQFWProfileProc::BuildEvent X with board data %x (%s)\n",boardData, boardData->GetName());
+
+
           oldboardid = xmap.fBoardID;
           if (boardData == 0)
           {
@@ -353,17 +364,27 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           loopfirst = kFALSE;
         }
         Int_t xchan = xmap.fQFWChannel;
-        //printf("ProfileProc: processing board %d channel %d for grid %d X wire %d \n",
-        //   xmap.fBoardID, xchan, gridid, x);
+//        printf("ProfileProc: processing board %d channel %d for grid %d X wire %d \n",
+//           xmap.fBoardID, xchan, gridid, x);
         if (xchan < 0)
           continue;    // skip non configured channels
         std::vector < Double_t > &trace = loopData->fQfwTrace[xchan];
+        Int_t maxtrace=trace.size();
+        if(maxtrace>loopData->fQfwLoopSize)
+        {
+          TGo4Log::Error("TQFWProfileProc::BuildEvent Warning: trace size %d exeeds configured loops size %d for x channel %d, loop %s",
+                trace.size(),loopData->fQfwLoopSize, xchan, loopData->GetName());
+          maxtrace=loopData->fQfwLoopSize;
+        }
+
+
+
         Double_t sum = 0;
         Double_t CperCount = loopData->GetCoulombPerCount();    // unit C
         Double_t TperSlice = 1.0e-6 * loopData->GetMicroSecsPerTimeSlice();
         Double_t TperLoop = TperSlice * loopData->fQfwLoopSize;    // unit s
 
-        for (unsigned t = 0; t < trace.size(); ++t)
+        for (Int_t t = 0; t < maxtrace; ++t)
         {
           if (fParam->fMeasureBackground)
           {
@@ -401,6 +422,8 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           gridData->fXCurrent.push_back(slicecurrent);
 #endif
 
+
+#ifdef          QFW_FILL_POSITION_PROFILES
           // NOTE: we should not fill underflow/overflow bins for charge,
           // otherwise we are not able to calculate average current correctly!
           if (((fParam->fGridMinWire_X[gix] < 0) || (x >= fParam->fGridMinWire_X[gix]))
@@ -421,6 +444,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
             loopDisplay->hBeamAveCurrentXSlice->SetBinContent(binx, bint, currentaverage);
 
           }
+#endif
 
         }    // trace t
 
@@ -432,6 +456,9 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 //        gridDisplay->hBeamX->AddBinContent(1 + x, sum);
 //        gridDisplay->hBeamAccX->AddBinContent(1 + x, sum);
 
+
+
+#ifdef QFW_FILL_POSITION_PROFILES
         // here position calibrated histograms:
         if (gix >= 0)
         {
@@ -478,7 +505,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           }
 
         }
-
+#endif
       }    // x wires
 
       for (int y = 0; y < gridData->GetNumYWires(); ++y)
@@ -488,6 +515,11 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
         {
           //TGo4Log::Info("Grid %d Retrieving Y Board of id %d", gridid, ymap.fBoardID);
           boardData = QFWRawEvent->GetBoard(ymap.fBoardID);
+
+//          printf("TQFWProfileProc::BuildEvent Y with board data %x (%s)\n",boardData, boardData->GetName());
+
+
+
           oldboardid = ymap.fBoardID;
           if (boardData == 0)
           {
@@ -506,16 +538,26 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           return kFALSE;
         }
         Int_t ychan = ymap.fQFWChannel;
-        //printf("ProfileProc: processing board %d channel %d for grid %d Y wire %d \n",
-        //           ymap.fBoardID, ychan, gridid, y);
+//        printf("ProfileProc: processing board %d channel %d for grid %d Y wire %d \n",
+//                   ymap.fBoardID, ychan, gridid, y);
         if (ychan < 0)
           continue;    // skip non configured channels
         std::vector < Double_t > &trace = loopData->fQfwTrace[ychan];
+        Int_t maxtrace=trace.size();
+        if(maxtrace>loopData->fQfwLoopSize)
+        {
+          TGo4Log::Error("TQFWProfileProc::BuildEvent Warning: trace size %d exeeds configured loops size %d for y channel %d, loop %s",
+                       trace.size(),loopData->fQfwLoopSize, ychan, loopData->GetName());
+          maxtrace=loopData->fQfwLoopSize;
+        }
+
+
+
         Double_t sum = 0;
         Double_t CperCount = loopData->GetCoulombPerCount();    // unit C
         Double_t TperSlice = 1.0e-6 * loopData->GetMicroSecsPerTimeSlice();
         Double_t TperLoop = TperSlice * loopData->fQfwLoopSize;    // unit s
-        for (unsigned t = 0; t < trace.size(); ++t)
+        for (Int_t t = 0; t < maxtrace; ++t)
         {
 
           if (fParam->fMeasureBackground)
@@ -550,6 +592,9 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           gridData->fYCurrent.push_back(slicecurrent);
 #endif
 
+
+
+#ifdef          QFW_FILL_POSITION_PROFILES
           if (((fParam->fGridMinWire_Y[gix] < 0) || (y >= fParam->fGridMinWire_Y[gix]))
               && ((fParam->fGridMaxWire_Y[gix] < 0) || (y < fParam->fGridMaxWire_Y[gix])))
           {
@@ -566,6 +611,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
             Double_t currentaverage = chargesum / numsamples / TperSlice;
             loopDisplay->hBeamAveCurrentYSlice->SetBinContent(biny, bint, currentaverage);
           }
+#endif
 
         }    // trace t
         loopDisplay->hBeamLoopY->Fill(y, sum);
@@ -573,6 +619,8 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
         gridDisplay->hBeamY->Fill(y, sum);    // we need Fill instead SetBinContent to evaluate statistics
         gridDisplay->hBeamAccY->Fill(y, sum);
 
+
+#ifdef QFW_FILL_POSITION_PROFILES
         // here position calibrated histograms:
         if (gix >= 0)
         {
@@ -616,7 +664,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           }    // wire range
 
         }    //gix
-
+#endif
       }    // y wires
 
     }    // loops
@@ -785,6 +833,8 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
     gridDisplay->hBeamRMSX->Fill(gridData->fBeamRMSX);
     gridDisplay->hBeamRMSY->Fill(gridData->fBeamRMSY);
 
+
+#ifdef          QFW_FILL_POSITION_PROFILES
     Double_t posMeanX = gridDisplay->hPosX->GetMean();
     Double_t posMeanY = gridDisplay->hPosY->GetMean();
     Double_t posRMSX = gridDisplay->hPosX->GetRMS();
@@ -793,6 +843,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
     gridDisplay->hPosMeanXY->Fill(posMeanX, posMeanY);
     gridDisplay->hPosRMSX->Fill(posRMSX);
     gridDisplay->hPosRMSY->Fill(posRMSY);
+#endif
 
 // TODO: move above plots to each loop display.
 // maybe we keep overall plots here only if we account it with the current calibration!
@@ -857,12 +908,22 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
         if (xchan < 0)
           continue;    // skip non configured channels
         std::vector < Double_t > &trace = loopData->fQfwTrace[xchan];
+        Int_t maxtrace=trace.size();
+        if (maxtrace > loopData->fQfwLoopSize)
+        {
+          TGo4Log::Error(
+              "TQFWProfileProc::BuildEvent Warning: trace size %d exeeds configured loops size %d for cup segment %d, loop %s",
+              trace.size(), loopData->fQfwLoopSize, xchan, loopData->GetName());
+          maxtrace = loopData->fQfwLoopSize;
+        }
+
+
         Double_t sum = 0;
         Double_t CperCount = loopData->GetCoulombPerCount();    // unit C
         Double_t TperSlice = 1.0e-6 * loopData->GetMicroSecsPerTimeSlice();
         Double_t TperLoop = TperSlice * loopData->fQfwLoopSize;    // unit s
 
-        for (unsigned t = 0; t < trace.size(); ++t)
+        for (Int_t t = 0; t < maxtrace; ++t)
         {
           if (fParam->fMeasureBackground)
           {

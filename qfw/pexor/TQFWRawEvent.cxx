@@ -26,6 +26,7 @@ TQFWLoop::~TQFWLoop()
 
 void TQFWLoop::Clear(Option_t *t)
 {
+  //printf("CCCCCCCCCCC TQFWLoop %s: (0x%x)Clear\n",GetName(), this);
   fQfwLoopSize=0;
   fQfwLoopTime=0;
   fHasData=kFALSE;
@@ -116,6 +117,7 @@ TQFWBoard::~TQFWBoard()
 void TQFWBoard::Clear(Option_t *t)
 {
   //TGo4Log::Info("TQFWBoard: Clear ");
+  //printf("CCCCCCCCCCC TQFWBoard: %s (0x%x)Clear\n",GetName(),this);
   TGo4CompositeEvent::Clear();
   fQfwSetup = 0;
   fSensorId=0;
@@ -234,6 +236,7 @@ TQFWBoard* TQFWRawEvent::GetBoard(UInt_t id)
 void TQFWRawEvent::Clear(Option_t *t)
 {
   //TGo4Log::Info("TQFWRawEvent: Clear ");
+  //printf("CCCCCCCCCCC  TQFWRawEvent::Clear (0x%x)\n",this);
   TGo4CompositeEvent::Clear();
   fSequenceNumber = -1;
 }
