@@ -495,7 +495,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
             Int_t numsamples = 1
                 + (Int_t)((loopDisplay->hPosQAccLoopX->GetEntries() - 1) / loopDisplay->hPosQAccLoopX->GetNbinsX());    // divide number of entries by bins to get number of charge measurements per wire
             Int_t xposbin = loopDisplay->hPosQAccLoopX->FindBin(xpos);
-//            printf("XXXXXXXX I- grid %d loop%d xpos:%f xposbin:%d, entries:%f bins:%d numsamples=%d \n", g, l, xpos, xposbin,
+//            printf("QFWQFWXX I- grid %d loop%d xpos:%f xposbin:%d, entries:%f bins:%d numsamples=%d \n", g, l, xpos, xposbin,
 //                loopDisplay->hPosQAccLoopX->GetEntries(), loopDisplay->hPosQAccLoopX->GetNbinsX(), numsamples);
 
             Double_t chargesum = loopDisplay->hPosQAccLoopX->GetBinContent(xposbin);
@@ -745,7 +745,7 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
         else
         {
           // optionally show debug
-          //printf("XXXXXXXX: cmax=%d <0, do not evaluate profile stats for grid:%d loop:%d\n", cmax,g,l);
+          //printf("QFWQFWXX: cmax=%d <0, do not evaluate profile stats for grid:%d loop:%d\n", cmax,g,l);
 
         }
 

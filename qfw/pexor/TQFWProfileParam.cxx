@@ -14,6 +14,8 @@
 #include "TQFWProfileParam.h"
 #include "Riostream.h"
 
+using namespace std;
+
 TQFWProfileParam::TQFWProfileParam() :
     TGo4Parameter()
 {

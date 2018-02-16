@@ -15,6 +15,8 @@
 //#include "Riostream.h"
 #include "TGo4Log.h"
 
+using namespace std;
+
 TQFWRawParam::TQFWRawParam(const char* name) :
    TGo4Parameter(name),
    fSimpleCompensation(kFALSE),fCheckEventSequence(kFALSE),fBadChannelCorrection(kFALSE)

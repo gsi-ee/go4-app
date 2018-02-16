@@ -5,55 +5,68 @@ $(error Go4 not found - please call . go4login)
 endif
 endif
 
-
 include $(GO4SYS)/Makefile.config
 
 DOOPTIMIZATION=false
 
+##ANAL_LIB_DEP+=$(ROOTLIBPATH)/libMathMore.so
+#LDFLAGS += $(LIBS_FULLSET) -lMathMore
+
 ## normally should be like this for every module, but can be specific
 
-QFW_OPTIC_DIR         = .
+ifdef GO4PACKAGE
+EXAMP2STEP_DIR         = Go4Example2Step
+else
+EXAMP2STEP_DIR         = .
+endif
 
-QFW_OPTIC_LINKDEF     = $(QFW_OPTIC_DIR)/QFWLinkDef.$(HedSuf)
-QFW_OPTIC_LIBNAME     = $(GO4_USERLIBNAME)
+EXAMP2STEP_LINKDEF     = $(EXAMP2STEP_DIR)/QFWLinkDef.$(HedSuf)
+EXAMP2STEP_LIBNAME     = $(GO4_USERLIBNAME)
 
 ## must be similar for every module
 
-QFW_OPTIC_DICT        = $(QFW_OPTIC_DIR)/$(DICT_PREFIX)QFW
-QFW_OPTIC_DH          = $(QFW_OPTIC_DICT).$(HedSuf)
-QFW_OPTIC_DS          = $(QFW_OPTIC_DICT).$(SrcSuf)
-QFW_OPTIC_DO          = $(QFW_OPTIC_DICT).$(ObjSuf)
+EXAMP2STEP_DICT        = $(EXAMP2STEP_DIR)/$(DICT_PREFIX)QFW
+EXAMP2STEP_DH          = $(EXAMP2STEP_DICT).$(HedSuf)
+EXAMP2STEP_DS          = $(EXAMP2STEP_DICT).$(SrcSuf)
+EXAMP2STEP_DO          = $(EXAMP2STEP_DICT).$(ObjSuf)
 
-QFW_OPTIC_H           = $(filter-out $(QFW_OPTIC_DH) $(QFW_OPTIC_LINKDEF), $(wildcard $(QFW_OPTIC_DIR)/*.$(HedSuf)))
-QFW_OPTIC_S           = $(filter-out $(QFW_OPTIC_DS), $(wildcard $(QFW_OPTIC_DIR)/*.$(SrcSuf)))
-QFW_OPTIC_O           = $(QFW_OPTIC_S:.$(SrcSuf)=.$(ObjSuf))
+EXAMP2STEP_H           = $(filter-out $(EXAMP2STEP_DH) $(EXAMP2STEP_LINKDEF), $(wildcard $(EXAMP2STEP_DIR)/*.$(HedSuf)))
+EXAMP2STEP_S           = $(filter-out $(EXAMP2STEP_DS), $(wildcard $(EXAMP2STEP_DIR)/*.$(SrcSuf)))
+EXAMP2STEP_O           = $(EXAMP2STEP_S:.$(SrcSuf)=.$(ObjSuf))
 
-QFW_OPTIC_DEP         =  $(QFW_OPTIC_O:.$(ObjSuf)=.$(DepSuf))
-QFW_OPTIC_DDEP        =  $(QFW_OPTIC_DO:.$(ObjSuf)=.$(DepSuf))
+EXAMP2STEP_DEP         =  $(EXAMP2STEP_O:.$(ObjSuf)=.$(DepSuf))
+EXAMP2STEP_DDEP        =  $(EXAMP2STEP_DO:.$(ObjSuf)=.$(DepSuf))
 
-QFW_OPTIC_LIB         =  $(QFW_OPTIC_DIR)/$(QFW_OPTIC_LIBNAME).$(DllSuf)
+EXAMP2STEP_LIB         =  $(EXAMP2STEP_DIR)/$(EXAMP2STEP_LIBNAME).$(DllSuf)
 
 # used in the main Makefile
 
-EXAMPDEPENDENCS    += $(QFW_OPTIC_DEP) $(QFW_OPTIC_DDEP)
+EXAMPDEPENDENCS    += $(EXAMP2STEP_DEP) $(EXAMP2STEP_DDEP)
 
+ifdef DOPACKAGE
+DISTRFILES         += $(EXAMP2STEP_S) $(EXAMP2STEP_H) $(EXAMP2STEP_LINKDEF)
+DISTRFILES         += $(EXAMP2STEP_DIR)/Readme.txt $(EXAMP2STEP_DIR)/Makefile.win
+DISTRFILES         += $(EXAMP2STEP_DIR)/set_Par.C
+endif
 
 ##### local rules #####
 
-all::     $(QFW_OPTIC_LIB)
+all::  $(EXAMP2STEP_LIB)
 
-$(QFW_OPTIC_LIB):  $(QFW_OPTIC_O) $(QFW_OPTIC_DO)
-	@$(MakeLibrary) $(QFW_OPTIC_LIBNAME) "$(QFW_OPTIC_O) $(QFW_OPTIC_DO)" $(QFW_OPTIC_DIR) $(QFW_OPTIC_LINKDEF) "$(ANAL_LIB_DEP)"
 
-$(QFW_OPTIC_DS): $(QFW_OPTIC_H)  $(QFW_OPTIC_LINKDEF)
-	@$(ROOTCINTGO4) $(QFW_OPTIC_H) $(QFW_OPTIC_LINKDEF)
+$(EXAMP2STEP_LIB):   $(EXAMP2STEP_O) $(EXAMP2STEP_DO) $(ANAL_LIB_DEP)
+	@$(MakeLibrary) $(EXAMP2STEP_LIBNAME) "$(EXAMP2STEP_O) $(EXAMP2STEP_DO)" $(EXAMP2STEP_DIR) $(EXAMP2STEP_LINKDEF) "$(ANAL_LIB_DEP)" $(EXAMP2STEP_DS) "$(EXAMP2STEP_H)"
+
+$(EXAMP2STEP_DS): $(EXAMP2STEP_H)  $(EXAMP2STEP_LINKDEF)
+	@$(ROOTCINTGO4) $(EXAMP2STEP_LIB) $(EXAMP2STEP_H) $(EXAMP2STEP_LINKDEF)
 
 clean-bin::
-	@rm -f $(QFW_OPTIC_O) $(QFW_OPTIC_DO)
-	@rm -f $(QFW_OPTIC_DEP) $(QFW_OPTIC_DDEP) $(QFW_OPTIC_DS) $(QFW_OPTIC_DH)
+	@rm -f $(EXAMP2STEP_O) $(EXAMP2STEP_DO)
+	@rm -f $(EXAMP2STEP_DEP) $(EXAMP2STEP_DDEP) $(EXAMP2STEP_DS) $(EXAMP2STEP_DH)
 
 clean:: clean-bin
-	@$(CleanLib) $(QFW_OPTIC_LIBNAME) $(QFW_OPTIC_DIR)
+	@$(CleanLib) $(EXAMP2STEP_LIBNAME) $(EXAMP2STEP_DIR)
 	@echo "Clean qfw-profilemonitor project"
+	
 
 include $(GO4SYS)/Makefile.rules

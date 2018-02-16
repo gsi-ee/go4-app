@@ -623,7 +623,7 @@ void TQFWGridLoopDisplay::InitDisplay(int timeslices, Bool_t replace)
       if (ix == 0)
         xposition[ix] = fParam->fGridPosition_X[gix][jx] - binwidth / 2;
       xposition[ix + 1] = fParam->fGridPosition_X[gix][jx] + binwidth / 2;
-      //printf("XXXXXXXXX grid %d loop%d  index %d:lowedge:%f centre:%f upedge:%f \n",grid, loop, ix,xposition[ix], fParam->fGridPosition_X[gix][jx], xposition[ix+1]);
+      //printf("QFWQFWQFW grid %d loop%d  index %d:lowedge:%f centre:%f upedge:%f \n",grid, loop, ix,xposition[ix], fParam->fGridPosition_X[gix][jx], xposition[ix+1]);
     }
 
     Double_t yposition[PEXOR_QFW_WIRES];
@@ -1027,7 +1027,7 @@ void TQFWGridDisplay::InitDisplay(int timeslices, Bool_t replace)
       if (ix == 0)
         xposition[ix] = fParam->fGridPosition_X[gix][jx] - binwidth / 2;
       xposition[ix + 1] = fParam->fGridPosition_X[gix][jx] + binwidth / 2;
-      //printf("XXXXXXXXX grid %d index i=%d: j=%d: lowedge:%f centre:%f upedge:%f \n",grid, ix, jx, xposition[ix], fParam->fGridPosition_X[gix][jx], xposition[ix+1]);
+      //printf("QFWQFWQFW grid %d index i=%d: j=%d: lowedge:%f centre:%f upedge:%f \n",grid, ix, jx, xposition[ix], fParam->fGridPosition_X[gix][jx], xposition[ix+1]);
     }
 
     foldername.Form("Beam/Grid%2d/Counts", grid);

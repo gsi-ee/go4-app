@@ -1,4 +1,4 @@
-#ifndef TQFWRawROCESSOR_H
+#ifndef TQFWRawPROCESSOR_H
 #define TQFWRawPROCESSOR_H
 
 /* VUPROM QFW beam monitor
