@@ -20,6 +20,8 @@
 
 #include "Riostream.h"
 
+using namespace std;
+
 #include "TH1.h"
 #include "TH2.h"
 #include "TCutG.h"

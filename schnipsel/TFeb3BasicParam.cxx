@@ -17,7 +17,7 @@
 
 #include "Riostream.h"
 
-
+using namespace std;
 
 //***********************************************************
 TFeb3BasicParam::TFeb3BasicParam(const char* name) : TGo4Parameter(name),
