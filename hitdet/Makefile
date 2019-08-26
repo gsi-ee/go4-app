@@ -42,11 +42,13 @@ EXAMPDEPENDENCS    += $(HitDet_OPTIC_DEP) $(HitDet_OPTIC_DDEP)
 
 all::     $(HitDet_OPTIC_LIB)
 
-$(HitDet_OPTIC_LIB):  $(HitDet_OPTIC_O) $(HitDet_OPTIC_DO)
-	@$(MakeLibrary) $(HitDet_OPTIC_LIBNAME) "$(HitDet_OPTIC_O) $(HitDet_OPTIC_DO)" $(HitDet_OPTIC_DIR) $(HitDet_OPTIC_LINKDEF) "$(ANAL_LIB_DEP)"
+$(HitDet_OPTIC_LIB):  $(HitDet_OPTIC_O) $(HitDet_OPTIC_DO) $(ANAL_LIB_DEP)
+	@$(MakeLibrary) $(HitDet_OPTIC_LIBNAME) "$(HitDet_OPTIC_O) $(HitDet_OPTIC_DO)" $(HitDet_OPTIC_DIR) $(HitDet_OPTIC_LINKDEF) "$(ANAL_LIB_DEP)" $(HitDet_OPTIC_DS) "$(HitDet_OPTIC_H)"
+
+
 
 $(HitDet_OPTIC_DS): $(HitDet_OPTIC_H)  $(HitDet_OPTIC_LINKDEF)
-	@$(ROOTCINTGO4) $(HitDet_OPTIC_H) $(HitDet_OPTIC_LINKDEF)
+	@$(ROOTCINTGO4) $(HitDet_OPTIC_LIB) $(HitDet_OPTIC_H) $(HitDet_OPTIC_LINKDEF)
 
 clean-bin::
 	@rm -f $(HitDet_OPTIC_O) $(HitDet_OPTIC_DO)

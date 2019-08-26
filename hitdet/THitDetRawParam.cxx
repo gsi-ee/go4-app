@@ -15,6 +15,8 @@
 //#include "Riostream.h"
 #include "TGo4Log.h"
 
+using namespace std;
+
 THitDetRawParam::THitDetRawParam(const char* name) :
     TGo4Parameter(name)
 {

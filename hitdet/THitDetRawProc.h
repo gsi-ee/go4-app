@@ -1,4 +1,4 @@
-#ifndef THitDetRawROCESSOR_H
+#ifndef THitDetRawPROCESSOR_H
 #define THitDetRawPROCESSOR_H
 
 /* VUPROM HitDet beam monitor

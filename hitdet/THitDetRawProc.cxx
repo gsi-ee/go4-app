@@ -21,7 +21,7 @@
 #include "TGo4UserException.h"
 
 /** enable this definition to print out event sample data explicitely*/
-//#define HITDET_DATA_VERBOSE 1
+#define HITDET_DATA_VERBOSE 1
 
 
 static unsigned long skipped_events = 0;
