@@ -356,6 +356,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
             break;
 
           case THitDetMsg::MSG_ADC_Event:    // triggered event read out
+         // case THitDetMsg::MSG_Unused:
             {
               UChar_t channel = ((header >> 28) & 0x3);
               UChar_t size12bit = ((header >> 20) & 0x3F);
@@ -547,8 +548,9 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
             break;
 
           default:
-            printf("############ found unknown message type 0x%x, skip event %ld\n", mtype, skipped_events++);
-            GO4_SKIP_EVENT
+            //printf("############ found unknown message type 0x%x, skip event %ld\n", mtype, skipped_events++);
+            //GO4_SKIP_EVENT
+            pdata = pdatastartMsg + msize ; // do not skip complete event, but just the current message:
             break;
         };    // switch
 
