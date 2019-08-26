@@ -55,7 +55,7 @@ class THitDetMsgEvent: public THitDetMsg
 {
 
 public:
-  THitDetMsgEvent(UChar_t ch) :
+  THitDetMsgEvent(UChar_t ch=0) :
       fChannel(ch), fEpoch(0), fTimeStamp(0)
   {
     for (Int_t j = 0; j < HitDet_TRACEBINS; ++j)
@@ -91,7 +91,7 @@ public:
   {
     fTimeStamp = ts;
   }
-  UShort_t GeTimeStamp()
+  UShort_t GetTimeStamp()
   {
     return fTimeStamp;
   }

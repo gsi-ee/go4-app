@@ -60,7 +60,8 @@ protected:
   /** reference to output data*/
   THitDetRawEvent* HitDetRawEvent;  //!
 
-
+  /** remember most recent message for delta T evaluation*/
+  THitDetMsgEvent fLastMessages[HitDet_CHANNELS];
 
   ClassDef(THitDetRawProc,1)
 };

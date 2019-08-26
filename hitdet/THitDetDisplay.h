@@ -109,6 +109,19 @@ public:
    /** statistics of message types*/
    TH1* hMsgTypes;
 
+   /** distribution of channels for message type 3*/
+   TH1* hChannels;
+
+   /** size of data for message type */
+   TH1* hDatawords;
+
+   /** timestamp difference of subsequent event messages*/
+   TH1 *hDeltaTSMsg[HitDet_CHANNELS];
+
+   /** epoch difference of subsequent event messages*/
+   TH1 *hDeltaEPMsg[HitDet_CHANNELS];
+
+
    /** statistics  of wishbone acknowledge codes*/
    TH1* hWishboneAck;
 

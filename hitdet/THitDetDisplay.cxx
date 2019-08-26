@@ -104,6 +104,23 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
       obtitle.Form("HitDetection Board %d Channel %d Trace snapshot overview", brd, ch);
       hTraceSnapshot2d[ch]=MakeTH2('I', obname.Data(), obtitle.Data(), tracelength, 0, tracelength, numsnapshots, 0, numsnapshots -1,"time (bins)", "message sequence", "counts");
 
+
+      obname.Form("Board%d/Channel%d/DeltaTSMsg_%d_%d", brd, ch, brd, ch);
+      obtitle.Form("Timestamp difference of subsequent messages Board %d Channel %d", brd, ch);
+      Int_t maxval=0xFFF;
+      hDeltaTSMsg[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), maxval+1, 0, maxval, "#delta TS (ticks)", "counts");
+
+      obname.Form("Board%d/Channel%d/DeltaEPMsg_%d_%d", brd, ch, brd, ch);
+      obtitle.Form("Epoch difference of subsequent messages Board %d Channel %d", brd, ch);
+      maxval=0xFFFFFF;
+      int binsize=maxval/1000;
+      hDeltaEPMsg[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), binsize, 0, maxval, "#delta EP (epochs)", "counts");
+
+
+
+
+
+
     }// for ch
 
     obname.Form("Board%d/TraceLong_%d", brd, brd);
@@ -190,6 +207,16 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
       hMsgTypes->GetXaxis()->SetBinLabel(1 + THitDetMsg::MSG_Unused, "unused");
       hMsgTypes->GetXaxis()->SetBinLabel(1 + THitDetMsg::MSG_Wishbone, "Wishbone response");
     }
+
+    obname.Form("Board%d/Channels_%d", brd, brd);
+    obtitle.Form("HitDetection Board %d Channel distribution (Event readout)", brd);
+    hChannels=MakeTH1('I', obname.Data(), obtitle.Data(), 4, 0, 4, "Channel number");
+
+    obname.Form("Board%d/Datasize_%d", brd, brd);
+    obtitle.Form("HitDetection Board %d Event data size (12 bit words)", brd);
+    hDatawords=MakeTH1('I', obname.Data(), obtitle.Data(), 64, 0, 63, "Data size (12 bit words)");
+
+
 
     obname.Form("Board%d/Wishbone/AckCode_%d", brd, brd);
     obtitle.Form("HitDetection Board %d Wishbone ack codes", brd);

@@ -21,7 +21,7 @@
 #include "TGo4UserException.h"
 
 /** enable this definition to print out event sample data explicitely*/
-#define HITDET_DATA_VERBOSE 1
+//#define HITDET_DATA_VERBOSE 1
 
 
 static unsigned long skipped_events = 0;
@@ -369,6 +369,10 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
                 GO4_SKIP_EVENT_MESSAGE(
                     "ASIC Event header error: 12 bit size %d does not fit into mbs subevent buffer of restlen %d words", size12bit, lwords - (pdata - pdatastart));
 
+              /** JAM new 2019 :*/
+              boardDisplay->hDatawords->Fill(size12bit);
+              boardDisplay->hChannels->Fill(channel);
+
               Int_t evdata[size32bit];
               for (Int_t j = 0; j < size32bit; ++j)
               {
@@ -382,6 +386,22 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
               THitDetMsgEvent* theMsg = new THitDetMsgEvent(channel);
               theMsg->SetEpoch(((evdata[0] & 0xFFFFF) << 4) | ((evdata[1] >> 28) & 0xF));
               theMsg->SetTimeStamp((evdata[1] >> 16) & 0xFFF);
+
+              /** JAM new 2019 - evaluate time difference between subsequent event messages*/
+              UInt_t lastepoch=fLastMessages[channel].GetEpoch();
+              UShort_t lasttimestamp=fLastMessages[channel].GetTimeStamp();
+              if(lastepoch!=0 && lasttimestamp!=0)
+                {
+                  UInt_t deltaepoch=theMsg->GetEpoch() - lastepoch;
+                  UShort_t deltatimestamp = theMsg->GetTimeStamp() - lasttimestamp;
+                  //ULong_t deltaT= (deltaepoch<<12) | deltatimestamp;
+                  // the above would require too large a histogram. We separate ts and epoch histograms:
+                  boardDisplay->hDeltaTSMsg[channel]->Fill(deltatimestamp);
+                  boardDisplay->hDeltaEPMsg[channel]->Fill(deltaepoch);
+
+              }
+              fLastMessages[channel]=*theMsg; // remember us for next message
+              /** end 2019 time differences**/
 
               // now decode 12 bit samples inside mbs data words:Ä
               Int_t binlen = size12bit - 3;    // number of sample bins (should be 8,16, or 32)
