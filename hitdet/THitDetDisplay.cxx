@@ -112,12 +112,15 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
 
       obname.Form("Board%d/Channel%d/DeltaEPMsg_%d_%d", brd, ch, brd, ch);
       obtitle.Form("Epoch difference of subsequent messages Board %d Channel %d", brd, ch);
-      maxval=0xFFFFFF;
+      maxval=0x3FFFFF;
       int binsize=maxval/1000;
-      hDeltaEPMsg[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), binsize, 0, maxval, "#delta EP (epochs)", "counts");
+      hDeltaEPMsg[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), binsize, 0, maxval, "#delta EP (epochs) - rebinned", "counts");
 
 
-
+      obname.Form("Board%d/Channel%d/DeltaEPMsgFine_%d_%d", brd, ch, brd, ch);
+      obtitle.Form("Epoch difference of subsequent messages Board %d Channel %d (fine)", brd, ch);
+      maxval=0x3FFF;
+      hDeltaEPMsgFine[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), maxval, 0, maxval, "#delta EP (epochs) - fine", "counts");
 
 
 
@@ -214,7 +217,11 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
 
     obname.Form("Board%d/Datasize_%d", brd, brd);
     obtitle.Form("HitDetection Board %d Event data size (12 bit words)", brd);
-    hDatawords=MakeTH1('I', obname.Data(), obtitle.Data(), 64, 0, 63, "Data size (12 bit words)");
+    hDatawords=MakeTH1('I', obname.Data(), obtitle.Data(), 64, 0, 64, "Data size (12 bit words)");
+
+    obname.Form("Board%d/MemoryRow_%d", brd, brd);
+    obtitle.Form("HitDetection Board %d memory row statistics (Event readout)", brd);
+    hMemoryRow=MakeTH1('I', obname.Data(), obtitle.Data(), 4, 0, 4, "Memory row");
 
 
 

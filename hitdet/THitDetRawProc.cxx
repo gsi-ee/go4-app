@@ -385,8 +385,12 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
 #endif
               }
               THitDetMsgEvent* theMsg = new THitDetMsgEvent(channel);
-              theMsg->SetEpoch(((evdata[0] & 0xFFFFF) << 4) | ((evdata[1] >> 28) & 0xF));
+              theMsg->SetEpoch(((evdata[0] & 0x3FFFF) << 4) | ((evdata[1] >> 28) & 0xF));
               theMsg->SetTimeStamp((evdata[1] >> 16) & 0xFFF);
+
+              /** changed format 2019 - upper bits of epoch counter used for memory row analyis:*/
+              Short_t memoryrow=((evdata[0] >> 18) & 0x3);
+              boardDisplay->hMemoryRow->Fill(memoryrow);
 
               /** JAM new 2019 - evaluate time difference between subsequent event messages*/
               UInt_t lastepoch=fLastMessages[channel].GetEpoch();
@@ -399,6 +403,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
                   // the above would require too large a histogram. We separate ts and epoch histograms:
                   boardDisplay->hDeltaTSMsg[channel]->Fill(deltatimestamp);
                   boardDisplay->hDeltaEPMsg[channel]->Fill(deltaepoch);
+                  boardDisplay->hDeltaEPMsgFine[channel]->Fill(deltaepoch);
 
               }
               fLastMessages[channel]=*theMsg; // remember us for next message

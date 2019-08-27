@@ -115,11 +115,17 @@ public:
    /** size of data for message type */
    TH1* hDatawords;
 
+   /** debug the memory rows used on chip*/
+   TH1* hMemoryRow;
+
    /** timestamp difference of subsequent event messages*/
    TH1 *hDeltaTSMsg[HitDet_CHANNELS];
 
    /** epoch difference of subsequent event messages*/
    TH1 *hDeltaEPMsg[HitDet_CHANNELS];
+
+   /** epoch difference fine of subsequent event messages*/
+   TH1 *hDeltaEPMsgFine[HitDet_CHANNELS];
 
 
    /** statistics  of wishbone acknowledge codes*/
