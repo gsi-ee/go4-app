@@ -27,7 +27,7 @@ void set_HitDetRawParam()
    param0->fBoardID[0] = 42;    // this might be a unique hardware id
 
    param0->fNumSnapshots = 64;
-   param0->fTraceLength = 16;
+   param0->fTraceLength = 8;
    param0->fDoFFT=kTRUE;
    param0-> fDoCalibrate=kFALSE;
    param0->fFFTOptions="R2C M";
