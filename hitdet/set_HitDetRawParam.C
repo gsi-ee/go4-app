@@ -1,6 +1,4 @@
-#define HitDet_FILTERCOEFFS 5
-#define HitDet_MAXBOARDS 10
-
+// written by macro saveparam.C at Wed Aug 28 10:03:11 2019
 void set_HitDetRawParam()
 {
 #ifndef __GO4ANAMACRO__
@@ -14,29 +12,28 @@ void set_HitDetRawParam()
       return;
    }
 
-   TGo4Log::Info("Set parameter HitDetRawParam as provided on 28-aug-2019 by JAM");
+   TGo4Log::Info("Set parameter HitDetRawParam as saved at Wed Aug 28 10:03:11 2019");
 
-// uncomment lines below to override comiled/stored defaults:
-
-
-   for (int i = 0; i < HitDet_MAXBOARDS; ++i)
-     {
-     param0->fBoardID[i] = -1;
-     }
-
-   param0->fBoardID[0] = 42;    // this might be a unique hardware id
-
+   param0->fBoardID[0] = 42;
+   param0->fBoardID[1] = -1;
+   param0->fBoardID[2] = -1;
+   param0->fBoardID[3] = -1;
+   param0->fBoardID[4] = -1;
+   param0->fBoardID[5] = -1;
+   param0->fBoardID[6] = -1;
+   param0->fBoardID[7] = -1;
+   param0->fBoardID[8] = -1;
+   param0->fBoardID[9] = -1;
    param0->fNumSnapshots = 64;
    param0->fTraceLength = 8;
-   param0->fDoFFT=kTRUE;
-   param0-> fDoCalibrate=kFALSE;
-   param0->fFFTOptions="R2C M";
-   param0->fFilterType=0;
-   for (int i = 0; i < HitDet_FILTERCOEFFS; ++i)
-       {
-       param0->fFilterCoeff[i]=0;
-       }
-   
-
+   param0->fDoCalibrate = kFALSE;
+   param0->fDoFFT = kTRUE;
+   param0->fFFTOptions = "R2C M";
+   param0->fFilterType = 0;
+   param0->fFilterCoeff[0] = 0;
+   param0->fFilterCoeff[1] = 0;
+   param0->fFilterCoeff[2] = 0;
+   param0->fFilterCoeff[3] = 0;
+   param0->fFilterCoeff[4] = 0;
 
 }
