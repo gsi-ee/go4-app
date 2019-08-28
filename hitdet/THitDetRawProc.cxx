@@ -150,7 +150,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
     //return kFALSE; // this would let the second step execute!
   }
 
-  UInt_t snapshotcount = 0;    // counter for trace snapshot display
+  UInt_t snapshotcount[HitDet_CHANNELS] = {0};    // counter for trace snapshot display
   static UInt_t tracelongcount = 0;    // counter for direct adc trace long part
   static Int_t numsnapshots = fPar->fNumSnapshots;
   static Int_t tracelength = fPar->fTraceLength;
@@ -286,9 +286,9 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
                 TH1* tracelongsum = 0;
                 TH1* tracelongcorrsum = 0;
                 TH2* trace2d = 0;
-                if (snapshotcount < HitDet_MAXSNAPSHOTS)
+                if (snapshotcount[0] < HitDet_MAXSNAPSHOTS)
                 {
-                  tracesnapshot = boardDisplay->hTraceSnapshots[0][snapshotcount];
+                  tracesnapshot = boardDisplay->hTraceSnapshots[0][snapshotcount[0]];
                   trace2d = boardDisplay->hTraceSnapshot2d[0];
                 }
                 if (tracelongcount < HitDet_MAXTRACELONG)
@@ -330,7 +330,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
                   if (tracesnapshot)
                     tracesnapshot->SetBinContent(k + 1, val);
                   if (trace2d)
-                    trace2d->Fill(k, 0.5 + snapshotcount, val);
+                    trace2d->Fill(k, 0.5 + snapshotcount[0], val);
 
                   if (tracelong)
                     tracelong->SetBinContent(1 + k + (8 * tracelongcount), val);
@@ -351,6 +351,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
                 }
 
                 theBoard->AddMessage(theMsg, 0);    // direct ADC messages assigned to channel 0
+                snapshotcount[0]++;
               }    // if !skipmessage
             }
             break;
@@ -409,7 +410,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
               fLastMessages[channel]=*theMsg; // remember us for next message
               /** end 2019 time differences**/
 
-              // now decode 12 bit samples inside mbs data words:Ä
+              // now decode 12 bit samples inside mbs data words:ï¿½
               Int_t binlen = size12bit - 3;    // number of sample bins (should be 8,16, or 32)
               if (binlen > 32)
                 GO4_SKIP_EVENT_MESSAGE("ASIC Event header error: bin length %d exceeds maximum 32", binlen);
@@ -471,9 +472,10 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
 
               TH1* tracesnapshot = 0;
               TH2* trace2d = 0;
-              if (snapshotcount < HitDet_MAXSNAPSHOTS)
+              if (snapshotcount[channel] < HitDet_MAXSNAPSHOTS)
               {
-                tracesnapshot = boardDisplay->hTraceSnapshots[channel][snapshotcount];
+                tracesnapshot = boardDisplay->hTraceSnapshots[channel][snapshotcount[channel]];
+                //std::cout<< "getting histogram for  channel "<< (int) channel<<" snapshot:"<<snapshotcount[channel]<<", binlen="<<binlen<<", tracelen="<< tracelength<< std::endl;
                 trace2d = boardDisplay->hTraceSnapshot2d[channel];
               }
               for (Int_t bin = 0; bin < binlen; ++bin)
@@ -484,9 +486,12 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
                   val = val - 0x1000;
 
                 if (tracesnapshot && bin<tracelength)
-                  tracesnapshot->SetBinContent(bin + 1, val);
+                  {
+                    tracesnapshot->SetBinContent(bin + 1, val);
+                    //std::cout<< " --- Set bin:"<<bin<<" to content:"<<val << std::endl;
+                  }
                 if (trace2d)
-                  trace2d->Fill(bin, val, snapshotcount);
+                  trace2d->Fill(bin, val, snapshotcount[channel]);
 
                 if (channel >= HitDet_CHANNELS)
                 {
@@ -507,7 +512,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
               }
 
               theBoard->AddMessage(theMsg, channel);
-
+              snapshotcount[channel]++;
             }
 
             break;
@@ -569,7 +574,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
 
         //printf("EEEEEEEE  end of message payload: pdata offset 0x%x msglength 0x%x\n",
         //             (unsigned int) (pdata - pdatastartMsg), msize);
-        snapshotcount++;
+
       }    // while ((pdata - pdatastart) < HitDetRawEvent->fDataCount)
 
     }    // while pdata - psubevt->GetDataField() <lwords
