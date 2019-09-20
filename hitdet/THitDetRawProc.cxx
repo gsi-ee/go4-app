@@ -202,8 +202,8 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
 
       Int_t* pdatastart = pdata;    // remember begin of asic payload data section
 
-      pdata++;    // skip first  word?
 
+      pdata++;    // skip first  word?
       // pdatastart was here JAM
 
       // now fetch boardwise subcomponents for output data and histograming:
@@ -224,6 +224,7 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
         return kFALSE;
       }
       boardDisplay->ResetDisplay(kFALSE);
+
       // evaluate HitDetection ASIC messages in the payload:
 
       while ((pdata - pdatastart) < HitDetRawEvent->fDataCount)
@@ -237,6 +238,11 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
           printf("Data error: wrong vulom byte counter 0x%x, skip event %ld", vulombytecount, skipped_events++);
           GO4_SKIP_EVENT
         }
+//        // JAM2019 new: evaluate chip id here
+        Int_t chipid=(vulombytecount >> 16) & 0xFF;
+        boardDisplay->hChipId->Fill(chipid);
+
+
         Int_t* pdatastartMsg = pdata;    // remember start of message for checking
         UChar_t msize = (vulombytecount & 0x3F) / sizeof(Int_t);    // message size in 32bit words
         // evaluate message type from header:

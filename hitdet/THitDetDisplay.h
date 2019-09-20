@@ -118,6 +118,9 @@ public:
    /** debug the memory rows used on chip*/
    TH1* hMemoryRow;
 
+   /** check chipid for debug*/
+   TH1* hChipId;
+
    /** timestamp difference of subsequent event messages*/
    TH1 *hDeltaTSMsg[HitDet_CHANNELS];
 

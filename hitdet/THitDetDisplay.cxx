@@ -223,6 +223,9 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
     obtitle.Form("HitDetection Board %d memory row statistics (Event readout)", brd);
     hMemoryRow=MakeTH1('I', obname.Data(), obtitle.Data(), 4, 0, 4, "Memory row");
 
+    obname.Form("Board%d/ChipId_%d", brd, brd);
+    obtitle.Form("HitDetection Board %d Chip ID number", brd);
+    hChipId=MakeTH1('I', obname.Data(), obtitle.Data(), 256, 0, 256, "Chip ID");
 
 
     obname.Form("Board%d/Wishbone/AckCode_%d", brd, brd);
