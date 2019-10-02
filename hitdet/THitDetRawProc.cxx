@@ -13,10 +13,17 @@
 #include "TGo4Picture.h"
 #include "TGo4MbsEvent.h"
 #include "TGo4UserException.h"
+#include "TGo4WinCond.h"
 
 #include "THitDetRawEvent.h"
 #include "THitDetRawParam.h"
 #include "THitDetDisplay.h"
+
+#include "TGo4Fitter.h"
+#include "THitDetSinusModel.h"
+#include "TGo4FitDataHistogram.h"
+#include "TGo4FitParameter.h"
+#include "TGo4FitModelPolynom.h"
 
 #include "TGo4UserException.h"
 
@@ -73,7 +80,7 @@ THitDetRawProc::THitDetRawProc() :
 //***********************************************************
 // this one is used in standard factory
 THitDetRawProc::THitDetRawProc(const char* name) :
-    TGo4EventProcessor(name)
+    TGo4EventProcessor(name),fSinusFitter(0)
 {
   TGo4Log::Info("THitDetRawProc: Create instance %s", name);
   fBoards.clear();
@@ -102,6 +109,8 @@ THitDetRawProc::~THitDetRawProc()
   {
     delete fBoards[i];
   }
+  delete fSinusFitter;
+
 }
 
 /* access to histogram set for current board id*/
@@ -307,6 +316,10 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
                   {
                     // begin of new trace, provide FFT of previous one here:
                     DoFFT(boardDisplay);
+
+                    // also do the sinus fit if enabled:
+                    DoSinusFit(boardDisplay);
+
                     boardDisplay->hTraceLongPrev->Reset("");
                     boardDisplay->hTraceLongPrev->Add(tracelong);    // copy previous full trace to buffer histogram
 
@@ -591,6 +604,15 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
 
   UpdateDisplays();    // we fill the raw displays immediately, but may do additional histogramming later
   HitDetRawEvent->SetValid(kTRUE);    // to store
+
+
+  if (fPar->fSlowMotion)
+    {
+        Int_t evnum=source->GetCount();
+        GO4_STOP_ANALYSIS_MESSAGE("Stopped for slow motion mode after MBS event count %d. Click green arrow for next event. please.", evnum);
+    }
+
+
   return kTRUE;
 }
 
@@ -789,6 +811,155 @@ void THitDetRawProc::DoFilter(Double_t* array, Int_t N)
   }    // for i
 
 }
+
+
+void THitDetRawProc::DoSinusFit( THitDetBoardDisplay* boardDisplay)
+{
+  if (!fPar->fDoSinusFit) return;
+
+  if(fSinusFitter==0)
+  {
+    fSinusFitter= new TGo4Fitter ("SinusFitter", TGo4Fitter::ff_chi_square, kTRUE);
+    TGo4FitDataHistogram* datahis=fSinusFitter->AddH1("data1",  boardDisplay->hTraceLongPrev, kFALSE, boardDisplay->cWindowFFT->GetXLow(), boardDisplay->cWindowFFT->GetXUp());
+    datahis->SetExcludeLessThen(-10000.0);
+
+    fSinusFitter->AddPolynomX("data1", "Offset", 0);
+
+    THitDetSinusModel* model = new THitDetSinusModel("sinus");
+    fSinusFitter->AddModel("data1", model);
+    fSinusFitter->SetMemoryUsage(2);
+  }
+
+  TGo4FitModelPolynom* baseModel = dynamic_cast<TGo4FitModelPolynom*> (fSinusFitter->GetModel(0));
+    if(!baseModel)
+    {
+      GO4_STOP_ANALYSIS_MESSAGE(
+                           "NEVER COME HERE: baseline model not correctly assigned to fitter!");
+    }
+
+
+  THitDetSinusModel* sinusModel = dynamic_cast<THitDetSinusModel*> (fSinusFitter->GetModel(1));
+  if(!sinusModel)
+  {
+    GO4_STOP_ANALYSIS_MESSAGE(
+                         "NEVER COME HERE: sinus model not correctly assigned to fitter!");
+  }
+//
+
+  TGo4FitDataHistogram* datahis=fSinusFitter->SetH1("data1", boardDisplay->hTraceLongPrev);
+  datahis->SetRange(0, boardDisplay->cWindowFFT->GetXLow(), boardDisplay->cWindowFFT->GetXUp()); // may dynamically adjust range after startup
+  datahis->SetExcludeLessThen(-10000.0);
+
+
+  baseModel->SetParsValues(fPar->fSinusBaseline);
+
+
+  // try: here first fit the baseline and fix it?
+//  baseModel->FindPar("Ampl")->SetFixed(kFALSE);
+//  fSinusFitter->ClearModelAssignmentTo("sinus", "data1");
+//
+//  fSinusFitter->DoActions();
+//  fSinusFitter->DoActions();
+//  fSinusFitter->DoActions();
+//
+//  if(fPar->fSlowMotion)  std::cout<< " ---------- first fit finds baseline value "<<baseModel->GetAmplValue()<<std::endl;
+//
+//  // then switch on sinus fit again:
+//  baseModel->FindPar("Ampl")->SetFixed(kTRUE);
+//  fSinusFitter->AssignModelTo("sinus", "data1");
+
+  Double_t maxpos=boardDisplay->cWindowFFT->GetXMax(boardDisplay->hTraceLongPrev);
+  Int_t maxbin=boardDisplay->hTraceLongPrev->FindBin(maxpos);
+  Double_t amplitude=boardDisplay->hTraceLongPrev->GetBinContent(maxbin);
+
+
+
+
+  if (amplitude>fPar->fSinusAmp) amplitude=fPar->fSinusAmp;
+
+  if(fPar->fSlowMotion)  std::cout<< " ---------- Use initial fit amplitude "<<amplitude<<", parameter defines " << fPar->fSinusAmp << std::endl;
+  // TODO: get initial value for sinus period from FFT maximum peak:
+
+  TGo4WinCond conny("FFT-Maximumfinder","dummy");
+  conny.SetValues(0,2048);
+  Double_t fftmax=conny.GetXMax(boardDisplay->hTraceLongFFT);
+
+  if(fPar->fSlowMotion)  std::cout<< " ---------- Got initial fft maximum at "<<fftmax << std::endl;
+
+  if(fftmax==0) fftmax=4096/fPar->fSinusPeriod;
+  Double_t firstperiod=4096/fftmax; // range of full trace
+  if(firstperiod<fPar->fSinusPeriod) firstperiod=fPar->fSinusPeriod;
+
+  if(fPar->fSlowMotion)  std::cout<< " ---------- Got initial period "<<firstperiod<<", parameter defines "<<fPar->fSinusPeriod << std::endl;
+
+  // TODO: get initial value for phase shift by evaluating nulldurchgang of data curve:
+    //Int_t firstbin=boardDisplay->hTraceLongPrev->FindBin(boardDisplay->cWindowFFT->GetXLow()); // we start at left edge of our window?
+    Int_t firstbin=1; // begin of sample range
+    Double_t value=0, oldvalue=0;
+    Int_t b=0;
+    for(b=firstbin; b<=boardDisplay->hTraceLongPrev->GetNbinsX();++b)
+      {
+          value=boardDisplay->hTraceLongPrev->GetBinContent(b);
+          if(fPar->fSlowMotion)  printf(" ---- phase shift search, value=%e ,oldvalue=%e  \n",value,oldvalue);
+          if((value > oldvalue) && (oldvalue < 0) && (value>0)) break;
+          oldvalue=value;
+
+      }
+    Double_t inphase=b-4;
+    if(inphase<fPar->fSinusPhase) inphase=fPar->fSinusPhase;
+
+    if(fPar->fSlowMotion)  std::cout<< " ---------- Found initial phase shift at "<<inphase << std::endl;
+
+
+
+
+  sinusModel->SetParsValues(amplitude, firstperiod, inphase);
+  sinusModel->SetParRange("T",0.95*firstperiod, 1.05*firstperiod); // allow only small variation of fft found period
+  sinusModel->SetParRange("X0",0.95*inphase, 1.05*inphase); // allow only small variation of fft found period
+  baseModel->SetParRange("Ampl",-20,+20); // baseline range
+
+
+  fSinusFitter->DoActions();
+  fSinusFitter->DoActions();
+  fSinusFitter->DoActions();
+  fSinusFitter->DoActions();
+
+  if(fPar->fSlowMotion) fSinusFitter->PrintResults();
+
+  TH1* h1 = dynamic_cast<TH1*> (fSinusFitter->CreateDrawObject("abc", "data1", kTRUE));
+  if (h1!=0) {
+       for (int n=0;n<boardDisplay->hTraceLongPrev->GetNbinsX();n++)
+         boardDisplay->hTraceLongPrevSinusfit->SetBinContent(n+1, h1->GetBinContent(n+1));
+     delete h1;
+    }
+
+  // now evalulate the parameters:
+
+  Double_t baseline = baseModel->GetAmplValue();
+  Double_t amp = sinusModel->GetAmplValue();
+  Double_t period = sinusModel->GetParValue("T");
+  Double_t phase = sinusModel->GetParValue("X0");
+
+  Double_t ndf=fSinusFitter->CalculateNDF();
+  Double_t chiquadrat=fSinusFitter->CalculateFitFunction();
+  if(ndf) chiquadrat=chiquadrat/ndf;
+
+  boardDisplay->hSinusfitAmplitude->Fill(amp);
+  boardDisplay->hSinusfitPeriod->Fill(period);
+  boardDisplay->hSinusfitPhase->Fill(phase);
+  boardDisplay->hSinusfitBaseline->Fill(baseline);
+  boardDisplay->hSinusfitChi2->Fill(chiquadrat);
+
+  if(fPar->fSlowMotion)     {
+    std::cout<< " ---------- Fit Results: B: "<<baseline<<", A:"<<amp<<", T:"<<period<<", X0:"<<phase << std::endl;
+    std::cout<< " ---------chi2/NDF="<<chiquadrat<<std::endl;
+  }
+
+
+
+}
+
+
 
 Double_t THitDetRawProc::CorrectedADCVal(Short_t raw, THitDetBoardDisplay* boardDisplay)
 {

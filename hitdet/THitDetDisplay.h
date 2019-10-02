@@ -105,6 +105,25 @@ public:
 
 
 
+   /** this histogram contains the fitted sinus curve for Previously full filled hTraceLong*/
+   TH1 *hTraceLongPrevSinusfit;
+
+   /** histogram of baseline parameters of sinus fits */
+   TH1 *hSinusfitBaseline;
+
+   /** histogram of Amplitude parameters of sinus fits */
+   TH1 *hSinusfitAmplitude;
+
+   /** histogram of Period parameters of sinus fits */
+   TH1 *hSinusfitPeriod;
+
+   /** histogram of Phase parameters of sinus fits */
+   TH1 *hSinusfitPhase;
+
+   /** histogram of chisquare of sinus fits */
+   TH1 *hSinusfitChi2;
+
+
 
    /** statistics of message types*/
    TH1* hMsgTypes;

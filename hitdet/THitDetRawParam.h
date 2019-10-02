@@ -38,8 +38,12 @@ class THitDetRawParam : public TGo4Parameter {
       TString fFFTOptions; // ROOT fft option string
       Int_t fFilterType; // pre-FFT filter type 0-none 1-VonHann 2-Hamming 3-Blackmann 4-Nutall 5-BlackmannNutall 6-Blackmann-Harris 7-FlatTop 8-User
       Double_t fFilterCoeff[HitDet_FILTERCOEFFS]; // coefficient for generalized cosine window filters
-
-
+      Bool_t fDoSinusFit; // switch on sinus fit for trace long
+      Double_t fSinusAmp; // initial sinus amplitude for fit
+      Double_t fSinusPeriod; // initial sinus period length (samples) for fit
+      Double_t fSinusBaseline; // initial sinus baseline for fit
+      Double_t fSinusPhase; // initial sinus phase for fit
+      Bool_t fSlowMotion; // if true than only process one MBS event and stop.
 
       /* initial mapping of board id to sfp/ gosip device cabling*/
       void InitBoardMapping();

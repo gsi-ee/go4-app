@@ -142,6 +142,11 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
     obtitle.Form("HitDetection Board %d Last complete Stitched Trace (direct ADC only)", brd);
     hTraceLongPrev=MakeTH1('I', obname.Data(), obtitle.Data(), totlength, 0, totlength, "time (bins)", "counts");
 
+    obname.Form("Board%d/TraceLongFullFit_%d", brd, brd);
+    obtitle.Form("HitDetection Board %d Fit curve for Last complete Stitched Trace (direct ADC only)", brd);
+    hTraceLongPrevSinusfit =MakeTH1('I', obname.Data(), obtitle.Data(), totlength, 0, totlength, "time (bins)", "counts");
+
+
     obname.Form("Board%d/TraceLongFullCorrected_%d", brd, brd);
     obtitle.Form("HitDetection Board %d Last complete Stitched Trace corrected (direct ADC only)", brd);
     hTraceLongPrevCorrected=MakeTH1('I', obname.Data(), obtitle.Data(), totlength, 0, totlength, "time (bins)", "counts");
@@ -194,6 +199,31 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
     hADCCorrection=MakeTH1('D', obname.Data(), obtitle.Data(), 4096, -2048, 2048, "ADC value", "Calibrated correction");
 
     TGo4Analysis::Instance()->ProtectObjects("Calibration","+C"); // protect calibration histograms against clear from GUI
+
+
+
+    obname.Form("Board%d/SinusBaseline_%d", brd, brd);
+    obtitle.Form("HitDetection Board %d Sinus fit baseline parameters", brd);
+    hSinusfitBaseline=MakeTH1('D', obname.Data(), obtitle.Data(), 4096, -2048, 2048, "Sinus Fit Baselines", "counts");
+
+    obname.Form("Board%d/SinusAmplitude_%d", brd, brd);
+    obtitle.Form("HitDetection Board %d Sinus fit amplitude parameters", brd);
+    hSinusfitAmplitude=MakeTH1('D', obname.Data(), obtitle.Data(), 4096, -2048, 2048, "Sinus Fit Amplitudes", "counts");
+
+    obname.Form("Board%d/SinusPeriod_%d", brd, brd);
+    obtitle.Form("HitDetection Board %d Sinus fit period parameters", brd);
+    hSinusfitPeriod=MakeTH1('D', obname.Data(), obtitle.Data(), 4096, -2048, 2048, "period (samples)", "counts");
+
+    obname.Form("Board%d/SinusPhase_%d", brd, brd);
+    obtitle.Form("HitDetection Board %d Sinus fit phase parameters", brd);
+    hSinusfitPhase=MakeTH1('D', obname.Data(), obtitle.Data(), 20000, 0, 200, "phase shift (samples)", "counts");
+
+    obname.Form("Board%d/SinusChi2_%d", brd, brd);
+    obtitle.Form("HitDetection Board %d Sinus fit #chi^2/NDF", brd);
+    hSinusfitChi2=MakeTH1('D', obname.Data(), obtitle.Data(), 20000, 0, 200, "Sinus Fit #chi^2 / NDF");
+
+
+
 
 
 

@@ -7,6 +7,7 @@
  * */
 
 class THitDetRawParam;
+class TGo4Fitter;
 
 #include "TGo4EventProcessor.h"
 #include "TGo4WinCond.h"
@@ -50,6 +51,10 @@ protected:
   /** calculate corrected adc value from raw entry, using correction vector histogram of display*/
   Double_t CorrectedADCVal(Short_t raw,  THitDetBoardDisplay* boardDisplay);
 
+
+  /** Apply sinus fit to the full trace long*/
+  void DoSinusFit( THitDetBoardDisplay* boardDisplay);
+
   /** subdisplays for each frotend board */
   std::vector<THitDetBoardDisplay*> fBoards;
 
@@ -62,6 +67,9 @@ protected:
 
   /** remember most recent message for delta T evaluation*/
   THitDetMsgEvent fLastMessages[HitDet_CHANNELS];
+
+
+  TGo4Fitter* fSinusFitter;
 
   ClassDef(THitDetRawProc,1)
 };
