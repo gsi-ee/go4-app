@@ -21,6 +21,7 @@
 #pragma link C++ class THitDetRawEvent+;
 #pragma link C++ class THitDetRawProc+;
 #pragma link C++ class THitDetRawParam+;
+#pragma link C++ class THitDetSinusModel+;
 
 
 #pragma link C++ class THitDetAnalysis+;
