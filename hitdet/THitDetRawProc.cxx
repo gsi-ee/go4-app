@@ -314,11 +314,6 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
                   tracelongcorrsum = boardDisplay->hTraceLongSumCorrected;
                   if (tracelongcount == 0)
                   {
-                    // begin of new trace, provide FFT of previous one here:
-                    DoFFT(boardDisplay);
-
-                    // also do the sinus fit if enabled:
-                    DoSinusFit(boardDisplay);
 
                     boardDisplay->hTraceLongPrev->Reset("");
                     boardDisplay->hTraceLongPrev->Add(tracelong);    // copy previous full trace to buffer histogram
@@ -326,6 +321,12 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
                     // now provide corrected trace long:
                     boardDisplay->hTraceLongPrevCorrected->Reset("");
                     boardDisplay->hTraceLongPrevCorrected->Add(tracelongcorr);    // copy previous full trace to buffer histogram
+
+                    // begin of new trace, provide FFT of previous one here:
+                    DoFFT(boardDisplay);
+
+                    // also do the sinus fit if enabled:
+                    DoSinusFit(boardDisplay);
 
                     tracelong->Reset("");
                     tracelongcorr->Reset("");
@@ -886,8 +887,8 @@ void THitDetRawProc::DoSinusFit( THitDetBoardDisplay* boardDisplay)
 
   if(fPar->fSlowMotion)  std::cout<< " ---------- Got initial fft maximum at "<<fftmax << std::endl;
 
-  if(fftmax==0) fftmax=4096/fPar->fSinusPeriod;
-  Double_t firstperiod=4096/fftmax; // range of full trace
+  Double_t firstperiod=fPar->fSinusPeriod;
+  if(fftmax!=0) firstperiod=4096/fftmax; // range of full trace
   if(firstperiod<fPar->fSinusPeriod) firstperiod=fPar->fSinusPeriod;
 
   if(fPar->fSlowMotion)  std::cout<< " ---------- Got initial period "<<firstperiod<<", parameter defines "<<fPar->fSinusPeriod << std::endl;
@@ -900,12 +901,12 @@ void THitDetRawProc::DoSinusFit( THitDetBoardDisplay* boardDisplay)
     for(b=firstbin; b<=boardDisplay->hTraceLongPrev->GetNbinsX();++b)
       {
           value=boardDisplay->hTraceLongPrev->GetBinContent(b);
-          if(fPar->fSlowMotion)  printf(" ---- phase shift search, value=%e ,oldvalue=%e  \n",value,oldvalue);
+          if(fPar->fSlowMotion)  printf(" ---- phase shift search bin=%d, value=%e ,oldvalue=%e \n", b, value, oldvalue);
           if((value > oldvalue) && (oldvalue < 0) && (value>0)) break;
           oldvalue=value;
 
       }
-    Double_t inphase=b-4;
+    Double_t inphase=b;
     if(inphase<fPar->fSinusPhase) inphase=fPar->fSinusPhase;
 
     if(fPar->fSlowMotion)  std::cout<< " ---------- Found initial phase shift at "<<inphase << std::endl;
@@ -914,9 +915,19 @@ void THitDetRawProc::DoSinusFit( THitDetBoardDisplay* boardDisplay)
 
 
   sinusModel->SetParsValues(amplitude, firstperiod, inphase);
-  sinusModel->SetParRange("T",0.95*firstperiod, 1.05*firstperiod); // allow only small variation of fft found period
-  sinusModel->SetParRange("X0",0.95*inphase, 1.05*inphase); // allow only small variation of fft found period
-  baseModel->SetParRange("Ampl",-20,+20); // baseline range
+
+  //sinusModel->SetParRange("T",0.99*firstperiod, 1.01*firstperiod); // allow only small variation of fft found period
+   sinusModel->FindPar("T")->SetFixed(kTRUE); // regard frequency as already known from fft
+  sinusModel->SetParRange("X0",0.9*inphase, 1.1*inphase); // allow only small variation of phase from first zero crossing
+  //sinusModel->FindPar("X0")->SetFixed(kTRUE);
+
+  // do not specify range for amplitude!
+  //  sinusModel->SetParRange("Ampl",0.80*amplitude, 1.20*amplitude); // allow only small variation of sinus amplitude
+//  baseModel->SetParRange("Ampl",-50,+50); // baseline range
+
+
+
+
 
 
   fSinusFitter->DoActions();
