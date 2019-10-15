@@ -123,7 +123,13 @@ public:
    /** histogram of chisquare of sinus fits */
    TH1 *hSinusfitChi2;
 
+   /** this histogram sums all data points of hTraceLongPrev that were outside the sinus fit curve hTraceLongPrevSinusfit
+    * by a certain deviation. The tolerance can be set by parameter*/
+   TH1 *hTraceLongPrevOutsiders;
 
+   /** this histogram sums all data points modulo 8 of hTraceLongPrev that were outside the sinus fit curve hTraceLongPrevSinusfit
+    * by a certain deviation. The tolerance can be set by parameter*/
+   TH1 *hTraceLongPrevOutsidersModulo;
 
    /** statistics of message types*/
    TH1* hMsgTypes;
@@ -161,6 +167,9 @@ public:
 
    /** window condition to select region for part fft*/
    TGo4WinCond* cWindowFFT;
+
+   /** window condition to select region for sinus fit*/
+   TGo4WinCond* cWindowSinusFit;
 
    //
  Int_t GetDevId()

@@ -43,6 +43,7 @@ class THitDetRawParam : public TGo4Parameter {
       Double_t fSinusPeriod; // initial sinus period length (samples) for fit
       Double_t fSinusBaseline; // initial sinus baseline for fit
       Double_t fSinusPhase; // initial sinus phase for fit
+      Double_t fSinusTolerance; // define data point tolerance (n direction) for search of outliers/spikes
       Bool_t fSlowMotion; // if true than only process one MBS event and stop.
 
       /* initial mapping of board id to sfp/ gosip device cabling*/

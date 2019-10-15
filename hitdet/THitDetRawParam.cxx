@@ -45,10 +45,11 @@ void THitDetRawParam::InitBoardMapping()
     }
 
   fDoSinusFit=kFALSE;
-  fSinusAmp = 1200.0;
+  fSinusAmp = 800.0;
   fSinusPeriod = 10.0;
   fSinusBaseline=0.0;
   fSinusPhase=0.0;
+  fSinusTolerance = 0.1;
   fSlowMotion=kFALSE;
 
 }
@@ -92,7 +93,7 @@ Bool_t THitDetRawParam::UpdateFrom(TGo4Parameter *pp)
   fSinusPeriod = from->fSinusPeriod;
   fSinusBaseline=from->fSinusBaseline;
   fSinusPhase=from->fSinusPhase;
-
+  fSinusTolerance=from->fSinusTolerance;
   fSlowMotion=from->fSlowMotion;
   // here set coefficients appropriate for filter types:
   // please compare https://en.wikipedia.org/wiki/Window_function
