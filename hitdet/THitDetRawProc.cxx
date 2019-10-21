@@ -956,11 +956,11 @@ void THitDetRawProc::DoSinusFit( THitDetBoardDisplay* boardDisplay)
           boardDisplay->hTraceLongPrevOutsidersDelta->SetBinContent(n+1, average);
 
           // same for the modulo bins:
-          Double_t average_modulo_old=boardDisplay->hTraceLongPrevOutsidersDeltaModulo->GetBinContent((n+1) % 8);
-          Int_t entries_modulo= boardDisplay->hTraceLongPrevOutsidersModulo->GetBinContent((n+1) % 8) - 1;
+          Double_t average_modulo_old=boardDisplay->hTraceLongPrevOutsidersDeltaModulo->GetBinContent((n%8) +1);
+          Int_t entries_modulo= boardDisplay->hTraceLongPrevOutsidersModulo->GetBinContent((n%8)+1) - 1;
           if(entries_modulo<0) entries_modulo=0;
           Double_t average_modulo=(entries_modulo*average_modulo_old + delta)/(entries_modulo+1); // TODO: check this again JAM
-          boardDisplay->hTraceLongPrevOutsidersDeltaModulo->SetBinContent( (n+1) % 8, average_modulo);
+          boardDisplay->hTraceLongPrevOutsidersDeltaModulo->SetBinContent( (n%8) + 1, average_modulo);
 
 
         }
