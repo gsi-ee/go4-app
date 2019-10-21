@@ -131,6 +131,15 @@ public:
     * by a certain deviation. The tolerance can be set by parameter*/
    TH1 *hTraceLongPrevOutsidersModulo;
 
+
+   /** this histogram contains the average difference of data points of hTraceLongPrev that were outside the sinus fit curve hTraceLongPrevSinusfit
+    * by a certain deviation. The tolerance can be set by parameter*/
+   TH1 *hTraceLongPrevOutsidersDelta;
+
+      /** this histogram contains the average difference of data points modulo 8 of hTraceLongPrev that were outside the sinus fit curve hTraceLongPrevSinusfit
+       * by a certain deviation. The tolerance can be set by parameter*/
+   TH1 *hTraceLongPrevOutsidersDeltaModulo;
+
    /** statistics of message types*/
    TH1* hMsgTypes;
 

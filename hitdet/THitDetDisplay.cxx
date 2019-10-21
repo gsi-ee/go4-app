@@ -146,11 +146,6 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
     obtitle.Form("HitDetection Board %d Fit curve for Last complete Stitched Trace (direct ADC only)", brd);
     hTraceLongPrevSinusfit =MakeTH1('I', obname.Data(), obtitle.Data(), totlength, 0, totlength, "time (bins)", "counts");
 
-//    TH1 *hTraceLongPrevOutsiders;
-//
-//      /** this histogram sums all data points modulo 8 of hTraceLongPrev that were outside the sinus fit curve hTraceLongPrevSinusfit
-//       * by a certain deviation. The tolerance can be set by parameter*/
-//      TH1 *hTraceLongPrevOutsidersModulo;
 
     obname.Form("Board%d/TraceLongFullOutsiders_%d", brd, brd);
     obtitle.Form("HitDetection Board %d Deviation points from sinus fit of Stitched Trace (direct ADC only)", brd);
@@ -159,6 +154,17 @@ void THitDetBoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Boo
     obname.Form("Board%d/TraceLongFullOutsidersModulo_%d", brd, brd);
     obtitle.Form("HitDetection Board %d Deviation points from sinus fit of Stitched Trace (direct ADC only)", brd);
     hTraceLongPrevOutsidersModulo =MakeTH1('I', obname.Data(), obtitle.Data(), 8, 0, 8, "time % 8 (bins)", "counts");
+
+
+    obname.Form("Board%d/TraceLongFullOutsidersDelta_%d", brd, brd);
+    obtitle.Form("HitDetection Board %d average deviation delta from sinus fit of Stitched Trace (direct ADC only)", brd);
+    hTraceLongPrevOutsidersDelta =MakeTH1('D', obname.Data(), obtitle.Data(), totlength, 0, totlength, "time (bins)", "counts");
+
+    obname.Form("Board%d/TraceLongFullOutsidersDeltaModulo_%d", brd, brd);
+    obtitle.Form("HitDetection Board %d average deviationdelta from sinus fit of Stitched Trace (direct ADC only)", brd);
+    hTraceLongPrevOutsidersDeltaModulo =MakeTH1('D', obname.Data(), obtitle.Data(), 8, 0, 8, "time % 8 (bins)", "counts");
+
+
 
     obname.Form("Board%d/TraceLongFullCorrected_%d", brd, brd);
     obtitle.Form("HitDetection Board %d Last complete Stitched Trace corrected (direct ADC only)", brd);

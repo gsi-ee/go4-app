@@ -902,11 +902,11 @@ void THitDetRawProc::DoSinusFit( THitDetBoardDisplay* boardDisplay)
 
   sinusModel->SetParRange("T",0.99*firstperiod, 1.01*firstperiod); // allow only small variation of fft found period
   // sinusModel->FindPar("T")->SetFixed(kTRUE); // regard frequency as already known from fft
-  sinusModel->SetParRange("X0",0.95*inphase, 1.15*inphase); // allow only small variation of phase from first zero crossing
+  sinusModel->SetParRange("X0",0.95*inphase, 1.05*inphase); // allow only small variation of phase from first zero crossing
   //sinusModel->FindPar("X0")->SetFixed(kTRUE);
 
   // do not specify range for amplitude!
-  //  sinusModel->SetParRange("Ampl",0.80*amplitude, 1.20*amplitude); // allow only small variation of sinus amplitude
+ //sinusModel->SetParRange("Ampl",0.80*amplitude, 1.20*amplitude); // allow only small variation of sinus amplitude
 //  baseModel->SetParRange("Ampl",-50,+50); // baseline range
 
 
@@ -945,6 +945,24 @@ void THitDetRawProc::DoSinusFit( THitDetBoardDisplay* boardDisplay)
 //          boardDisplay->hTraceLongPrevOutsidersModulo->AddBinContent((n+1) % 8);
           boardDisplay->hTraceLongPrevOutsiders->Fill(n);
           boardDisplay->hTraceLongPrevOutsidersModulo->Fill(n % 8);
+
+
+          // here account the average deviation at this point:
+          Double_t delta=data-val;
+          Double_t average_old=boardDisplay->hTraceLongPrevOutsidersDelta->GetBinContent(n+1);
+          Int_t entries= boardDisplay->hTraceLongPrevOutsiders->GetBinContent(n+1) - 1;
+          if(entries<0) entries=0;
+          Double_t average=(entries*average_old + delta)/(entries+1); // TODO: check this again JAM
+          boardDisplay->hTraceLongPrevOutsidersDelta->SetBinContent(n+1, average);
+
+          // same for the modulo bins:
+          Double_t average_modulo_old=boardDisplay->hTraceLongPrevOutsidersDeltaModulo->GetBinContent((n+1) % 8);
+          Int_t entries_modulo= boardDisplay->hTraceLongPrevOutsidersModulo->GetBinContent((n+1) % 8) - 1;
+          if(entries_modulo<0) entries_modulo=0;
+          Double_t average_modulo=(entries_modulo*average_modulo_old + delta)/(entries_modulo+1); // TODO: check this again JAM
+          boardDisplay->hTraceLongPrevOutsidersDeltaModulo->SetBinContent( (n+1) % 8, average_modulo);
+
+
         }
   }
 
