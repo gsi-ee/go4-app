@@ -205,7 +205,8 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
       if (HitDetRawEvent->fDataCount > (lwords - 3))
       {
         GO4_SKIP_EVENT_MESSAGE(
-            "**** THitDetRawProc: Mismatch with subevent len %d and data count %d", lwords, HitDetRawEvent->fDataCount);
+            "**** THitDetRawProc: Mismatch with subevent len %d and data count 0x%8x - vulom status:0x%x seqnum:0x%x \n", lwords, HitDetRawEvent->fDataCount,
+            HitDetRawEvent->fVULOMStatus, HitDetRawEvent->fSequenceNumber);
         // avoid that we run optional second step on invalid raw event!
       }
 
@@ -241,12 +242,18 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
 
         // first vulom wrapper containing total message length:
         Int_t vulombytecount = *pdata++;
-        if (((vulombytecount >> 28) & 0xF) != 0x4)
-        {
-          // check ROByteCounter marker
-          printf("Data error: wrong vulom byte counter 0x%x, skip event %ld", vulombytecount, skipped_events++);
-          GO4_SKIP_EVENT
-        }
+//        if (((vulombytecount >> 28) & 0xF) != 0x4)
+//        {
+//          //printf("Data error: wrong vulom byte counter 0x%x, try next word\n", vulombytecount);
+//          continue;
+//          // check ROByteCounter marker
+//          //printf("Data error: wrong vulom byte counter 0x%x, skip event %ld", vulombytecount, skipped_events++);
+//
+//          //GO4_SKIP_EVENT
+//        }
+
+        if (((vulombytecount >> 28) & 0xF) == 0x4)
+                {
 //        // JAM2019 new: evaluate chip id here
         Int_t chipid=(vulombytecount >> 16) & 0xFF;
         boardDisplay->hChipId->Fill(chipid);
@@ -594,6 +601,8 @@ Bool_t THitDetRawProc::BuildEvent(TGo4EventElement* target)
 
         //printf("EEEEEEEE  end of message payload: pdata offset 0x%x msglength 0x%x\n",
         //             (unsigned int) (pdata - pdatastartMsg), msize);
+
+                } // JAM2019 test instead inner continue
 
       }    // while ((pdata - pdatastart) < HitDetRawEvent->fDataCount)
 
