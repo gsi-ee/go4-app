@@ -17,6 +17,8 @@ class TQFWRawParam : public TGo4Parameter {
       Bool_t   fUseFrontendOffsets; // if true, substract offset values as acquired by poland frontends
       UShort_t    fFrontendOffsetTrigger; // mbs trigger type that contains frontend offset values
       Short_t fFrontendOffsetLoop; //  for dynamic frontend offset correction: set offset from first timeslice of selected loop (0..3). -1 to switch this off
+      Bool_t   fUseScalingFactor; // switch scaling factor on or off
+      Double_t fScalingFactor; // scale factor for raw data a (e.g. -1 for CSA)
       Bool_t fSelectTriggerEvents; // switch triggering of good and background events for free running daq
       Int_t fTriggerHighThreshold; // selects good event if integral of trigger channel counts is above
       Int_t fTriggerLowThreshold; // selects background events if integral of trigger channel counts is below
@@ -40,7 +42,7 @@ class TQFWRawParam : public TGo4Parameter {
 
 
 
-   ClassDef(TQFWRawParam,3)
+   ClassDef(TQFWRawParam,4)
 };
 
 #endif // TQFWRawParam_H

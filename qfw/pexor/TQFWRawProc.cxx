@@ -501,6 +501,13 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
                 }
             }
 
+            // in addition to frontend offset correction, user may set an arbitrary scaling factor:
+            if(fPar->fUseScalingFactor)
+            {
+              if((fPar->fUseFrontendOffsets && fPar->fFrontendOffsetLoop!=loop) || !fPar->fUseFrontendOffsets)
+                  value *= fPar->fScalingFactor;
+            }
+
             loopData->fQfwTrace[ch].push_back(value);
 
             if (fPar->fSelectTriggerEvents && ((UInt_t) fPar->fTriggerBoardID == brdid))

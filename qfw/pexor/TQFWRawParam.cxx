@@ -52,6 +52,8 @@ void TQFWRawParam::InitBoardMapping()
    fFrontendOffsetTrigger=14; // per default use start trigger
    fUseFrontendOffsets=kFALSE;
    fFrontendOffsetLoop=-1;
+   fUseScalingFactor=kFALSE;
+   fScalingFactor=1.0;
 
 
 }
@@ -101,6 +103,8 @@ Bool_t TQFWRawParam::UpdateFrom(TGo4Parameter *pp)
    fFrontendOffsetLoop=from->fFrontendOffsetLoop;
    fCheckEventSequence=from->fCheckEventSequence;
    fBadChannelCorrection=from->fBadChannelCorrection;
+   fUseScalingFactor=from->fUseScalingFactor;
+   fScalingFactor=from->fScalingFactor;
 
    SetConfigBoards();
    return kTRUE;
