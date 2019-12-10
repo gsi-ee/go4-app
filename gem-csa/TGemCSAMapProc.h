@@ -29,6 +29,19 @@ public:
   TH2* hMapTraceBLR[CSA_MAXCHAMBERS];
   TH2* hMapTraceFPGA[CSA_MAXCHAMBERS];
 
+  TH2* hMapTrace_Sum[CSA_MAXCHAMBERS];
+  TH2* hMapTraceBLR_Sum[CSA_MAXCHAMBERS];
+  TH2* hMapTraceFPGA_Sum[CSA_MAXCHAMBERS];
+
+  TH1* hWireProfile[CSA_MAXCHAMBERS];
+  TH1* hWireProfileBLR[CSA_MAXCHAMBERS];
+  TH1* hWireProfileFPGA[CSA_MAXCHAMBERS];
+
+  TH1* hWireProfile_Sum[CSA_MAXCHAMBERS];
+  TH1* hWireProfileBLR_Sum[CSA_MAXCHAMBERS];
+  TH1* hWireProfileFPGA_Sum[CSA_MAXCHAMBERS];
+
+
   TGemCSAMapParam *fParam;
 
 ClassDef(TGemCSAMapProc, 1)

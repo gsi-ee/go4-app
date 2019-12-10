@@ -63,17 +63,51 @@ TGemCSAMapProc::TGemCSAMapProc(const char* name) :
     Int_t trbinsize= tracelength/10;
     obname.Form("Mapped/Raw/Chamber%d/OverviewTrace_%d", dev, dev);
     obtitle.Form("Chamber %d Trace wire map", dev);
-    hMapTrace[dev]=MakeTH2('I', obname.Data(), obtitle.Data(), trbinsize, 0, tracelength, CSA_MAXWIRES,  0, CSA_MAXWIRES -1,"time (bins)", "wire number", "counts");
+    hMapTrace[dev]=MakeTH2('I', obname.Data(), obtitle.Data(), trbinsize, 0, tracelength, CSA_MAXWIRES,  0, CSA_MAXWIRES,"time (bins)", "wire number", "counts");
 
     obname.Form("Mapped/BLR/Chamber%d/OverviewTraceBLR_%d", dev, dev);
     obtitle.Form("Chamber %d Trace base line restored wire map", dev);
-    hMapTraceBLR[dev]=MakeTH2('I', obname.Data(), obtitle.Data(), trbinsize, 0, tracelength, CSA_MAXWIRES,  0, CSA_MAXWIRES -1,"time (bins)", "wire number", "counts");
+    hMapTraceBLR[dev]=MakeTH2('I', obname.Data(), obtitle.Data(), trbinsize, 0, tracelength, CSA_MAXWIRES,  0, CSA_MAXWIRES,"time (bins)", "wire number", "counts");
 
     obname.Form("Mapped/Filtered/Chamber%d/OverviewTraceFiltered_%d", dev, dev);
     obtitle.Form("Chamber %d Trace (FPGA filtered)wire map", dev);
-    hMapTraceFPGA[dev]=MakeTH2('I', obname.Data(), obtitle.Data(), trbinsize, 0, tracelength, CSA_MAXWIRES,  0, CSA_MAXWIRES -1,"time (bins)", "wire number", "counts");
+    hMapTraceFPGA[dev]=MakeTH2('I', obname.Data(), obtitle.Data(), trbinsize, 0, tracelength, CSA_MAXWIRES,  0, CSA_MAXWIRES,"time (bins)", "wire number", "counts");
 
+    obname.Form("Mapped/Raw/Chamber%d/SumOverviewTrace_%d", dev, dev);
+    obtitle.Form("Chamber %d Trace wire map accumulated", dev);
+    hMapTrace_Sum[dev]=MakeTH2('I', obname.Data(), obtitle.Data(), trbinsize, 0, tracelength, CSA_MAXWIRES,  0, CSA_MAXWIRES,"time (bins)", "wire number", "counts");
 
+    obname.Form("Mapped/BLR/Chamber%d/SumOverviewTraceBLR_%d", dev, dev);
+    obtitle.Form("Chamber %d Trace base line restored wire map accumulated", dev);
+    hMapTraceBLR_Sum[dev]=MakeTH2('I', obname.Data(), obtitle.Data(), trbinsize, 0, tracelength, CSA_MAXWIRES,  0, CSA_MAXWIRES,"time (bins)", "wire number", "counts");
+
+    obname.Form("Mapped/Filtered/Chamber%d/SumOverviewTraceFiltered_%d", dev, dev);
+    obtitle.Form("Chamber %d Trace (FPGA filtered)wire map accumulated", dev);
+    hMapTraceFPGA_Sum[dev]=MakeTH2('I', obname.Data(), obtitle.Data(), trbinsize, 0, tracelength, CSA_MAXWIRES,  0, CSA_MAXWIRES,"time (bins)", "wire number", "counts");
+
+    obname.Form("Mapped/Raw/Chamber%d/WireProfile_%d", dev, dev);
+    obtitle.Form("Chamber %d Wire Profile", dev);
+    hWireProfile[dev] = MakeTH1('I', obname.Data(), obtitle.Data(),  CSA_MAXWIRES,  0, CSA_MAXWIRES, "wire number", "counts");
+
+    obname.Form("Mapped/BLR/Chamber%d/WireProfileBLR_%d", dev, dev);
+    obtitle.Form("Chamber %d Wire Profile BLR", dev);
+    hWireProfileBLR[dev] = MakeTH1('I', obname.Data(), obtitle.Data(),  CSA_MAXWIRES,  0, CSA_MAXWIRES, "wire number", "counts");
+
+    obname.Form("Mapped/Filtered/Chamber%d/WireProfileFPGA_%d", dev, dev);
+    obtitle.Form("Chamber %d Wire Profile FPGA", dev);
+    hWireProfileFPGA[dev] = MakeTH1('I', obname.Data(), obtitle.Data(),  CSA_MAXWIRES,  0, CSA_MAXWIRES, "wire number", "counts");
+
+    obname.Form("Mapped/Raw/Chamber%d/SumWireProfile_%d", dev, dev);
+     obtitle.Form("Chamber %d Wire Profile accumulated", dev);
+     hWireProfile_Sum[dev] = MakeTH1('I', obname.Data(), obtitle.Data(),  CSA_MAXWIRES,  0, CSA_MAXWIRES, "wire number", "counts");
+
+     obname.Form("Mapped/BLR/Chamber%d/SumWireProfileBLR_%d", dev, dev);
+     obtitle.Form("Chamber %d Wire Profile BLR accumulated", dev);
+     hWireProfileBLR_Sum[dev] = MakeTH1('I', obname.Data(), obtitle.Data(),  CSA_MAXWIRES,  0, CSA_MAXWIRES, "wire number", "counts");
+
+     obname.Form("Mapped/Filtered/Chamber%d/SumWireProfileFPGA_%d", dev, dev);
+     obtitle.Form("Chamber %d Wire Profile FPGA accumulated", dev);
+     hWireProfileFPGA_Sum[dev] = MakeTH1('I', obname.Data(), obtitle.Data(),  CSA_MAXWIRES,  0, CSA_MAXWIRES, "wire number", "counts");
 
 
 
@@ -120,7 +154,11 @@ Bool_t TGemCSAMapProc::BuildEvent(TGo4EventElement* dest)
           for(size_t bin=0; bin<theTrace.size(); ++bin)
           {
             hWireTraces[dev][wire]->SetBinContent(1+bin, theTrace[bin]);
+
+            hWireProfile[dev]->Fill(wire, theTrace[bin]);
+            hWireProfile_Sum[dev]->Fill(wire, theTrace[bin]);
             hMapTrace[dev]->Fill(bin, wire, theTrace[bin]);
+            hMapTrace_Sum[dev]->Fill(bin, wire, theTrace[bin]);
             //out_evt->fWireTrace[dev][wire].push_back(theTrace[bin]);
 
           }
@@ -129,7 +167,10 @@ Bool_t TGemCSAMapProc::BuildEvent(TGo4EventElement* dest)
           for(size_t bin=0; bin<theTraceBLR.size(); ++bin)
           {
             hWireTracesBLR[dev][wire]->SetBinContent(1+bin,theTraceBLR[bin]);
+            hWireProfileBLR[dev]->Fill(wire, theTraceBLR[bin]);
+            hWireProfileBLR_Sum[dev]->Fill(wire, theTraceBLR[bin]);
             hMapTraceBLR[dev]->Fill(bin, wire, theTraceBLR[bin]);
+            hMapTraceBLR_Sum[dev]->Fill(bin, wire, theTraceBLR[bin]);
             //out_evt->fWireTraceBLR[dev][wire].push_back(theTrace[bin]);
           }
 
@@ -137,7 +178,10 @@ Bool_t TGemCSAMapProc::BuildEvent(TGo4EventElement* dest)
           for(size_t bin=0; bin<theTraceFPGA.size(); ++bin)
           {
             hWireTracesFPGA[dev][wire]->SetBinContent(1+bin,theTraceFPGA[bin]);
+            hWireProfileFPGA[dev]->Fill(wire, theTraceFPGA[bin]);
+            hWireProfileFPGA_Sum[dev]->Fill(wire, theTraceFPGA[bin]);
             hMapTraceFPGA[dev]->Fill(bin, wire, theTraceFPGA[bin]);
+            hMapTraceFPGA_Sum[dev]->Fill(bin, wire, theTraceFPGA[bin]);
             //out_evt->fWireTraceFPGA[dev][wire].push_back(theTrace[bin]);
           }
 
@@ -168,5 +212,9 @@ void TGemCSAMapProc::ResetTraces()
          hMapTrace[dev]->Reset("");
          hMapTraceBLR[dev]->Reset("");
          hMapTraceFPGA[dev]->Reset("");
+
+         hWireProfile[dev]->Reset("");
+         hWireProfileBLR[dev]->Reset("");
+         hWireProfileFPGA[dev]->Reset("");
        }
 }
