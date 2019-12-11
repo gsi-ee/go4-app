@@ -32,7 +32,7 @@ TGemCSAMapProc::TGemCSAMapProc(const char* name) :
 
    // here already exisitng parameter will be returned
    // one not need to specify macro here - it is already executed in first step
-   fParam = (TGemCSAMapParam*) MakeParameter("GemCSAMapParam", "TGemCSAMapParam");
+   fParam = (TGemCSAMapParam*) MakeParameter("GemCSAMapParam", "TGemCSAMapParam", "set_GemCSAMapParam.C");
    TString obname;
    TString obtitle;
    //TString foldername;
