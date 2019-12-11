@@ -123,16 +123,9 @@ void TGemCSAMapParam::InitCSAMapping()
   fSFP[0][54] = 0; fSlave[0][54] = 0; fChannel[0][54] = 13;
   fSFP[0][55] = 0; fSlave[0][55] = 1; fChannel[0][55] = 5;
   fSFP[0][56] = 0; fSlave[0][56] = 3; fChannel[0][56] = 14;
-  fSFP[0][57] = 0; fSlave[0][57] = 2; fChannel[0][57] = 6;for (Int_t dev = 0; dev < CSA_MAXCHAMBERS; ++dev)
-    //   {
-    //     for (Int_t wire = 0; wire < CSA_MAXWIRES; ++wire)
-    //     {
-    //       fSFP [dev][wire]=0;
-    //       fSlave [dev][wire]=wire /16;
-    //       fChannel[dev][wire]=wire % 16;
-    //     }
-    //
-    //   }
+  fSFP[0][57] = 0; fSlave[0][57] = 2; fChannel[0][57] = 6;
+
+
   fSFP[0][58] = 0; fSlave[0][58] = 0; fChannel[0][58] = 14;
   fSFP[0][59] = 0; fSlave[0][59] = 1; fChannel[0][59] = 6;
   fSFP[0][60] = 0; fSlave[0][60] = 3; fChannel[0][60] = 15;

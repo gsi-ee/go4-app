@@ -213,7 +213,7 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
   psubevt = fInput->NextSubEvent(); // only one subevent    
   
   //printf ("         psubevt: 0x%x \n", (UInt_t)psubevt); fflush (stdout);
-  printf ("%d -------------next event-----------\n", l_evt_ct); fflush (stdout);
+  //printf ("%d -------------next event-----------\n", l_evt_ct); fflush (stdout);
   //sleep (1);
 
   pl_se_dat = (uint32_t *)psubevt->GetDataField();
