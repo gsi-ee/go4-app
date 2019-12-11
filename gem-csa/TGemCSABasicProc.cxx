@@ -678,7 +678,7 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
              ((l_cha_id ==  3) || (l_cha_id ==  4) || (l_cha_id ==  5) || (l_cha_id ==  8) ||
               (l_cha_id ==  9) || (l_cha_id == 10) || (l_cha_id == 11) || (l_cha_id == 12)))
           {
-            printf ("cha id %d, s - b: %f \n", l_cha_id, f_csa_signal_val - f_csa_base_val); 
+            //printf ("cha id %d, s - b: %f \n", l_cha_id, f_csa_signal_val - f_csa_base_val);
             f_csa_sum_sig += (f_csa_signal_val - f_csa_base_val);
 
             if ((f_csa_signal_val - f_csa_base_val) > f_csa_max_sig)
