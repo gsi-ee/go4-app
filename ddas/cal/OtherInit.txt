@@ -1,0 +1,80 @@
+# Start variable initialization
+#
+# Set clock (Time) parameter
+#
+# bdecayv.clock.scale 
+1.
+#
+# bdecayv.clock.calib
+1.
+#
+# bdecayv.clock.max 
+1000.
+#
+# bdecayv.corr.minimplant 
+0.
+#
+#
+# Isomer time parameters
+#
+# Set for 40 us maximum correlation
+# bdecayv.clockisomer.max 
+40
+#
+# Set for 40 ns per channel
+# bdecayv.clockisomer.calib 
+1.0
+#
+#
+# Set PIN parameters 
+# bdecayv.pin01.slope
+1.0
+# bdecayv.pin01.intercept
+0.0
+#bdecayv.pin01.thresh 
+3000.0
+#
+# bdecayv.pin02.slope 
+1.0
+# bdecayv.pin02.intercept 
+0.0
+# bdecayv.pin02.thresh 
+4000.0 
+#
+# bdecayv.tac.i2ncorr
+1
+# bdecayv.tac.i2ncorrpos 
+1.8
+# bdecayv.tac.pin01corr1
+1.
+# bdecayv.tac.pin01corr2
+1.
+# bdecayv.tac.i2scorr
+1
+# bdecayv.tac.i2scorr_offset
+0.
+# bdecayv.tac.pin01corr
+1.
+# bdecayv.tac.pin01corr_offset
+0.
+# bdecayv.tac.pin02corr
+1.
+# bdecayv.tac.pin02corr_offset
+0.
+# bdecayv.veto.thresh
+50
+# bdecayv.veto.uld
+1000
+# bdecayv.veto.uld2;
+30000
+#
+#set bdecayv.pin04.slope 1.0
+#set bdecayv.pin04.intercept 0.0
+#set bdecayv.pin04.thresh 90.0
+#
+#
+# seed initialization
+# bdecayv.seed.reset 
+#0
+#
+# end Initializing
