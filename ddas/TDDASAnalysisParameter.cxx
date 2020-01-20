@@ -19,6 +19,7 @@
 TDDASAnalysisParameter::TDDASAnalysisParameter() :
    TGo4Parameter("DDASAnalysisParameter")
 {
+  fUseGate=kTRUE;
   fGateName="TheDefaultCut";
   // JAM 1-2020: these defaults were taken from old example loopAnalysis_fireside:
   fClockMax=150;
@@ -29,6 +30,7 @@ TDDASAnalysisParameter::TDDASAnalysisParameter() :
 TDDASAnalysisParameter::TDDASAnalysisParameter(const char* name) :
    TGo4Parameter(name)
 {
+  fUseGate=kTRUE;
   fGateName="TheDefaultCut";
     // JAM 1-2020: these defaults were taken from old example loopAnalysis_fireside:
   fClockMax=150;
@@ -50,7 +52,7 @@ Bool_t TDDASAnalysisParameter::UpdateFrom(TGo4Parameter *source)
       TGo4Log::Error("Wrong parameter class: %s", source->ClassName());
       return kFALSE;
    }
-
+   fUseGate=from->fUseGate;
    fGateName=from->fGateName;
    fClockMax=from->fClockMax;
    fMinImplantTime=from->fMinImplantTime;

@@ -212,17 +212,18 @@ double Correlator::Correlate(betadecay &bdecay, betadecayvariables &bdecayv, int
       //cout << "implant event false ";
     }
   
-  // if(havegate)
-  //   {
-  //     if(gate->IsInside(bdecay.pid.pin01i2n,bdecay.pid.de1))
-  // 	{
-  // 	  implant_event = true;
-  // 	}
-  //     else
-  // 	{
-  // 	  implant_event = false;
-  // 	}
-  //   }
+  // JAM 1-2020: enabled the following again, was commented out in found code:
+   if(havegate)
+     {
+       if(gate->IsInside(bdecay.pid.pin01i2n,bdecay.pid.de1))
+   	{
+   	  implant_event = true;
+   	}
+       else
+   	{
+   	  implant_event = false;
+   	}
+     }
   
   /* High-gain events with no PIN1, PIN2 signals - decays */
   if ((bdecayv.hit.pin01 == 0) && (bdecayv.hit.pin02 == 0) && (bdecayv.hit.fronthi != 0) && (bdecayv.hit.backhi != 0) && (bdecayv.hit.veto==0)) 

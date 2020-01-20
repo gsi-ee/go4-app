@@ -60,31 +60,29 @@ TDDASAnalysisProc::TDDASAnalysisProc(const char* name) :
 
   //the other parameters we get from Go4 parameter object:
 
-  // set gate in correlator:
-  std::string gate = fAnaPar->fGateName.GetString().Data();
-  // here lets create a Go4 polygon condition to provide the TCutG of that name:
-  // JAM2020: following example values taken from Fe51corr.C
-  Double_t cutpnts[12][2] =  {
-      { 10314.7, 9175.03} ,
-      { 10250.9 , 9429.78},
-      { 10241.4,9693.02},
-      { 10321.1,9871.34},
-      { 10400.7,9956.26},
-      { 10502.8,9947.76},
-      { 10569.7,9718.49},
-      { 10576.1,9480.73},
-      { 10509.1,9217.49},
-      { 10413.5,9132.57},
-      { 10333.8,9149.56},
-      { 10314.7,9175.03}  };
 
-  fExampleGate = MakePolyCond(gate.c_str(), 12, cutpnts);
+   // set gate in correlator:
+  std::string gate = fAnaPar->fGateName.Data();
+  if (fAnaPar->fUseGate)
+  {
+    TGo4Log::Info("TDDASAnalysisProc: Using Cut %s for correlator.", gate.c_str());
+    // here lets create a Go4 polygon condition to provide the TCutG of that name:
+    // JAM2020: following example values taken from Fe51corr.C
+    Double_t cutpnts[12][2] = { { 10314.7, 9175.03 }, { 10250.9, 9429.78 }, { 10241.4, 9693.02 }, { 10321.1, 9871.34 },
+        { 10400.7, 9956.26 }, { 10502.8, 9947.76 }, { 10569.7, 9718.49 }, { 10576.1, 9480.73 }, { 10509.1, 9217.49 }, {
+            10413.5, 9132.57 }, { 10333.8, 9149.56 }, { 10314.7, 9175.03 } };
 
-  int gateselect = fCorrelator.SelectGate(gate);
-  // NOTE: the version of Correlator class contained in this Go4 user package has the gate always disabled
-  // Please change it if you want to use this.
+    fExampleGate = MakePolyCond(gate.c_str(), 12, cutpnts);
+    int gateselect = fCorrelator.SelectGate(gate);
+    // NOTE: the originally found Correlator class had the gate always disabled.
 
-  // TODO: put the pid histogram for this gating cut into Go4
+    // TODO: put the pid histogram for this gating cut into Go4
+
+  }
+  else
+  {
+    TGo4Log::Info("TDDASAnalysisProc: Cut %s is disabled.", gate.c_str());
+  }
 
 
   //set correlation time
@@ -262,7 +260,7 @@ Bool_t TDDASAnalysisProc::BuildEvent(TGo4EventElement* dest)
     TGo4Log::Error("DDASAnalysisProc: events are not specified!");
     return kFALSE;
   }
-
+  fOutput->SetValid(kFALSE); // supress output being written to tree if not valid
   if (!fInput->IsValid())
     return kTRUE;    // just skip event if filtered out by previous step
 

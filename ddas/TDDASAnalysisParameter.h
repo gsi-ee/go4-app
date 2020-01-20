@@ -24,7 +24,8 @@ class TDDASAnalysisParameter : public TGo4Parameter {
       virtual ~TDDASAnalysisParameter();
       virtual Bool_t UpdateFrom(TGo4Parameter *);
 
-      TObjString fGateName; // name of existing TCutG for gating in correlator
+      Bool_t fUseGate; // if true, will use TCutG of fGateName for Correlator. If false, gate is neglected.
+      TString fGateName; // name of existing TCutG for gating in correlator
       Double_t fClockMax; // Correlation time
       Double_t fMinImplantTime; // Minimum implant time
       Int_t fRandomFlag; // random flag for correlator
