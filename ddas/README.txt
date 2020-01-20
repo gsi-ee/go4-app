@@ -37,7 +37,7 @@ the intermediate ROOT file. Since input and output structure of the first analys
 it is also possible for the second analysis step to use the TDDASEventSource to read directly ROOT files produced
 with the external FilterDDAS code (with first analysis step disabled).
 The output of the TDDASAnalysisProc will be a Go4 TDDASAnalysisEvent that wraps 
-the "rootout" class used in AnalysisDDAS example.
+the "rootdataout" class used in AnalysisDDAS example.
 
 __________________________________________________________________________________
 FIRST ANALYSIS STEP: TDDASFilterProc
@@ -82,7 +82,7 @@ SECOND ANALYSIS STEP: TDDASAnalysisProc
 
 This Go4 processor contains mostly the code of previous standanlone example AnalyzeDDAS.cpp.
 
-The correlator class (defined in subfolder nscl) is kept here as a member component fCorrelator.
+The Correlator class (defined in subfolder nscl) is kept here as a member component fCorrelator.
 
 Constructor TDDASAnalysisProc() initializes the ddas library classes betadecay and betadecayvars as member objects
 fBdecay and fBdecayVars, resp.  Please note that the setup of the betadecayvars parameters is taken from local text
@@ -106,18 +106,18 @@ As usual, these values can be changed interactively from Go4 GUI with parameter 
 set_DDASAnalysisParameter.C that is executed as default whenever a new "Submit" of analysis settings is done.
 
 If fUseGate is true, Go4 will create a Go4PolygonCondition (container of TCutG) and assign its name to the correlator object
-(please note: the correlator of original code had the cut feature completely commented out; this was enabled again).
+(please note: the Correlator of original code had the cut feature completely commented out; this was enabled again).
 TODO: This feature has still to be tested! Also missing: reasonable TH2 histogram to display the TCutG
 
 Method DdasToEvent() is almost the same as the existing function ddastoevent() from original code.
 It gets the channellist from the input event TDDASRawEvent.  
 Note that here only the "valid" input events are processed, i.e. the ones
-that the first filtering steps let pass.
-Furthermore it does unpacking/mapping and uses the correlator fCorrelator
+that the first filtering step let pass.
+Furthermore it does unpacking/mapping and uses the Correlator fCorrelator
 for further analysis. The results are copied to the component fData of the output event TDDASAnalysisEvent, which is the
 same data structure rootdataout as defined in the original code (Parameters-ddas.h)
 This may be written to an output tree if the eventstore of the analysis step is switched on.
-Please note that original example AnalyzeDDAS write the rootdataout to a top level branch of name "data", while go4 
+Please note that original example AnalyzeDDAS writes the rootdataout to a top level branch of name "data", while go4 
 would embed the rootdataout into a TGo4EventElement with subbranch of name "fData".
 
 Method FillHistograms() will accumulate some monitoring histograms of data of the rootdataout structure in subfolder "Analyzed". 
@@ -129,7 +129,7 @@ that you would like to see before the further analysis of the output tree!
 ______________________
 BUILDING and RUNNING
 NOTE: This Go4 user library requires the  Go4/ROOT framework only, since all relevant external classes from ddas are
-contained as source code and will be compiled within the libGo4UserAnalysis.
+contained as source code and will be compiled within the libGo4UserAnalysis.so.
 It is not necessary to link against existing libraries of nscldaq or specTCL!
 However, later the Makefile may be adjusted such that code in subfolder ddas is neglected, 
 and such that include and link paths use an existing installation for consistency.
@@ -150,6 +150,9 @@ As usual,
 > go4analysis 
 will offer a batch mode (please see go4analysis -h)
 
+This code has been compiled and tested with Go4 v6.0 and ROOT 6.17/01.
+It should be also working with previous versions.
+
 __________________________
 ANALYSIS CONFIGURATION
 The setup of the two analysis steps can be done from gui analysis configuration window.
@@ -164,6 +167,10 @@ step "Analysis" will write tree of class TDDASAnalysisEvent (contains rootdataou
 
 One may disable step "Filter" and set step "Analysis" event source to TGo4FileSource to process a tree 
 that has been written before from Go4 analysis step "Filter.
+
+Wildcard inputs: This Go4 user source, and also the TGo4FileSource, support wildcard specification for
+a list of input files. So a source name "/data/myfiles/run42/day10_*" would process all root files at this location that match the
+given wildcard pattern.
 
 ___________________
 FURTHER INFORMATION
