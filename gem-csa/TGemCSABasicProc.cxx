@@ -21,6 +21,7 @@
  * Analysis for the GEM CSA tests in December 2019
  * Added mapping to original unpacker step based on TFeb3BasicProc
  * v.01 on 10-Dec-2019 by JAM (j.adamczewski@gsi.de)
+ * v.02 on 24-Jan-2020 by JAM - merge with additional code from Nik
  *
  *
  * */
@@ -174,7 +175,9 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
   Double_t       f_ref_peak=0;
   Double_t       f_csa_max_sig=0; 
   Int_t          l_csa_max_cha=0xff;
-  
+  Double_t       f_csa_pad_e_a[256];
+  Double_t       f_csa_pad_e_b[MAX_SFP][MAX_SLAVE][N_CHA];   
+	
   TGo4MbsSubEvent* psubevt;
 
   fInput = (TGo4MbsEvent* ) GetInputEvent();
@@ -207,11 +210,14 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
   l_evt_ct++;
 
   fInput->ResetIterator();
-  //while((psubevt = fInput->NextSubEvent()) != 0) // loop over subevents
-  //{
+  while((psubevt = fInput->NextSubEvent()) != 0) // loop over subevents
+  {
 
-  psubevt = fInput->NextSubEvent(); // only one subevent    
-  
+  //psubevt = fInput->NextSubEvent(); // only one subevent
+  psubevt->GetControl();
+  //printf ("sub-event procid: %d\n",  psubevt->GetControl()); fflush (stdout);
+  if (psubevt->GetControl() != 69) continue;
+
   //printf ("         psubevt: 0x%x \n", (UInt_t)psubevt); fflush (stdout);
   //printf ("%d -------------next event-----------\n", l_evt_ct); fflush (stdout);
   //sleep (1);
@@ -312,6 +318,7 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
           l_fpga_e_found[l_i][l_j][l_k] = 0;
           l_trapez_e    [l_i][l_j][l_k] = 0;
           l_fpga_e      [l_i][l_j][l_k] = 0;
+					f_csa_pad_e_b [l_i][l_j][l_k] = 0;
         }
         h_hitpat     [l_i][l_j]->Fill (-2, 1);  
         h_hitpat_tr  [l_i][l_j]->Fill (-2, 1);  
@@ -320,13 +327,22 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
     }
   }
 
+	h_csa_pad_e->Reset ("");
+	
+  for (l_i=0; l_i<256; l_i++)
+	{
+		f_csa_pad_e_a[l_i] = 0.;
+	}
+	
   if ((l_sfp_id == 0) && (l_feb_id == 0))
   {
-    f_csa_sum_sig = 0.;
+    //f_csa_sum_sig = 0.;
     l_csa_max_cha = 0xff;
     f_csa_max_sig = 0.;
   }
-  
+
+	f_csa_sum_sig = 0.;
+	
   while ( (pl_tmp - pl_se_dat) < (l_dat_len_byte/4) )
   {
     //sleep (1);
@@ -674,11 +690,23 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
           f_csa_signal_val = f_csa_signal_val / (Double_t)CSA_SIGNAL_SIZE;
           h_csa_signal [l_sfp_id][l_feb_id][l_cha_id]->Fill (f_csa_signal_val - f_csa_base_val);
 
+          f_csa_pad_e_b[l_sfp_id][l_feb_id][l_cha_id] = f_csa_signal_val - f_csa_base_val; 
+					
+          if ( ((l_sfp_id == 0) && (l_feb_id > 0)) || (l_sfp_id == 1) )
+					{
+
+						if ((f_csa_signal_val - f_csa_base_val) < 0.)
+						{	
+              f_csa_sum_sig += f_csa_signal_val - f_csa_base_val;
+						}	
+					}		
+						
+					/*
           if (((l_sfp_id == 0) && (l_feb_id == 0)) &&
              ((l_cha_id ==  3) || (l_cha_id ==  4) || (l_cha_id ==  5) || (l_cha_id ==  8) ||
               (l_cha_id ==  9) || (l_cha_id == 10) || (l_cha_id == 11) || (l_cha_id == 12)))
           {
-            //printf ("cha id %d, s - b: %f \n", l_cha_id, f_csa_signal_val - f_csa_base_val);
+            printf ("cha id %d, s - b: %f \n", l_cha_id, f_csa_signal_val - f_csa_base_val); 
             f_csa_sum_sig += (f_csa_signal_val - f_csa_base_val);
 
             if ((f_csa_signal_val - f_csa_base_val) > f_csa_max_sig)
@@ -692,6 +720,7 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
           {
             f_ref_cha_base_val = f_csa_base_val; 
           }
+					*/
         }
 
         // jump over trace
@@ -731,7 +760,8 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
   }
 
   //printf ("f_csa_sum_sig %f \n", f_csa_sum_sig); 
-  h_csa_sum_sig->Fill (f_csa_sum_sig); 
+  h_csa_sum_sig->Fill (f_csa_sum_sig * -1.);
+	/*
   h_peak_ref_sig->Fill (f_ref_peak - f_ref_cha_base_val);    
   h_peak_ref__sum_csa->Fill (f_csa_sum_sig, f_ref_peak - f_ref_cha_base_val);
 
@@ -739,7 +769,7 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
   {
     h_peak_ref__sum_csa2->Fill (f_csa_sum_sig, f_ref_peak - f_ref_cha_base_val);
   }
-    
+    */
 
   // JAM 10-DEC-2019: for mapping, we first copy the raw traces into our output event:
   {
@@ -776,6 +806,267 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
    }
   }
 
+f_csa_pad_e_a[0] = f_csa_pad_e_b[1][1][0];
+  f_csa_pad_e_a[1] = f_csa_pad_e_b[0][7][8];   // nc
+  f_csa_pad_e_a[2] = f_csa_pad_e_b[1][0][0];
+  f_csa_pad_e_a[3] = f_csa_pad_e_b[0][0][8];   // nc
+  f_csa_pad_e_a[4] = f_csa_pad_e_b[1][1][1];
+  f_csa_pad_e_a[5] = f_csa_pad_e_b[0][7][9];   // nc
+  f_csa_pad_e_a[6] = f_csa_pad_e_b[1][0][1];
+  f_csa_pad_e_a[7] = f_csa_pad_e_b[0][0][9];   // nc
+  f_csa_pad_e_a[8] = f_csa_pad_e_b[1][1][2];
+  f_csa_pad_e_a[9] = f_csa_pad_e_b[0][7][10];   // nc
+  f_csa_pad_e_a[10] = f_csa_pad_e_b[1][0][2];
+  f_csa_pad_e_a[11] = f_csa_pad_e_b[0][0][10];   // nc
+  f_csa_pad_e_a[12] = f_csa_pad_e_b[1][1][3];
+  f_csa_pad_e_a[13] = f_csa_pad_e_b[0][7][11];   // nc
+  f_csa_pad_e_a[14] = f_csa_pad_e_b[1][0][3];
+  f_csa_pad_e_a[15] = f_csa_pad_e_b[0][0][11];   // nc
+  f_csa_pad_e_a[16] = f_csa_pad_e_b[1][1][4];
+  f_csa_pad_e_a[17] = f_csa_pad_e_b[0][7][12];   // nc
+  f_csa_pad_e_a[18] = f_csa_pad_e_b[1][0][4];
+  f_csa_pad_e_a[19] = f_csa_pad_e_b[0][0][12];   // nc
+  f_csa_pad_e_a[20] = f_csa_pad_e_b[1][1][5];
+  f_csa_pad_e_a[21] = f_csa_pad_e_b[0][7][13];   // nc
+  f_csa_pad_e_a[22] = f_csa_pad_e_b[1][0][5];
+  f_csa_pad_e_a[23] = f_csa_pad_e_b[0][0][13];   // nc
+  f_csa_pad_e_a[24] = f_csa_pad_e_b[1][1][6];
+  f_csa_pad_e_a[25] = f_csa_pad_e_b[0][7][14];   // nc
+  f_csa_pad_e_a[26] = f_csa_pad_e_b[1][0][6];
+  f_csa_pad_e_a[27] = f_csa_pad_e_b[0][0][14];   // nc
+  f_csa_pad_e_a[28] = f_csa_pad_e_b[1][1][7];
+  f_csa_pad_e_a[29] = f_csa_pad_e_b[0][7][15];   // nc
+  f_csa_pad_e_a[30] = f_csa_pad_e_b[1][0][7];
+  f_csa_pad_e_a[31] = f_csa_pad_e_b[0][0][15];   // nc
+  f_csa_pad_e_a[32] = f_csa_pad_e_b[1][1][8];
+  f_csa_pad_e_a[33] = f_csa_pad_e_b[0][7][0];   // nc
+  f_csa_pad_e_a[34] = f_csa_pad_e_b[1][0][8];
+  f_csa_pad_e_a[35] = f_csa_pad_e_b[0][0][0];   // nc
+  f_csa_pad_e_a[36] = f_csa_pad_e_b[1][1][9];
+  f_csa_pad_e_a[37] = f_csa_pad_e_b[0][7][1];   // nc
+  f_csa_pad_e_a[38] = f_csa_pad_e_b[1][0][9];
+  f_csa_pad_e_a[39] = f_csa_pad_e_b[0][0][1];   // nc
+  f_csa_pad_e_a[40] = f_csa_pad_e_b[1][1][10];
+  f_csa_pad_e_a[41] = f_csa_pad_e_b[0][7][2];   // nc
+  f_csa_pad_e_a[42] = f_csa_pad_e_b[1][0][10];
+  f_csa_pad_e_a[43] = f_csa_pad_e_b[0][0][2];   // nc
+  f_csa_pad_e_a[44] = f_csa_pad_e_b[1][1][11];
+  f_csa_pad_e_a[45] = f_csa_pad_e_b[0][7][3];   // nc
+  f_csa_pad_e_a[46] = f_csa_pad_e_b[1][0][11];
+  f_csa_pad_e_a[47] = f_csa_pad_e_b[0][0][3];   // nc
+  f_csa_pad_e_a[48] = f_csa_pad_e_b[1][1][12];
+  f_csa_pad_e_a[49] = f_csa_pad_e_b[0][7][4];   // nc
+  f_csa_pad_e_a[50] = f_csa_pad_e_b[1][0][12];
+  f_csa_pad_e_a[51] = f_csa_pad_e_b[0][0][4];   // nc
+  f_csa_pad_e_a[52] = f_csa_pad_e_b[1][1][13];
+  f_csa_pad_e_a[53] = f_csa_pad_e_b[0][7][5];   // nc
+  f_csa_pad_e_a[54] = f_csa_pad_e_b[1][0][13];
+  f_csa_pad_e_a[55] = f_csa_pad_e_b[0][0][5];   // nc
+  f_csa_pad_e_a[56] = f_csa_pad_e_b[1][1][14];
+  f_csa_pad_e_a[57] = f_csa_pad_e_b[0][7][6];   // nc
+  f_csa_pad_e_a[58] = f_csa_pad_e_b[1][0][14];
+  f_csa_pad_e_a[59] = f_csa_pad_e_b[0][0][6];   // nc
+  f_csa_pad_e_a[60] = f_csa_pad_e_b[1][1][15];
+  f_csa_pad_e_a[61] = f_csa_pad_e_b[0][7][7];   // nc
+  f_csa_pad_e_a[62] = f_csa_pad_e_b[1][0][15];
+  f_csa_pad_e_a[63] = f_csa_pad_e_b[0][0][7];   // nc
+  f_csa_pad_e_a[64] = f_csa_pad_e_b[1][3][0];
+  f_csa_pad_e_a[65] = f_csa_pad_e_b[0][2][8];
+  f_csa_pad_e_a[66] = f_csa_pad_e_b[1][2][0];
+  f_csa_pad_e_a[67] = f_csa_pad_e_b[0][1][8];
+  f_csa_pad_e_a[68] = f_csa_pad_e_b[1][3][1];
+  f_csa_pad_e_a[69] = f_csa_pad_e_b[0][2][9];
+  f_csa_pad_e_a[70] = f_csa_pad_e_b[1][2][1];
+  f_csa_pad_e_a[71] = f_csa_pad_e_b[0][1][9];
+  f_csa_pad_e_a[72] = f_csa_pad_e_b[1][3][2];
+  f_csa_pad_e_a[73] = f_csa_pad_e_b[0][2][10];
+  f_csa_pad_e_a[74] = f_csa_pad_e_b[1][2][2];
+  f_csa_pad_e_a[75] = f_csa_pad_e_b[0][1][10];
+  f_csa_pad_e_a[76] = f_csa_pad_e_b[1][3][3];
+  f_csa_pad_e_a[77] = f_csa_pad_e_b[0][2][11];
+  f_csa_pad_e_a[78] = f_csa_pad_e_b[1][2][3];
+  f_csa_pad_e_a[79] = f_csa_pad_e_b[0][1][11];
+  f_csa_pad_e_a[80] = f_csa_pad_e_b[1][3][4];
+  f_csa_pad_e_a[81] = f_csa_pad_e_b[0][2][12];
+  f_csa_pad_e_a[82] = f_csa_pad_e_b[1][2][4];
+  f_csa_pad_e_a[83] = f_csa_pad_e_b[0][1][12];
+  f_csa_pad_e_a[84] = f_csa_pad_e_b[1][3][5];
+  f_csa_pad_e_a[85] = f_csa_pad_e_b[0][2][13];
+  f_csa_pad_e_a[86] = f_csa_pad_e_b[1][2][5];
+  f_csa_pad_e_a[87] = f_csa_pad_e_b[0][1][13];
+  f_csa_pad_e_a[88] = f_csa_pad_e_b[1][3][6];
+  f_csa_pad_e_a[89] = f_csa_pad_e_b[0][2][14];
+  f_csa_pad_e_a[90] = f_csa_pad_e_b[1][2][6];
+  f_csa_pad_e_a[91] = f_csa_pad_e_b[0][1][14];
+  f_csa_pad_e_a[92] = f_csa_pad_e_b[1][3][7];
+  f_csa_pad_e_a[93] = f_csa_pad_e_b[0][2][15];
+  f_csa_pad_e_a[94] = f_csa_pad_e_b[1][2][7];
+  f_csa_pad_e_a[95] = f_csa_pad_e_b[0][1][15];
+  f_csa_pad_e_a[96] = f_csa_pad_e_b[1][3][8];
+  f_csa_pad_e_a[97] = f_csa_pad_e_b[0][2][0];
+  f_csa_pad_e_a[98] = f_csa_pad_e_b[1][2][8];
+  f_csa_pad_e_a[99] = f_csa_pad_e_b[0][1][0];
+  f_csa_pad_e_a[100] = f_csa_pad_e_b[1][3][9];
+  f_csa_pad_e_a[101] = f_csa_pad_e_b[0][2][1];
+  f_csa_pad_e_a[102] = f_csa_pad_e_b[1][2][9];
+  f_csa_pad_e_a[103] = f_csa_pad_e_b[0][1][1];
+  f_csa_pad_e_a[104] = f_csa_pad_e_b[1][3][10];
+  f_csa_pad_e_a[105] = f_csa_pad_e_b[0][2][2];
+  f_csa_pad_e_a[106] = f_csa_pad_e_b[1][2][10];
+  f_csa_pad_e_a[107] = f_csa_pad_e_b[0][1][2];
+  f_csa_pad_e_a[108] = f_csa_pad_e_b[1][3][11];
+  f_csa_pad_e_a[109] = f_csa_pad_e_b[0][2][3];
+  f_csa_pad_e_a[110] = f_csa_pad_e_b[1][2][11];
+  f_csa_pad_e_a[111] = f_csa_pad_e_b[0][1][3];
+  f_csa_pad_e_a[112] = f_csa_pad_e_b[1][3][12];
+  f_csa_pad_e_a[113] = f_csa_pad_e_b[0][2][4];
+  f_csa_pad_e_a[114] = f_csa_pad_e_b[1][2][12];
+  f_csa_pad_e_a[115] = f_csa_pad_e_b[0][1][4];
+  f_csa_pad_e_a[116] = f_csa_pad_e_b[1][3][13];
+  f_csa_pad_e_a[117] = f_csa_pad_e_b[0][2][5];
+  f_csa_pad_e_a[118] = f_csa_pad_e_b[1][2][13];
+  f_csa_pad_e_a[119] = f_csa_pad_e_b[0][1][5];
+  f_csa_pad_e_a[120] = f_csa_pad_e_b[1][3][14];
+  f_csa_pad_e_a[121] = f_csa_pad_e_b[0][2][6];
+  f_csa_pad_e_a[122] = f_csa_pad_e_b[1][2][14];
+  f_csa_pad_e_a[123] = f_csa_pad_e_b[0][1][6];
+  f_csa_pad_e_a[124] = f_csa_pad_e_b[1][3][15];
+  f_csa_pad_e_a[125] = f_csa_pad_e_b[0][2][7];
+  f_csa_pad_e_a[126] = f_csa_pad_e_b[1][2][15];
+  f_csa_pad_e_a[127] = f_csa_pad_e_b[0][1][7];
+  f_csa_pad_e_a[128] = f_csa_pad_e_b[1][7][0];
+  f_csa_pad_e_a[129] = f_csa_pad_e_b[0][6][8];
+  f_csa_pad_e_a[130] = f_csa_pad_e_b[1][6][0];
+  f_csa_pad_e_a[131] = f_csa_pad_e_b[0][5][8];
+  f_csa_pad_e_a[132] = f_csa_pad_e_b[1][7][1];
+  f_csa_pad_e_a[133] = f_csa_pad_e_b[0][6][9];
+  f_csa_pad_e_a[134] = f_csa_pad_e_b[1][6][1];
+  f_csa_pad_e_a[135] = f_csa_pad_e_b[0][5][9];
+  f_csa_pad_e_a[136] = f_csa_pad_e_b[1][7][2];
+  f_csa_pad_e_a[137] = f_csa_pad_e_b[0][6][10];
+  f_csa_pad_e_a[138] = f_csa_pad_e_b[1][6][2];
+  f_csa_pad_e_a[139] = f_csa_pad_e_b[0][5][10];
+  f_csa_pad_e_a[140] = f_csa_pad_e_b[1][7][3];
+  f_csa_pad_e_a[141] = f_csa_pad_e_b[0][6][11];
+  f_csa_pad_e_a[142] = f_csa_pad_e_b[1][6][3];
+  f_csa_pad_e_a[143] = f_csa_pad_e_b[0][5][11];
+  f_csa_pad_e_a[144] = f_csa_pad_e_b[1][7][4];
+  f_csa_pad_e_a[145] = f_csa_pad_e_b[0][6][12];
+  f_csa_pad_e_a[146] = f_csa_pad_e_b[1][6][4];
+  f_csa_pad_e_a[147] = f_csa_pad_e_b[0][5][12];
+  f_csa_pad_e_a[148] = f_csa_pad_e_b[1][7][5];
+  f_csa_pad_e_a[149] = f_csa_pad_e_b[0][6][13];
+  f_csa_pad_e_a[150] = f_csa_pad_e_b[1][6][5];
+  f_csa_pad_e_a[151] = f_csa_pad_e_b[0][5][13];
+  f_csa_pad_e_a[152] = f_csa_pad_e_b[1][7][6];
+  f_csa_pad_e_a[153] = f_csa_pad_e_b[0][6][14];
+  f_csa_pad_e_a[154] = f_csa_pad_e_b[1][6][6];
+  f_csa_pad_e_a[155] = f_csa_pad_e_b[0][5][14];
+  f_csa_pad_e_a[156] = f_csa_pad_e_b[1][7][7];
+  f_csa_pad_e_a[157] = f_csa_pad_e_b[0][6][15];
+  f_csa_pad_e_a[158] = f_csa_pad_e_b[1][6][7];
+  f_csa_pad_e_a[159] = f_csa_pad_e_b[0][5][15];
+  f_csa_pad_e_a[160] = f_csa_pad_e_b[1][7][8];
+  f_csa_pad_e_a[161] = f_csa_pad_e_b[0][6][0];
+  f_csa_pad_e_a[162] = f_csa_pad_e_b[1][6][8];
+  f_csa_pad_e_a[163] = f_csa_pad_e_b[0][5][0];
+  f_csa_pad_e_a[164] = f_csa_pad_e_b[1][7][9];
+  f_csa_pad_e_a[165] = f_csa_pad_e_b[0][6][1];
+  f_csa_pad_e_a[166] = f_csa_pad_e_b[1][6][9];
+  f_csa_pad_e_a[167] = f_csa_pad_e_b[0][5][1];
+  f_csa_pad_e_a[168] = f_csa_pad_e_b[1][7][10];
+  f_csa_pad_e_a[169] = f_csa_pad_e_b[0][6][2];
+  f_csa_pad_e_a[170] = f_csa_pad_e_b[1][6][10];
+  f_csa_pad_e_a[171] = f_csa_pad_e_b[0][5][2];
+  f_csa_pad_e_a[172] = f_csa_pad_e_b[1][7][11];
+  f_csa_pad_e_a[173] = f_csa_pad_e_b[0][6][3];
+  f_csa_pad_e_a[174] = f_csa_pad_e_b[1][6][11];
+  f_csa_pad_e_a[175] = f_csa_pad_e_b[0][5][3];
+  f_csa_pad_e_a[176] = f_csa_pad_e_b[1][7][12];
+  f_csa_pad_e_a[177] = f_csa_pad_e_b[0][6][4];
+  f_csa_pad_e_a[178] = f_csa_pad_e_b[1][6][12];
+  f_csa_pad_e_a[179] = f_csa_pad_e_b[0][5][4];
+  f_csa_pad_e_a[180] = f_csa_pad_e_b[1][7][13];
+  f_csa_pad_e_a[181] = f_csa_pad_e_b[0][6][5];
+  f_csa_pad_e_a[182] = f_csa_pad_e_b[1][6][13];
+  f_csa_pad_e_a[183] = f_csa_pad_e_b[0][5][5];
+  f_csa_pad_e_a[184] = f_csa_pad_e_b[1][7][14];
+  f_csa_pad_e_a[185] = f_csa_pad_e_b[0][6][6];
+  f_csa_pad_e_a[186] = f_csa_pad_e_b[1][6][14];
+  f_csa_pad_e_a[187] = f_csa_pad_e_b[0][5][6];
+  f_csa_pad_e_a[188] = f_csa_pad_e_b[1][7][15];
+  f_csa_pad_e_a[189] = f_csa_pad_e_b[0][6][7];
+  f_csa_pad_e_a[190] = f_csa_pad_e_b[1][6][15];
+  f_csa_pad_e_a[191] = f_csa_pad_e_b[0][5][7];
+  f_csa_pad_e_a[192] = f_csa_pad_e_b[1][5][0];
+  f_csa_pad_e_a[193] = f_csa_pad_e_b[0][4][8];
+  f_csa_pad_e_a[194] = f_csa_pad_e_b[1][4][0];
+  f_csa_pad_e_a[195] = f_csa_pad_e_b[0][3][8];
+  f_csa_pad_e_a[196] = f_csa_pad_e_b[1][5][1];
+  f_csa_pad_e_a[197] = f_csa_pad_e_b[0][4][9];
+  f_csa_pad_e_a[198] = f_csa_pad_e_b[1][4][1];
+  f_csa_pad_e_a[199] = f_csa_pad_e_b[0][3][9];
+  f_csa_pad_e_a[200] = f_csa_pad_e_b[1][5][2];
+  f_csa_pad_e_a[201] = f_csa_pad_e_b[0][4][10];
+  f_csa_pad_e_a[202] = f_csa_pad_e_b[1][4][2];
+  f_csa_pad_e_a[203] = f_csa_pad_e_b[0][3][10];
+  f_csa_pad_e_a[204] = f_csa_pad_e_b[1][5][3];
+  f_csa_pad_e_a[205] = f_csa_pad_e_b[0][4][11];
+  f_csa_pad_e_a[206] = f_csa_pad_e_b[1][4][3];
+  f_csa_pad_e_a[207] = f_csa_pad_e_b[0][3][11];
+  f_csa_pad_e_a[208] = f_csa_pad_e_b[1][5][4];
+  f_csa_pad_e_a[209] = f_csa_pad_e_b[0][4][12];
+  f_csa_pad_e_a[210] = f_csa_pad_e_b[1][4][4];
+  f_csa_pad_e_a[211] = f_csa_pad_e_b[0][3][12];
+  f_csa_pad_e_a[212] = f_csa_pad_e_b[1][5][5];
+  f_csa_pad_e_a[213] = f_csa_pad_e_b[0][4][13];
+  f_csa_pad_e_a[214] = f_csa_pad_e_b[1][4][5];
+  f_csa_pad_e_a[215] = f_csa_pad_e_b[0][3][13];
+  f_csa_pad_e_a[216] = f_csa_pad_e_b[1][5][6];
+  f_csa_pad_e_a[217] = f_csa_pad_e_b[0][4][14];
+  f_csa_pad_e_a[218] = f_csa_pad_e_b[1][4][6];
+  f_csa_pad_e_a[219] = f_csa_pad_e_b[0][3][14];
+  f_csa_pad_e_a[220] = f_csa_pad_e_b[1][5][7];
+  f_csa_pad_e_a[221] = f_csa_pad_e_b[0][4][15];
+  f_csa_pad_e_a[222] = f_csa_pad_e_b[1][4][7];
+  f_csa_pad_e_a[223] = f_csa_pad_e_b[0][3][15];
+  f_csa_pad_e_a[224] = f_csa_pad_e_b[1][5][8];
+  f_csa_pad_e_a[225] = f_csa_pad_e_b[0][4][0];
+  f_csa_pad_e_a[226] = f_csa_pad_e_b[1][4][8];
+  f_csa_pad_e_a[227] = f_csa_pad_e_b[0][3][0];
+  f_csa_pad_e_a[228] = f_csa_pad_e_b[1][5][9];
+  f_csa_pad_e_a[229] = f_csa_pad_e_b[0][4][1];
+  f_csa_pad_e_a[230] = f_csa_pad_e_b[1][4][9];
+  f_csa_pad_e_a[231] = f_csa_pad_e_b[0][3][1];
+  f_csa_pad_e_a[232] = f_csa_pad_e_b[1][5][10];
+  f_csa_pad_e_a[233] = f_csa_pad_e_b[0][4][2];
+  f_csa_pad_e_a[234] = f_csa_pad_e_b[1][4][10];
+  f_csa_pad_e_a[235] = f_csa_pad_e_b[0][3][2];
+  f_csa_pad_e_a[236] = f_csa_pad_e_b[1][5][11];
+  f_csa_pad_e_a[237] = f_csa_pad_e_b[0][4][3];
+  f_csa_pad_e_a[238] = f_csa_pad_e_b[1][4][11];
+  f_csa_pad_e_a[239] = f_csa_pad_e_b[0][3][3];
+  f_csa_pad_e_a[240] = f_csa_pad_e_b[1][5][12];
+  f_csa_pad_e_a[241] = f_csa_pad_e_b[0][4][4];
+  f_csa_pad_e_a[242] = f_csa_pad_e_b[1][4][12];
+  f_csa_pad_e_a[243] = f_csa_pad_e_b[0][3][4];
+  f_csa_pad_e_a[244] = f_csa_pad_e_b[1][5][13];
+  f_csa_pad_e_a[245] = f_csa_pad_e_b[0][4][5];
+  f_csa_pad_e_a[246] = f_csa_pad_e_b[1][4][13];
+  f_csa_pad_e_a[247] = f_csa_pad_e_b[0][3][5];
+  f_csa_pad_e_a[248] = f_csa_pad_e_b[1][5][14];
+  f_csa_pad_e_a[249] = f_csa_pad_e_b[0][4][6];
+  f_csa_pad_e_a[250] = f_csa_pad_e_b[1][4][14];
+  f_csa_pad_e_a[251] = f_csa_pad_e_b[0][3][6];
+  f_csa_pad_e_a[252] = f_csa_pad_e_b[1][5][15];
+  f_csa_pad_e_a[253] = f_csa_pad_e_b[0][4][7];
+  f_csa_pad_e_a[254] = f_csa_pad_e_b[1][4][15];
+  f_csa_pad_e_a[255] = f_csa_pad_e_b[0][3][7];
+	
+  for (l_i=0; l_i<256; l_i++)
+	{
+		h_csa_pad_e->SetBinContent (l_i, f_csa_pad_e_a[l_i]);
+	}
 
 bad_event:
 
@@ -799,6 +1090,8 @@ bad_event:
     printf ("------------------------------------------------------\n");
     fflush (stdout);
   } 
+ } // while subevents
+
 
   return kTRUE;
 }
@@ -936,7 +1229,7 @@ void TGemCSABasicProc:: f_make_histo (Int_t l_mode)
   }
   sprintf(chis,"CSA SIGNAL SUM");
   sprintf(chead,"Summed CSA Signals");
-  h_csa_sum_sig =  MakeTH1('F', chis,chead,1000,0,2000); 
+  h_csa_sum_sig =  MakeTH1('F', chis,chead,250,0,100000); 
   sprintf(chis,"PEAK REFERENCE SIGNAL");
   sprintf(chead,"(peak - base) refefence signal ");
   h_peak_ref_sig =  MakeTH1('F', chis,chead,1000,0,1000);
@@ -948,6 +1241,10 @@ void TGemCSABasicProc:: f_make_histo (Int_t l_mode)
   sprintf (chis,"Correlation Peak Ref vs. CSA sum 2");
   sprintf (chead,"Peak Refernence vs CSA_SUM 2");
   h_peak_ref__sum_csa2 = MakeTH2 ('F', chis, chead, 200, 0, 2000, 200, 0, 1000);
+
+  sprintf(chis,"Pad Energy");
+  sprintf(chead,"Pad Energy (PadNumber)");
+  h_csa_pad_e =  MakeTH1('F', chis,chead,256,0,256); 
 }
 
 //----------------------------END OF GO4 SOURCE FILE ---------------------

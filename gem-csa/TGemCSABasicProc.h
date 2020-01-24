@@ -59,10 +59,10 @@
                                          // bit n fuer slave module n (max n = 31)
 #endif
 
-#define CSA_BASE_START    20
+#define CSA_BASE_START    520
 #define CSA_BASE_SIZE    100
-#define CSA_SIGNAL_START 400
-#define CSA_SIGNAL_SIZE  100
+#define CSA_SIGNAL_START 600
+#define CSA_SIGNAL_SIZE   50
 
 #define RON  "\x1B[7m"
 #define RES  "\x1B[0m"
@@ -106,6 +106,7 @@ class TGemCSABasicProc : public TGo4EventProcessor {
       TH1          *h_peak_ref_sig;
       TH2          *h_peak_ref__sum_csa;
       TH2          *h_peak_ref__sum_csa2;
+	  TH1          *h_csa_pad_e;
       
       ClassDef(TGemCSABasicProc,1)
 };
