@@ -26,6 +26,9 @@
  *
  * */
 
+
+
+
 #include "TGemCSABasicProc.h"
 #include "TGemCSABasicEvent.h"
 #include "stdint.h"
@@ -97,6 +100,10 @@ TGemCSABasicProc::TGemCSABasicProc(const char* name) : TGo4EventProcessor(name)
 {
   cout << "**** TGemCSABasicProc: Create instance " << name << endl;
   l_first = 0;  
+
+  fParam = (TGemCSABasicParam*) MakeParameter("GemCSABasicParam", "TGemCSABasicParam", "set_GemCSABasicParam.C");
+
+
 
   //printf ("Histograms created \n");  fflush (stdout);
 }
@@ -800,6 +807,11 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
              outevent->fTraceFPGA[l_i][l_j][l_k].push_back(value);
            }
 
+           /** JAM 28-Jan-2020: also do the optional fit within this loop:*/
+           DoTraceFit(l_i,l_j,l_k);
+
+
+
            }
        }
      }
@@ -1068,6 +1080,11 @@ f_csa_pad_e_a[0] = f_csa_pad_e_b[1][1][0];
 		h_csa_pad_e->SetBinContent (l_i, f_csa_pad_e_a[l_i]);
 	}
 
+
+
+
+
+
 bad_event:
 
 
@@ -1093,6 +1110,12 @@ bad_event:
  } // while subevents
 
 
+  if (fParam->fSlowMotion)
+     {
+         Int_t evnum=fInput->GetCount();
+         GO4_STOP_ANALYSIS_MESSAGE("Stopped for slow motion mode after MBS event count %d. Click green arrow for next event. please.", evnum);
+     }
+
   return kTRUE;
 }
 
@@ -1102,6 +1125,7 @@ void TGemCSABasicProc:: f_make_histo (Int_t l_mode)
 {
   Text_t chis[256];
   Text_t chead[256];
+  Text_t cfolder[256];
   UInt_t l_i, l_j, l_k;
   UInt_t l_tra_size;
   UInt_t l_trap_n_avg;
@@ -1216,7 +1240,23 @@ void TGemCSABasicProc:: f_make_histo (Int_t l_mode)
         {
           sprintf(chis,"CSA BASE/average baseline SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
           sprintf(chead,"Average baseline");
-          h_csa_base[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x8000,-0x4000,0x4000);
+          h_csa_base[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x8000,-0x4000,0x4000);  // TODO create new histograms for fitter
+          /** will contain fit result curves: */
+        //       TH1          *h_trace_fitresult        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+        //
+        //
+        //       /** histograms the polygon parameters of each channel fit*/
+        //       TH1          *h_fit_par        [MAX_SFP][MAX_SLAVE][N_CHA][GEMCSA_FITPOLYPARS]; //!
+        //
+        //
+        //       /** histograms the chi2 of each channel fit*/
+        //       TH1          *h_fit_chi2        [MAX_SFP][MAX_SLAVE][N_CHA]; //!
+        //
+        //
+        //       /** histograms the polygon parameters of all channel fits*/
+        //       TH1          *h_fit_a_all[GEMCSA_FITPOLYPARS]; //!
+
+
         }
         for (l_k=0; l_k<N_CHA; l_k++)
         {
@@ -1224,6 +1264,47 @@ void TGemCSABasicProc:: f_make_histo (Int_t l_mode)
           sprintf(chead,"Average baseline");
           h_csa_signal[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x8000,-0x4000,0x4000);
         }
+
+        if(fParam->fDoBaselineFits)
+        {
+
+
+          for (l_k=0; l_k<N_CHA; l_k++)
+          {
+            sprintf(chis,"BaselineFits/Models/FitModel SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+            sprintf(chead,"Fit Model  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+            h_trace_fitresult[l_i][l_j][l_k] = MakeTH1('F', chis,chead,l_tra_size,0,l_tra_size);
+          }
+
+          for (l_k=0; l_k<N_CHA; l_k++)
+          {
+            sprintf(chis,"BaselineFits/Chi2/Chi2  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+            sprintf(chead,"Fit Chi2 SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+            h_fit_chi2[l_i][l_j][l_k] = MakeTH1('F', chis,chead,1000,0,10);
+          }
+          for (int n=0; n<GEMCSA_FITPOLYPARS; ++n)
+            {
+                Double_t range=GEMCSA_RANGE_A0;
+                if(n>0) range=GEMCSA_RANGE_A1; // JAM2020 kludge; later should be array of predefined ranges for each order...
+
+
+                sprintf(chis,"BaselineFits/A%d/A%2d all channels", n, n);
+                sprintf(chead,"Fit Polygon par %d for all channels", n);
+                h_fit_a_all[n]= MakeTH1('F', chis,chead,GEMCSA_FITPARBINS,-range,range);
+
+                for (l_k=0; l_k<N_CHA; l_k++)
+                     {
+                       sprintf(chis,"BaselineFits/A%d/A%2d SFP: %2d FEBEX: %2d CHAN: %2d", n, n, l_i, l_j, l_k);
+                       sprintf(chead,"Fit Polygon par %d SFP: %2d FEBEX: %2d CHAN: %2d", n, l_i, l_j, l_k);
+                       h_fit_par[l_i][l_j][l_k][n] = MakeTH1('F', chis,chead,GEMCSA_FITPARBINS,-range,range);
+                     }
+
+
+            } // n
+
+
+
+        } //   if(fParam->fDoBaselineFits)
       }
     }
   }
@@ -1245,6 +1326,117 @@ void TGemCSABasicProc:: f_make_histo (Int_t l_mode)
   sprintf(chis,"Pad Energy");
   sprintf(chead,"Pad Energy (PadNumber)");
   h_csa_pad_e =  MakeTH1('F', chis,chead,256,0,256); 
+
+
+  if(fParam->fDoBaselineFits)
+        {
+          fxFitRegion=MakeWinCond("BaselineFitRegion",0, l_tra_size);
+        // JAM2020 - put trace and fit into common pictures:
+
+  for (l_i=0; l_i<MAX_SFP; l_i++)
+   {
+     if (l_sfp_slaves[l_i] != 0)
+     {
+       for (l_j=0; l_j<l_sfp_slaves[l_i]; l_j++)
+       {
+         sprintf (cfolder,"SFP0%2d_Slave%2d",l_i,l_j);
+         for (l_k=0; l_k<N_CHA; l_k++)
+         {
+           sprintf (chis,"PictureTracefit_%2d_%2d_%2d",l_i,l_j,l_k);
+           TGo4Picture* pic = GetPicture(chis);
+           if (pic == 0)
+            {
+               sprintf(chead,"Trace Fit SFP: %2d FEBEX: %2d CHAN: %2d",l_i,l_j,l_k);
+               pic = new TGo4Picture(chis, chead);
+               pic->SetDivision(2, 2);
+               pic->Pic(0, 0)->AddObject(h_trace[l_i][l_j][l_k]);
+               pic->Pic(0, 0)->SetLineAtt(3, 1, 1);    // solid line
+               pic->Pic(0, 0)->AddObject(h_trace_fitresult[l_i][l_j][l_k]);
+               pic->Pic(0, 0)->SetLineAtt(5, 1, 1);    // solid line
+               pic->Pic(0, 0)->AddObject(fxFitRegion); // one region for all
+               pic->Pic(1, 0)->AddObject (h_fit_chi2[l_i][l_j][l_k]);
+               pic->Pic(0, 1)->AddObject ( h_fit_par[l_i][l_j][l_k][0]);
+               pic->Pic(1, 1)->AddObject ( h_fit_par[l_i][l_j][l_k][1]);
+               AddPicture(pic,cfolder);
+            }
+         }
+
+
+         }
+
+
+       }
+     }
+   }
+
+
+
+
+
 }
+
+
+
+Bool_t TGemCSABasicProc::DoTraceFit(UInt_t sfp, UInt_t feb, UInt_t ch)
+{
+
+  if (!fParam->fDoBaselineFits) return kFALSE;
+   TH1* hist=h_trace[sfp][feb][ch];
+   TH1* fithist=h_trace_fitresult[sfp][feb][ch];
+   TH1* fitchi2=h_fit_chi2[sfp][feb][ch];
+
+   TH1* par_hist[GEMCSA_FITPOLYPARS];
+   for(int n=0; n<GEMCSA_FITPOLYPARS; ++n)
+      {
+         par_hist[n] = h_fit_par[sfp][feb][ch][n];
+      }
+
+   fithist->Reset(""); // need to remove previous fit display first!
+
+   TGo4Fitter fitter("Fitter", TGo4Fitter::ff_chi_square, kTRUE);
+
+   TGo4FitDataHistogram* hd=fitter.AddH1("data1", hist, kFALSE, fxFitRegion->GetXLow(), fxFitRegion->GetXUp());
+   //     hd->SetExcludeLessThen(-1000.0); // TODO: parameter entry - usually fitter will exclude everything below 0 from fit!
+
+   fitter.AddPolynomX("data1", "Pol", GEMCSA_FITPOLYPARS-1);
+
+
+   for(int t=0;t<3;++t)
+          fitter.DoActions();
+
+   //fitter.Print("Pars");
+
+   TH1* h1 = dynamic_cast<TH1*> (fitter.CreateDrawObject("abc", "data1", kTRUE));
+      if (h1!=0) {
+         //std::cout <<"Created draw model for histogram "<<hist->GetName() <<" of size"<<  h1->GetNbinsX()<< std::endl;
+         //int binsize= TMath::Min(fithist->GetNbinsX(), h1->GetNbinsX());
+         //std::cout <<"Copy to display object "<<fithist->GetName() <<" of size"<<  fithist->GetNbinsX()<< std::endl;
+         for (int n=0;n<fithist->GetNbinsX();n++)
+           fithist->SetBinContent(n+1, h1->GetBinContent(n+1));
+         delete h1;
+      }
+
+  // TODO: fill histograms with fit results
+        for(int n=0; n<GEMCSA_FITPOLYPARS; ++n)
+        {
+          TString parname=TString::Format("Pol_%d.Ampl",n);
+          Double_t val = fitter.GetParValue(parname.Data());
+         // printf("fit histogram for %d %d %d found value %e of parameter %d - %s \n",
+           //   sfp, feb, ch, val, n, parname.Data());
+          par_hist[n]->Fill(val);
+          h_fit_a_all[n]->Fill(val);
+        }
+
+        Double_t ndf=fitter.CalculateNDF();
+        Double_t chiquadrat=fitter.CalculateFitFunction();
+        if(ndf) chiquadrat=chiquadrat/ndf;
+        fitchi2->Fill(chiquadrat);
+
+
+  return kTRUE;
+}
+
+
+
 
 //----------------------------END OF GO4 SOURCE FILE ---------------------

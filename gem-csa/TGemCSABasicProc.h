@@ -70,7 +70,24 @@
 #define BASE_LINE_SUBT_START  0
 #define BASE_LINE_SUBT_SIZE   150
 
+
+/** here  one may tune number of polygon fit parameters
+ * = order +1 JAM2020*/
+#define GEMCSA_FITPOLYPARS 2
+
+/** range for fit polynom parameter a0 histograming*/
+#define GEMCSA_RANGE_A0 10000
+
+/** range for fit polynom parameter a1 histograming*/
+#define GEMCSA_RANGE_A1 0.5
+
+/** number of bins for fit parameter histograms*/
+#define GEMCSA_FITPARBINS 1000
+
+
 #include "TGo4EventProcessor.h"
+#include "TGo4WinCond.h"
+
 #include "TGemCSABasicEvent.h"
 
 class TGemCSABasicParam;
@@ -85,8 +102,14 @@ class TGemCSABasicProc : public TGo4EventProcessor {
 
       Bool_t BuildEvent(TGo4EventElement* target); // event processing function
 
+      /** perform the linear baseline fit for the raw trace of given sfp, slave, channel
+       * returns false if fit could not be done*/
+      Bool_t DoTraceFit(UInt_t sfp, UInt_t slave, UInt_t chan);
+
  private:
       TGo4MbsEvent  *fInput;  //!
+
+      TGemCSABasicParam* fParam;
 
       TH1          *h_trace        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
       TH1          *h_trace_blr    [MAX_SFP][MAX_SLAVE][N_CHA];  //!
@@ -107,7 +130,38 @@ class TGemCSABasicProc : public TGo4EventProcessor {
       TH2          *h_peak_ref__sum_csa;
       TH2          *h_peak_ref__sum_csa2;
 	  TH1          *h_csa_pad_e;
+
+
+	  /** JAM Jan-2020: following objects are for the linear baseline shape fitter: */
+
+	  /** we use a single fitter object that is assigned to data*/
+	//  TGo4Fitter *fxFitter;
+
+	  /** defines the region for the baseline fit*/
+	  TGo4WinCond* fxFitRegion;
+
+
+	  /** will contain fit result curves: */
+	  TH1          *h_trace_fitresult        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+
+
+	  /** histograms the polygon parameters of each channel fit*/
+	  TH1          *h_fit_par        [MAX_SFP][MAX_SLAVE][N_CHA][GEMCSA_FITPOLYPARS]; //!
       
+
+	  /** histograms the chi2 of each channel fit*/
+	  TH1          *h_fit_chi2        [MAX_SFP][MAX_SLAVE][N_CHA]; //!
+
+
+	  /** histograms the polygon parameters of all channel fits*/
+	  TH1          *h_fit_a_all[GEMCSA_FITPOLYPARS]; //!
+
+
+
+
+
+
+
       ClassDef(TGemCSABasicProc,1)
 };
 #endif //TUNPACKPROCESSOR_H
