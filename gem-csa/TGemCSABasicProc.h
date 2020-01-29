@@ -79,7 +79,7 @@
 #define GEMCSA_RANGE_A0 10000
 
 /** range for fit polynom parameter a1 histograming*/
-#define GEMCSA_RANGE_A1 0.5
+#define GEMCSA_RANGE_A1 1.0
 
 /** number of bins for fit parameter histograms*/
 #define GEMCSA_FITPARBINS 1000
