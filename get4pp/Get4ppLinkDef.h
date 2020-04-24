@@ -11,7 +11,6 @@
 
 #pragma link C++ class TGet4ppMsg+;
 #pragma link C++ class TGet4ppMsgEvent+;
-#pragma link C++ class TGet4ppMsgDirect+;
 #pragma link C++ class TGet4ppMsgWishbone+;
 #pragma link C++ class std::vector<UChar_t>+;
 #pragma link C++ class TGet4ppBoard+;

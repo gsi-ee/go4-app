@@ -101,6 +101,9 @@ void TGet4ppBoardDisplay::InitDisplay(Bool_t replace)
        obtitle.Form("Get4pp Board %d Channel distribution (Event readout)", brd);
        hChannels=MakeTH1('I', obname.Data(), obtitle.Data(), 4, 0, 4, "Channel number");
 
+       obname.Form("Board%d/ChipId_%d", brd, brd);
+       obtitle.Form("Get4++ Board %d Chip ID number", brd);
+       hChipId=MakeTH1('I', obname.Data(), obtitle.Data(), 256, 0, 256, "Chip ID");
 
 
     for(Int_t ch=0; ch<Get4pp_CHANNELS; ++ch)
@@ -125,10 +128,12 @@ void TGet4ppBoardDisplay::InitDisplay(Bool_t replace)
 
     	    obname.Form("Board%d/Channel%d/EventTypes_%d_%d", brd, ch, brd,ch);
     	    obtitle.Form("Get4pp Board %d Channel %d Event type", brd, ch);
-    	    hEventTypes[ch] =MakeTH1('I', obname.Data(), obtitle.Data(), 2, 0, 2);
+    	    hEventTypes[ch] =MakeTH1('I', obname.Data(), obtitle.Data(), 4, 0, 4);
     	    if (IsObjMade()) {
-    	    	hEventTypes[ch]->GetXaxis()->SetBinLabel(1 , "TDC data");
-    	    	hEventTypes[ch]->GetXaxis()->SetBinLabel(1 + 1, "Errors");
+    	    	hEventTypes[ch]->GetXaxis()->SetBinLabel(1 + 3, "TDC data");
+    	    	hEventTypes[ch]->GetXaxis()->SetBinLabel(1 + 2, "Errors");
+    	    	hEventTypes[ch]->GetXaxis()->SetBinLabel(1 + 0, "Unknown 1");
+    	    	hEventTypes[ch]->GetXaxis()->SetBinLabel(1 + 1, "Unknown 2");
     	    };
 
 

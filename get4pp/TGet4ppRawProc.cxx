@@ -31,7 +31,10 @@
 
 
 static unsigned long skipped_events = 0;
-//static unsigned long skipped_msgs = 0;
+
+#ifdef      GET4PP_DATA_VERBOSE
+static unsigned long skipped_msgs = 0;
+#endif
 
 /* helper macros for BuildEvent to check if payload pointer is still inside delivered region:*/
 /* this one to be called at top data processing loop*/
@@ -72,7 +75,7 @@ if((pdata - psubevt->GetDataField()) >= lwords ) \
 
 //***********************************************************
 TGet4ppRawProc::TGet4ppRawProc() :
-    TGo4EventProcessor()
+    TGo4EventProcessor(), fPar(0)
 {
 }
 
@@ -188,7 +191,10 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 
     if ((unsigned) *pdata == 0xbad00bad)
     {
-      GO4_SKIP_EVENT_MESSAGE("**** TGet4ppRawProc: Found BAD mbs event (marked 0x%x), skip it.", (*pdata));
+      //GO4_SKIP_EVENT_MESSAGE("**** TGet4ppRawProc: Found BAD mbs event (marked 0x%x), skip it.", (*pdata));
+      // JAM2020: avoid flooding message queue to GUI! better only to terminal:
+    	printf("**** TGet4ppRawProc: Found BAD mbs event (marked 0x%x), skip it.", (*pdata));
+      GO4_SKIP_EVENT
     }
     Bool_t skipmessage = kFALSE;
     // loop over single subevent data:
@@ -200,16 +206,30 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
       Get4ppRawEvent->fSequenceNumber = *pdata++;
       // data length
       Get4ppRawEvent->fDataCount = *pdata++;
+
+#ifdef      GET4PP_DATA_VERBOSE
+      printf ("VULOM: status: 0x%x counter: 0x%x length: 0x%x \n",
+    		  Get4ppRawEvent->fVULOMStatus, Get4ppRawEvent->fSequenceNumber,  Get4ppRawEvent->fDataCount);
+#endif
       if (Get4ppRawEvent->fDataCount > (lwords - 3))
       {
-        GO4_SKIP_EVENT_MESSAGE(
-            "**** TGet4ppRawProc: Mismatch with subevent len %d and data count 0x%8x - vulom status:0x%x seqnum:0x%x \n", lwords, Get4ppRawEvent->fDataCount,
-            Get4ppRawEvent->fVULOMStatus, Get4ppRawEvent->fSequenceNumber);
+//        GO4_SKIP_EVENT_MESSAGE(
+//            "**** TGet4ppRawProc: Mismatch with subevent len %d and data count 0x%8x - vulom status:0x%x seqnum:0x%x \n", lwords, Get4ppRawEvent->fDataCount,
+//            Get4ppRawEvent->fVULOMStatus, Get4ppRawEvent->fSequenceNumber);
+        // JAM2020: avoid flooding message queue to GUI! better only to terminal:
+        printf(
+                   "**** TGet4ppRawProc: Mismatch with subevent len %d and data count 0x%8x - vulom status:0x%x seqnum:0x%x \n", lwords, Get4ppRawEvent->fDataCount,
+                   Get4ppRawEvent->fVULOMStatus, Get4ppRawEvent->fSequenceNumber);
+        //GO4_SKIP_EVENT
+        GO4_STOP_ANALYSIS_MESSAGE("Severe data error! mismatch in payload header, check terminal! Stopping.");
+
         // avoid that we run optional second step on invalid raw event!
       }
 
       Int_t* pdatastart = pdata;    // remember begin of asic payload data section
-
+#ifdef      GET4PP_DATA_VERBOSE
+      printf ("PPP pdatastart content: 0x%x \n",*pdatastart);
+#endif
 
       pdata++;    // skip first  word?
       // pdatastart was here JAM
@@ -240,6 +260,11 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 
         // first vulom wrapper containing total message length:
         Int_t vulombytecount = *pdata++;
+
+#ifdef      GET4PP_DATA_VERBOSE
+      printf ("BY:  vulombytcount word: 0x%x \n", vulombytecount);
+#endif
+
 //        if (((vulombytecount >> 28) & 0xF) != 0x4)
 //        {
 //          //printf("Data error: wrong vulom byte counter 0x%x, try next word\n", vulombytecount);
@@ -259,62 +284,87 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 
         Int_t* pdatastartMsg = pdata;    // remember start of message for checking
         UChar_t msize = (vulombytecount & 0x3F) / sizeof(Int_t);    // message size in 32bit words
+
+#ifdef      GET4PP_DATA_VERBOSE
+      printf ("BY:  chipid: %d msize_32:%d \n", chipid, msize);
+#endif
+
         // evaluate message type from header:
-        Int_t header = *pdata;
-        // not we do not increment pdata here, do this inside msg types
+        Int_t header = *pdata++;
+#ifdef      GET4PP_DATA_VERBOSE
+      printf ("HEAD:  header word: 0x%x \n", header);
+#endif
+
+        // we do not increment pdata here, do this inside msg types
         TGet4ppMsg::Get4MessageType_t mtype = (TGet4ppMsg::Get4MessageType_t)((header >> 30) & 0x3);
 
         boardDisplay->hMsgTypes->Fill(mtype);
-        //printf("MMMMMMMM message type %d \n",mtype);
+#ifdef      GET4PP_DATA_VERBOSE
+        printf("MMMMMMMM message type %d \n",mtype);
+#endif
         switch (mtype)
         {
 
-////////// JAM2020: new stuff below for get4 plusplus
         case TGet4ppMsg::MSG_TDC_Data:    // get4pp read out
         {
 		 Bool_t epochsyncflag= ((header >> 24) & 0x2) == 0x2;
 		 Bool_t syncflag= ((header >> 24) & 0x1) == 0x1;
 		 Int_t theEpoch= (header & 0xFFFFFF);
-		 // we expect at most 2 more words in the frame:
-		 // TODO: variable number of events here!!!!
-
+#ifdef      GET4PP_DATA_VERBOSE
+        printf("TDC  epochsync:%d sync:%d EPOCH:0x%x \n",epochsyncflag, syncflag, theEpoch);
+#endif
 		 while (pdata - pdatastartMsg < msize)
 			 {
 			 Get4ppRAW_CHECK_PDATA;
-			 // always take chunks of 3 words = 4 x 24bit events
-			 Int_t data[3];
-			  for (Int_t j = 0; j < 3; ++j)
+			 // always take chunks of 3 words = 4 x 24bit events - unless message is shorter!
+			 Int_t data[3]={-1};
+			 // need to treat here special case that we have messages shorter than 3 words:
+			  for (Int_t j = 0; ((j < 3) && (j < msize)); ++j)
 			  {
 				Get4ppEVENTLASTMSG_CHECK_PDATA
 				Get4ppRAW_CHECK_PDATA;
 				Get4ppMSG_CHECK_PDATA;
 				data[j] = *pdata++;
-				//printf(" - data[%d]=0x%x \n",j,data[j]);
+#ifdef      GET4PP_DATA_VERBOSE
+				printf(" - data[%d]=0x%x \n",j,data[j]);
+#endif
 			  } // for j
 			  if (!skipmessage)
 			  {
 					// extract 24bit chunks here:
 				  Int_t eventdata[4] = {0};
 				  eventdata[0] = (data[0] >> 8) & 0xFFFFFF;
-				  eventdata[1] = ((data[0] & 0xFF) << 16) | ((data[1] >> 16) & 0xFFFF);
-				  eventdata[2] = ((data[1] & 0xFFFF) << 8) | ((data[2] >> 24) % 0xFF);
-				  eventdata[3] = (data[2] & 0xFFFFFF);
+				  if (data[1] !=-1)
+				  {
+					  eventdata[1] = ((data[0] & 0xFF) << 16) | ((data[1] >> 16) & 0xFFFF);
+					  if (data[2] !=-1){
+						  eventdata[2] = ((data[1] & 0xFFFF) << 8) | ((data[2] >> 24) % 0xFF);
+						  eventdata[3] = (data[2] & 0xFFFFFF);
+					  }
+				  }
 				  TGet4ppMsgEvent* theMsg=0;
 				  for (Int_t e = 0; e < 4; ++e)
 				  {
+					  if(eventdata[e]==0) continue; // not filled due to short messages in data stream
 					  // find out kind of message
 					  Int_t chan =  ((eventdata[e] >> 20) & 0x3);
 					  Bool_t leadingedge = ((eventdata[e] >> 19) & 0x1) == 0x1;
 					  Char_t kind =  ((eventdata[e] >> 22) & 0x3);
 					  Bool_t isTDC   = (kind == 0x3);
 					  Bool_t isError = (kind == 0x2);
+#ifdef      GET4PP_DATA_VERBOSE
+		   	        printf("TDC  chan:%d leading:%d kind:%d \n",chan, leadingedge, (int) kind);
+
+#endif
 					  if(isTDC)
 					  {
 						  TGet4ppMsgTDCEvent* tmess=new TGet4ppMsgTDCEvent(chan);
 						  tmess->SetCoarseTime( UShort_t((eventdata[e] >> 7) & 0xFFF));
-						  tmess->SetFineTime( UChar_t ((eventdata[e] >> 7) & 0xFFF));
+						  tmess->SetFineTime( UChar_t (eventdata[e]& 0x7F));
 						  theMsg=tmess;
-
+#ifdef      GET4PP_DATA_VERBOSE
+		   	        printf("TDC  coarse time:%d fine time:%d \n",tmess->GetCoarseTime(), tmess->GetFineTime());
+#endif
 
 
 					  }
@@ -324,11 +374,17 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 						  emess->SetErrorCode(TGet4ppMsgErrorEvent::Get4ErrorType_t(eventdata[e] & 0x3F));
 						  emess->SetDLLPhase(UChar_t((eventdata[e] >> 7) & 0xF));
 						  theMsg=emess;
+#ifdef      GET4PP_DATA_VERBOSE
+		   	        printf("ERR  error code %d : %s , DLL phase:%d\n", emess->GetErrorCode(), emess->GetErrorMessage().Data(), emess->GetDLLPhase());
+#endif
+
+
 					  }
 					  else
 					  {
-						  printf("Data error MBS event %d: data %d  is neither TDC nor error, but type %d  NCH\n",
-								  source->GetCount(),e, (int) kind);
+						  // do this silently
+//						  printf("Data error MBS event %d: data %d  is neither TDC nor error, but type %d\n",
+//								  source->GetCount(),e, (int) kind);
 						  continue;
 
 					  }
@@ -337,12 +393,12 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 					  theBoard->AddMessage(theMsg, chan);
 ///////// end of unpacking: the rest is histogram fill stuff
 //////////////////////////////////////////////////////////////////////////////////////////////////
-					  // TODO: here directly fill histograms
+					  // here directly fill histograms
 					  // this part may be put into a second function later parsing the unpacked messages.
 					  boardDisplay->hChannels->Fill(chan);
 					  Int_t edgeindex=(leadingedge ? 0 :1) ;
 					  boardDisplay->hEdges[chan]->Fill(edgeindex);
-					  boardDisplay->hEventTypes[chan] ->Fill(isTDC ? 0 : 1);
+					  boardDisplay->hEventTypes[chan] ->Fill(kind);
 					  boardDisplay->hEpochs[chan][edgeindex]->Fill(theMsg->GetEpoch());
 					  if(isTDC)
 					  {
@@ -436,14 +492,14 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
             // wishbone response (error message)
             {
               // this one is suppressed in readout data stream. We keep old code from hitdet anyway
-              //pdata = pdatastartMsg + msize; //JAM2020 ????
+             // pdata = pdatastartMsg + msize; //JAM2020 ????
               UChar_t wishhead = (header >> 24) & 0xFF;
-              //printf("MSG_WishboneEvent header=0x%x\n",wishhead);
-
+#ifdef      GET4PP_DATA_VERBOSE
+              printf("MSG_WishboneEvent header=0x%x\n",wishhead);
+#endif
               TGet4ppMsgWishbone* theMsg = new TGet4ppMsgWishbone(wishhead);
               Int_t address = 0, val = 0;
 //                ;
-              pdata++;    //account header already processed above
 
               if (pdata - pdatastartMsg < msize)
               {
@@ -473,8 +529,10 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
             break;
 
           default:
-            //printf("############ found unknown message type 0x%x, skip event %ld\n", mtype, skipped_events++);
+#ifdef      GET4PP_DATA_VERBOSE
+            printf("############ found unknown message type 0x%x, skip message %ld \n", mtype, skipped_msgs++);
             //GO4_SKIP_EVENT
+#endif
             pdata = pdatastartMsg + msize ; // do not skip complete event, but just the current message:
             break;
         };    // switch
@@ -516,7 +574,6 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 
 Bool_t TGet4ppRawProc::UpdateDisplays()
 {
- // static Bool_t CalibrateWasOn = kFALSE;
 
 // maybe later some advanced analysis from output event data here
 
@@ -540,48 +597,10 @@ Bool_t TGet4ppRawProc::UpdateDisplays()
     // TODO JAM 2020 TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTOOOOOOOOOOOOOOOTTTTTTTTTOOOOOOOOOOOOO
 
 
-//    // here calculate integral and differential ADC nonlinearities:
-//    boardDisplay->hADCNonLinInt->Reset("");
-//    boardDisplay->hADCNonLinDiff->Reset("");
-//
-//    if (!CalibrateWasOn && fPar->fDoCalibrate)
-//    {
-//      // begin of calibration, reset value histograms
-//      boardDisplay->hADCValues->Reset("");
-//      boardDisplay->hADCCorrection->Reset("");
-//      TGo4Log::Info("TGet4ppBoardDisplay: Begin new ADC calibration for Board %d ", boardDisplay->GetDevId());
-//
-//    }
-//    if (CalibrateWasOn && !fPar->fDoCalibrate)
-//    {
-//      TGo4Log::Info("TGet4ppBoardDisplay: End ADC calibration for Board %d ", boardDisplay->GetDevId());
-//    }
-//    Double_t mean = boardDisplay->hADCValues->GetEntries() / boardDisplay->hADCValues->GetNbinsX();
-//    Double_t inl = 0;
-//    Double_t corr = 0;
-//    for (Int_t bix = 0; bix < boardDisplay->hADCValues->GetNbinsX(); ++bix)
-//    {
-//      Double_t val = boardDisplay->hADCValues->GetBinContent(bix + 1);
-//      Double_t delta = (val - mean);
-//      boardDisplay->hADCDeltaMeanValues->SetBinContent(bix + 1, delta);
-//      Double_t dnl = 0;
-//      if (mean)
-//        dnl = delta / mean;    //dnl = TMath::Abs(delta / mean);
-//      boardDisplay->hADCNonLinDiff->SetBinContent(bix + 1, dnl);
-//      if (mean)
-//        inl += delta / mean;
-//      boardDisplay->hADCNonLinInt->SetBinContent(bix + 1, inl);
-//      // calibrate for ADC nonlinearity corrections:
-//      if (fPar->fDoCalibrate)
-//      {
-//        corr = inl;    // this is point to evaluate other kind of correction optionally
-//        boardDisplay->hADCCorrection->SetBinContent(bix + 1, corr);
-//      }
-//    }
+
 
   }    // i board
 
-//  CalibrateWasOn = fPar->fDoCalibrate;
 
   return kTRUE;
 }
