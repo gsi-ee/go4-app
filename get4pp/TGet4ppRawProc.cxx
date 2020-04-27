@@ -29,6 +29,8 @@
 /** enable this definition to print out event sample data explicitely*/
 //#define GET4PP_DATA_VERBOSE 1
 
+/** enable this to test if we have message container like in hitdet readout?*/
+#define GET4PP_USEVULOMBYTECOUNT 1
 
 static unsigned long skipped_events = 0;
 
@@ -40,7 +42,7 @@ static unsigned long skipped_msgs = 0;
 /* this one to be called at top data processing loop*/
 
 #define  Get4ppEVENT_CHECK_PDATA                                    \
-if((pdata - psubevt->GetDataField()) > lwords ) \
+if((pdata - psubevt->GetDataField()) >= lwords ) \
 { \
   printf("############ unexpected end of event for subevent size :0x%x, skip event %ld\n", lwords, skipped_events++);\
   GO4_SKIP_EVENT \
@@ -50,18 +52,25 @@ if((pdata - psubevt->GetDataField()) > lwords ) \
 #define  Get4ppRAW_CHECK_PDATA                                    \
 if((pdata - pdatastart) > Get4ppRawEvent->fDataCount ) \
 { \
-  printf("############ unexpected end of payload for datacount:0x%x, skip event %ld\n", Get4ppRawEvent->fDataCount, skipped_events++);\
-  GO4_SKIP_EVENT \
-  continue; \
+  printf("############ unexpected end of payload for datacount:0x%x after 0x%x words, end of event.\n", Get4ppRawEvent->fDataCount, (unsigned int) (pdata - pdatastart));\
+  skipmessage=kTRUE; \
+  break; \
 }
+
+//GO4_SKIP_EVENT
 
 #define  Get4ppMSG_CHECK_PDATA                                    \
 if((pdata - pdatastartMsg) > msize ) \
 { \
-  printf("############ pdata offset 0x%x exceeds message size:0x%x, skip event %ld\n", (unsigned int)(pdata - pdatastartMsg), msize, skipped_events++);\
-  GO4_SKIP_EVENT \
-  continue; \
+  printf("############ pdata offset 0x%x exceeds message size:0x%x, skip message \n", (unsigned int)(pdata - pdatastartMsg), msize);\
+  skipmessage=kTRUE; \
+  break; \
 }
+//  GO4_SKIP_EVENT
+//  continue;
+
+
+
 
 // this one is to discard last message that may be cut off by vulom daq:
 #define  Get4ppEVENTLASTMSG_CHECK_PDATA                                    \
@@ -75,7 +84,7 @@ if((pdata - psubevt->GetDataField()) >= lwords ) \
 
 //***********************************************************
 TGet4ppRawProc::TGet4ppRawProc() :
-    TGo4EventProcessor(), fPar(0)
+    TGo4EventProcessor(), fPar(0), Get4ppRawEvent(0)
 {
 }
 
@@ -160,27 +169,7 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
     //return kFALSE; // this would let the second step execute!
   }
 
-//  UInt_t snapshotcount[Get4pp_CHANNELS] = {0};    // counter for trace snapshot display
-//  static UInt_t tracelongcount = 0;    // counter for direct adc trace long part
-//  static Int_t numsnapshots = fPar->fNumSnapshots;
-//  static Int_t tracelength = fPar->fTraceLength;
 
-  // since we fill histograms already in BuildEvent, need to check if we must rescale histogram displays:
-//  if ((fPar->fNumSnapshots != numsnapshots) || (fPar->fTraceLength != tracelength))
-//  {
-//    numsnapshots = fPar->fNumSnapshots;
-//    tracelength = fPar->fTraceLength;
-//    InitDisplay(tracelength, numsnapshots, kTRUE);
-//
-//  }
-
-// first we fill the TGet4ppRawEvent with data from MBS source
-// we have up to two subevents, crate 1 and 2
-// Note that one has to loop over all subevents and select them by
-// crate number:   psubevt->GetSubcrate(),
-// procid:         psubevt->GetProcid(),
-// and/or control: psubevt->GetControl()
-// here we use only crate number
 
   source->ResetIterator();
   TGo4MbsSubEvent* psubevt(0);
@@ -200,8 +189,21 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
     // loop over single subevent data:
     while (pdata - psubevt->GetDataField() < lwords)
     {
+
+
+
+
       // vulom status word:
       Get4ppRawEvent->fVULOMStatus = *pdata++;
+      // JAM2020: need to check if status word has valid format here:
+      if( ((Get4ppRawEvent->fVULOMStatus >> 12) & 0x3) != 0x3)
+      {
+#ifdef      GET4PP_DATA_VERBOSE
+      printf ("VULOM: wrong vulom status word: 0x%x skip it.. \n",
+    		  Get4ppRawEvent->fVULOMStatus);
+#endif
+    	  continue;
+      }
       //event trigger counter:
       Get4ppRawEvent->fSequenceNumber = *pdata++;
       // data length
@@ -226,14 +228,13 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
         // avoid that we run optional second step on invalid raw event!
       }
 
-      Int_t* pdatastart = pdata;    // remember begin of asic payload data section
+     Int_t* pdatastart = pdata;    // remember begin of asic payload data section
 #ifdef      GET4PP_DATA_VERBOSE
       printf ("PPP pdatastart content: 0x%x \n",*pdatastart);
 #endif
 
-      pdata++;    // skip first  word?
+       pdata++;    // skip first  word?
       // pdatastart was here JAM
-
       // now fetch boardwise subcomponents for output data and histograming:
       Int_t slix = 0;    // JAM here we later could evaluate a board identifier mapped to a slot/sfp number contained in subevent
       UInt_t brdid = fPar->fBoardID[slix];    // get hardware identifier from "DAQ link index" number
@@ -255,7 +256,7 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 
       // evaluate Get4ppection ASIC messages in the payload:
 
-      while ((pdata - pdatastart) < Get4ppRawEvent->fDataCount)
+      while ((pdata - pdatastart) <= Get4ppRawEvent->fDataCount)
       {
 
         // first vulom wrapper containing total message length:
@@ -265,18 +266,11 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
       printf ("BY:  vulombytcount word: 0x%x \n", vulombytecount);
 #endif
 
-//        if (((vulombytecount >> 28) & 0xF) != 0x4)
-//        {
-//          //printf("Data error: wrong vulom byte counter 0x%x, try next word\n", vulombytecount);
-//          continue;
-//          // check ROByteCounter marker
-//          //printf("Data error: wrong vulom byte counter 0x%x, skip event %ld", vulombytecount, skipped_events++);
-//
-//          //GO4_SKIP_EVENT
-//        }
+
 
         if (((vulombytecount >> 28) & 0xF) == 0x4)
                 {
+        	skipmessage=kFALSE;
 //        // JAM2019 new: evaluate chip id here
         Int_t chipid=(vulombytecount >> 16) & 0xFF;
         boardDisplay->hChipId->Fill(chipid);
@@ -289,13 +283,14 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
       printf ("BY:  chipid: %d msize_32:%d \n", chipid, msize);
 #endif
 
+
         // evaluate message type from header:
         Int_t header = *pdata++;
 #ifdef      GET4PP_DATA_VERBOSE
       printf ("HEAD:  header word: 0x%x \n", header);
 #endif
 
-        // we do not increment pdata here, do this inside msg types
+    	  // we do not increment pdata here, do this inside msg types
         TGet4ppMsg::Get4MessageType_t mtype = (TGet4ppMsg::Get4MessageType_t)((header >> 30) & 0x3);
 
         boardDisplay->hMsgTypes->Fill(mtype);
@@ -313,13 +308,14 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 #ifdef      GET4PP_DATA_VERBOSE
         printf("TDC  epochsync:%d sync:%d EPOCH:0x%x \n",epochsyncflag, syncflag, theEpoch);
 #endif
+
 		 while (pdata - pdatastartMsg < msize)
 			 {
 			 Get4ppRAW_CHECK_PDATA;
 			 // always take chunks of 3 words = 4 x 24bit events - unless message is shorter!
 			 Int_t data[3]={-1};
 			 // need to treat here special case that we have messages shorter than 3 words:
-			  for (Int_t j = 0; ((j < 3) && (j < msize)); ++j)
+			  for (Int_t j = 0; ((j < 3) && (j < msize-1)); ++j) // first word of message is header, already handled above! -> msize-1
 			  {
 				Get4ppEVENTLASTMSG_CHECK_PDATA
 				Get4ppRAW_CHECK_PDATA;
@@ -333,6 +329,7 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 			  {
 					// extract 24bit chunks here:
 				  Int_t eventdata[4] = {0};
+
 				  eventdata[0] = (data[0] >> 8) & 0xFFFFFF;
 				  if (data[1] !=-1)
 				  {
@@ -382,11 +379,14 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 					  }
 					  else
 					  {
-						  // do this silently
-//						  printf("Data error MBS event %d: data %d  is neither TDC nor error, but type %d\n",
-//								  source->GetCount(),e, (int) kind);
-						  continue;
 
+#ifdef      GET4PP_DATA_VERBOSE
+						  // do this silently
+						  printf("Data error MBS event %d: evtdata %d  is neither TDC nor error, but type %d\n",
+								  source->GetCount(),e, (int) kind);
+#endif
+						  boardDisplay->hEventTypes[chan] ->Fill(kind);
+						  continue;
 					  }
 					  theMsg->SetEpoch(theEpoch);
 					  theMsg->SetLeadingEdge(leadingedge);
@@ -479,15 +479,16 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 
 
 				} // for e
-			  } // skipmessage
-			 } // while
 
+			  } // skipmessage
+
+			  } // while
 
 
 
         } // case
             break;
-
+            // JAM2020: these messages do not appear in get4++ test data!
           case TGet4ppMsg::MSG_Wishbone:
             // wishbone response (error message)
             {
@@ -500,7 +501,6 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
               TGet4ppMsgWishbone* theMsg = new TGet4ppMsgWishbone(wishhead);
               Int_t address = 0, val = 0;
 //                ;
-
               if (pdata - pdatastartMsg < msize)
               {
                 address = *pdata++;
@@ -537,6 +537,7 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
             break;
         };    // switch
 
+
         if (!skipmessage && (pdata - pdatastartMsg) < msize)
         {
           // never come here if messages are treated correctly!
@@ -547,6 +548,7 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 
         //printf("EEEEEEEE  end of message payload: pdata offset 0x%x msglength 0x%x\n",
         //             (unsigned int) (pdata - pdatastartMsg), msize);
+
 
                 } // JAM2019 test instead inner continue
 
