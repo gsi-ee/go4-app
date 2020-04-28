@@ -28,6 +28,7 @@ TGet4ppAnalysis::TGet4ppAnalysis(int argc, char** argv) :
 
 
    TGo4StepFactory* factory = new TGo4StepFactory("Factory");
+   factory->DefUserEventSource("TGet4ppEventSource"); // class name of user event source
    factory->DefEventProcessor("Get4ppRawProc","TGet4ppRawProc");// object name, class name
    factory->DefOutputEvent("Get4ppRawEvent","TGet4ppRawEvent"); // object name, class name
 

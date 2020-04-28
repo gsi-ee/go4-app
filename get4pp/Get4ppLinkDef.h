@@ -21,6 +21,7 @@
 #pragma link C++ class TGet4ppRawProc+;
 #pragma link C++ class TGet4ppRawParam+;
 
+#pragma link C++ class TGet4ppEventSource+;
 
 #pragma link C++ class TGet4ppAnalysis+;
 

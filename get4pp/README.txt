@@ -13,15 +13,43 @@
 
 ---------------------------------------------
 // Readout of Get4++ ASIC via VULOM/MBS.
-// V 0.9 23-Apr-2020
+// V 0.9 28-Apr-2020
 // Joern Adamczewski-Musch, CSEE, GSI Darmstadt
 // j.adamczewski@gsi.de
 ---------------------------------------------
 
+Processor class TGet4ppRawProc will unpack MBS formatted data from readout of Get4++ Test system.
+This readout is done with VULOM in VMEbus crate System driven by MBS data acquisition.
+ 
+With the special user event source (under construction), such readout container may be emulated using binary data from chip simulations.
 
-Some description will follow one day...
-TODO!
+Unpacked TDC messages are histogrammed into several subfolders, sorted by channel id of messages. 
+Messages without meaningfull channel, such as some error messages, are accounted for channel 0.
+
+All time counters are accumulated, also the full time stamp in fine counter units and in seconds.
+
+Time over threshold between subsequent leading and trailing edges is evaluated. Here also the kind of edge and missing edges are accounted.
+Scalers for all kind of state bits (errors, sync, etc) are provided.
+
+Wishbone messages (if existing in data stream) are treated and their contents histogrammed. 
+Other (impossible?) message types are also counted and may indicate some problem with the readout.
+
+
+The parameter class TG4et4ppRawParam offers some switches to control processing:
+
+ - Int_t fVerbosity; 
+  	// degree of debug printouts. 
+ 	0 - mostly silent, 
+ 	1 - show data problems, like unfinished payload that causes to skip rest of message or event
+ 	2 - dump all data words, i.e. header content of messages. NOTE: use slow motion mode for this!
+    
+- Bool_t fSlowMotion; 
+   // if set to true than only process one MBS event and stop.
 
 
 
-JAM 23-Apr-2020
+Some more description will follow one day...
+
+
+
+JAM 28-Apr-2020
