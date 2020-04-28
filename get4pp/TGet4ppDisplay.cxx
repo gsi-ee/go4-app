@@ -102,6 +102,20 @@ void TGet4ppBoardDisplay::InitDisplay(Bool_t replace)
 	hChannels = MakeTH1('I', obname.Data(), obtitle.Data(), 4, 0, 4,
 			"Channel number");
 
+
+
+	obname.Form("Board%d/SyncFlags_%d", brd, brd);
+	obtitle.Form("Get4pp Board %d Sync Flag scaler", brd);
+	hSyncFlags = MakeTH1('I', obname.Data(), obtitle.Data(), 2, 0, 2);
+
+		if (IsObjMade())
+		{
+			hSyncFlags->GetXaxis()->SetBinLabel(1 + 0,
+					"Sync");
+			hSyncFlags->GetXaxis()->SetBinLabel(1 + 1,
+					"EpSy");
+		}
+
 	obname.Form("Board%d/ChipId_%d", brd, brd);
 	obtitle.Form("Get4++ Board %d Chip ID number", brd);
 	hChipId = MakeTH1('I', obname.Data(), obtitle.Data(), 256, 0, 256,
@@ -197,10 +211,10 @@ void TGet4ppBoardDisplay::InitDisplay(Bool_t replace)
 
 		}
 
-		Double_t fullbins_tot = 2.0e5;
+		Double_t fullbins_tot = 1.0e6;
 		;
 		Double_t fullrange_tot = Get4pp_COARSETIMEUNIT
-				/ ((Get4pp_FINERANGE + 1)) * fullbins_tot; // 3.12 us
+				/ ((Get4pp_FINERANGE + 1)) * fullbins_tot * 100; // 1500.6 us
 
 		obname.Form("Board%d/Channel%d/ToT_%d_%d", brd, ch, brd, ch);
 		obtitle.Form("Get4pp Board %d Channel %d Time over Threshold (seconds)",

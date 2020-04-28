@@ -168,7 +168,7 @@ public:
     /** evaluate full timestamp in fine time granularity counts units*/
     Double_t GetFullTime()
     {
-    	Double_t ts =(fEpoch * (Get4pp_COARSERANGE +1)* (Get4pp_FINERANGE+1) +fCoarseTime * (Get4pp_FINERANGE+1) + fFineTime);
+    	Double_t ts =((Double_t) fEpoch * (Double_t) (Get4pp_COARSERANGE +1) * (Double_t)(Get4pp_FINERANGE+1) + (Double_t) fCoarseTime * (Double_t)(Get4pp_FINERANGE+1) + (Double_t) fFineTime);
     	return ts;
     }
 
@@ -176,7 +176,8 @@ public:
     /** evaluate full timestamp in seconds unit*/
     Double_t GetTimeInSeconds()
     {
-    	Double_t ts =(fEpoch * (Get4pp_COARSERANGE +1) +fCoarseTime + fFineTime/(Get4pp_FINERANGE+1))* Get4pp_COARSETIMEUNIT;
+    	//Double_t ts =( fEpoch * (Double_t)(Get4pp_COARSERANGE +1) + fCoarseTime + fFineTime/ (Double_t) (Get4pp_FINERANGE+1) )* Get4pp_COARSETIMEUNIT;
+    	Double_t ts = GetFullTime() * Get4pp_COARSETIMEUNIT / Double_t (Get4pp_FINERANGE+1);
     	return ts;
     }
 

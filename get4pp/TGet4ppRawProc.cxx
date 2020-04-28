@@ -296,6 +296,8 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 						Bool_t epochsyncflag = ((header >> 24) & 0x2) == 0x2;
 						Bool_t syncflag = ((header >> 24) & 0x1) == 0x1;
 						Int_t theEpoch = (header & 0xFFFFFF);
+						if(epochsyncflag) boardDisplay->hSyncFlags->Fill(0);
+						if(syncflag) boardDisplay->hSyncFlags->Fill(1);
 						Get4ppDump("TDC  epochsync:%d sync:%d EPOCH:0x%x \n",
 								epochsyncflag, syncflag, theEpoch);
 
@@ -339,8 +341,11 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 										continue; // not filled due to short messages in data stream
 									// find out kind of message
 									Int_t chan = ((eventdata[e] >> 20) & 0x3);
+//									Bool_t leadingedge = ((eventdata[e] >> 19)
+//											& 0x1) == 0x1;
+									// probably leading edge has bit not set?
 									Bool_t leadingedge = ((eventdata[e] >> 19)
-											& 0x1) == 0x1;
+											& 0x1) != 0x1;
 									Char_t kind = ((eventdata[e] >> 22) & 0x3);
 									Bool_t isTDC = (kind == 0x3);
 									Bool_t isError = (kind == 0x2);
@@ -484,6 +489,10 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 														chan, kFALSE);
 											}
 										}
+
+										/////////////// start DEBUG time info
+										//fPar->fSlowMotion=kTRUE;
+										/////////////////////////////////
 									}
 									else if (isError)
 									{

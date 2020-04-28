@@ -48,10 +48,13 @@ public:
   /** statistics of message types*/
    TH1* hMsgTypes;
 
-   /** distribution of channels for message type 3*/
+   /** distribution of channels for message type 0*/
    TH1* hChannels;
 
-   /** leading/trailing edges statistics per channel*/
+   /** flags forsync and epoch sync*/
+   TH1* hSyncFlags;
+
+    /** leading/trailing edges statistics per channel*/
    TH1* hEdges[Get4pp_CHANNELS];
 
    /** lost leading/trailing edges statistics per channel*/
