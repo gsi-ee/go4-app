@@ -4,6 +4,7 @@
 #include "TClass.h"
 #include "Riostream.h"
 #include <stdlib.h>
+#include <endian.h>
 
 #include "TGo4EventErrorException.h"
 #include "TGo4EventEndException.h"
@@ -102,7 +103,6 @@ std::streamsize TGet4ppEventSource::ReadFile(Char_t* dest, size_t len)
 
 Bool_t TGet4ppEventSource::NextBuffer()
 {
-	//if(!fbNeedNewBuffer) return kTRUE;
 	static int vulomcounter=0;
 
 	// JAM2020: for simulation data, we scan with own buffer size and take this as mbs/vulom event:
@@ -112,7 +112,14 @@ Bool_t TGet4ppEventSource::NextBuffer()
 
 	printf("Event source read buffer %d of length %ld \n",vulomcounter++, fxBufsize);
 
-	//fbNeedNewBuffer=kFALSE;
+	// here generic endian swap:
+	Int_t* pdata=(Int_t*)(fxBuffer);
+	for(UInt_t i=0; i< fxBufsize/sizeof(Int_t); ++i)
+    {
+	  //uint32_t be32toh(uint32_t big_endian_32bits);
+	  uint32_t bword=*pdata;
+      *pdata++=be32toh(bword);
+    }
 	return kTRUE;
 
 }
@@ -128,7 +135,7 @@ Bool_t TGet4ppEventSource::NextEvent(TGo4MbsEvent* target)
 //		// each event requires a new buffer in this scenario
 //		//cout <<"++++++++++ Next Event "<< evcounter <<"needs new buffer, returns"<< endl;
 //		fbNeedNewBuffer=kTRUE;
-//		return kFALSE;
+//		return kFALSE;uint32_t be32toh(uint32_t big_endian_32bits);
 //	}
 	fxEventData= (Int_t*) fxEventBuffer; // rewind to start
 	fxSubevHead.fcControl=9;
@@ -138,23 +145,33 @@ Bool_t TGet4ppEventSource::NextEvent(TGo4MbsEvent* target)
 	*fxEventData++ =0x300d; // VULOM HEADER
 	*fxEventData++ =evcounter; // SEQUENCENUMBER
 	Int_t* vdlength=fxEventData++; // remember position of length info
+	fxEventData++; // extra word like in the MBS data?
+
+	// JAM 4-20202: following does not work with current simulation data:
+	// file contains single tdc messages (epoch header + data. need to use chunks of lenght 1 here
+	// file probably has wrong endian (Windows?), so need to wrap words first
+
+
 	// here we have to copy data from file buffer to eventbuffer and insert the vulom bytecount containers:
 	Int_t numchunks=fxBufsize/Get4pp_CHUNKSIZE;
 	Int_t chipid = 42;
 	for(int i=0; i< numchunks; ++i)
 		{
 		// from unpacker:
+	  // (vulombytecount >> 28) & 0xF) == 0x4
 		//	Int_t chipid = (vulombytecount >> 16) & 0xFF;
 		//	UChar_t msize = (vulombytecount & 0x3F) / sizeof(Int_t); // message size in 32bit words
 		// put 	vulombytecount here:
-		*fxEventData++= ((chipid & 0xFF) << 16) | (Get4pp_CHUNKSIZE & 0x3F);
+		*fxEventData++ =  (0x4 << 28) | ((chipid & 0xFF) << 16) | (Get4pp_CHUNKSIZE & 0x3F);
 		memcpy(fxEventData, fxCursor, Get4pp_CHUNKSIZE);
 		fxEventData += Get4pp_CHUNKSIZE/sizeof(Int_t);
 		fxCursor+= Get4pp_CHUNKSIZE;
 		}
 
 		fiEventLen= ((Char_t* )fxEventData - (Char_t*) fxEventBuffer) /sizeof(Short_t);
-		*vdlength =numchunks * (Get4pp_CHUNKSIZE + sizeof(Int_t));
+		*vdlength =numchunks * (Get4pp_CHUNKSIZE + sizeof(Int_t))/sizeof(Int_t);
+		//fiEventLen = ( *vdlength + 4 * sizeof(Int_t)) / sizeof(Short_t); // why not 3*
+		printf("MBS subevent len: %d vulom length: %d  chunks:%d chunksize:%d\n",fiEventLen,*vdlength, numchunks, Get4pp_CHUNKSIZE);
 		target->AddSubEvent(fxSubevHead.fiFullid, fxEventBuffer, fiEventLen + 2, kTRUE);
 		target->SetDlen(fiEventLen+2+4); // total length of pseudo mbs event
 		target->SetCount(evcounter);

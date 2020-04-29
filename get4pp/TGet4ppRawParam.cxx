@@ -33,7 +33,7 @@ void TGet4ppRawParam::InitBoardMapping()
 
   fBoardID[0] = 42;    // this might be a unique hardware id
 
-  fVerbosity=0;
+  fVerbosity=1;
   fSlowMotion=kFALSE;
 
 }

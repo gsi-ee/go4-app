@@ -89,7 +89,7 @@ TGet4ppRawProc::TGet4ppRawProc() :
 //***********************************************************
 // this one is used in standard factory
 TGet4ppRawProc::TGet4ppRawProc(const char* name) :
-		TGo4EventProcessor(name)
+		TGo4EventProcessor(name), Get4ppRawEvent(0)
 {
 	TGo4Log::Info("TGet4ppRawProc: Create instance %s", name);
 	fBoards.clear();
@@ -217,7 +217,7 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 //            Get4ppRawEvent->fVULOMStatus, Get4ppRawEvent->fSequenceNumber);
 				// JAM2020: avoid flooding message queue to GUI! better only to terminal:
 				printf(
-						"**** TGet4ppRawProc: Mismatch with subevent len %d and data count 0x%8x - vulom status:0x%x seqnum:0x%x \n",
+						"**** TGet4ppRawProc: Mismatch with subevent len 0x%x and data count 0x%8x - vulom status:0x%x seqnum:0x%x \n",
 						lwords, Get4ppRawEvent->fDataCount,
 						Get4ppRawEvent->fVULOMStatus,
 						Get4ppRawEvent->fSequenceNumber);
