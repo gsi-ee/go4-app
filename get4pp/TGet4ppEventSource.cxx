@@ -87,16 +87,72 @@ Bool_t TGet4ppEventSource::CheckEventClass(TClass* cl)
 
 std::streamsize TGet4ppEventSource::ReadFile(Char_t* dest, size_t len)
 {
-	fxFile->read(dest, len);
-	if(fxFile->eof() || !fxFile->good())
-			{
-					SetCreateStatus(1);
-					SetErrMess(Form("End of input file %s", GetName()));
-					SetEventStatus(1);
-					throw TGo4EventEndException(this);
-			}
-	cout <<"ReadFile reads "<< (hex) << fxFile->gcount()<<" bytes to 0x"<< (hex) <<(long) dest<< endl;
-	return fxFile->gcount();
+
+	// wrong attempt: binary file
+//	fxFile->read(dest, len);
+//	if(fxFile->eof() || !fxFile->good())
+//			{
+//					SetCreateStatus(1);
+//					SetErrMess(Form("End of input file %s", GetName()));
+//					SetEventStatus(1);
+//					throw TGo4EventEndException(this);
+//			}
+//	cout <<"ReadFile reads "<< (hex) << fxFile->gcount()<<" bytes to 0x"<< (hex) <<(long) dest<< endl;
+//	return fxFile->gcount();
+
+	 Char_t* destcurs=dest;
+
+	  char sbuf[1024];
+	  unsigned int val=0;
+	  size_t i=0;
+	  for(i=0; i<len; ++i)
+	  {
+
+	   // read next line into text buffer
+	   do {
+	      fxFile->getline(sbuf, sizeof(sbuf), '\n' ); // read whole line
+	      if(fxFile->eof() && GetCreateStatus()!=1)
+	      {
+	    	  SetCreateStatus(1);
+	    	  SetErrMess(Form("End of input file %s", GetName()));
+	    	  SetEventStatus(1);
+	    	   // TODO: when eof is reached, need to process lines already read before stopping!
+	    	  std::streamsize rev =i;
+	    	  return rev;
+	      }
+
+	      if(fxFile->eof() || !fxFile->good()) {
+
+
+
+	    	  // reached last line or read error?
+	         SetCreateStatus(1);
+	         SetErrMess(Form("Really End of input file %s", GetName()));
+	         SetEventStatus(1);
+	         throw TGo4EventEndException(this);
+	      }
+	   } while(strstr(sbuf,"#") || strstr(sbuf,"!") ); // skip any comments
+
+	   // scan it with hex format and put result to the binary event buffer:
+	   int scanresult = sscanf(sbuf,"%x", &val);
+	   if(scanresult!=0 && scanresult!=-1)
+	   	   {
+		   	   //printf("ReadFile sees value 0x%x \n",val);
+		   	   *destcurs++ = (Char_t) (val & 0xFF);
+	        }
+	   else
+	   	   {
+		   	   SetErrMess(Form("NEVER COME HERE: failed to scan hex value although not at End of input file %s", GetName()));
+		   	   SetEventStatus(1);
+		   	   throw TGo4EventEndException(this);
+	   	   }
+
+	  }
+
+
+
+	  std::streamsize rev=i;
+	  return rev;
 }
 
 
@@ -107,13 +163,14 @@ Bool_t TGet4ppEventSource::NextBuffer()
 
 	// JAM2020: for simulation data, we scan with own buffer size and take this as mbs/vulom event:
 	fxBufsize=ReadFile(fxBuffer, Get4pp_BUFSIZE);
-	fxCursor= fxBuffer; // cursor to start of buffer
+	fxCursor= fxBuffer+1; // cursor to start of buffer. test: skip leading zero in file here!
 
 
 	printf("Event source read buffer %d of length %ld \n",vulomcounter++, fxBufsize);
 
 	// here generic endian swap:
-	Int_t* pdata=(Int_t*)(fxBuffer);
+	//Int_t* pdata=(Int_t*)(fxBuffer);
+	Int_t* pdata=(Int_t*)(fxCursor);
 	for(UInt_t i=0; i< fxBufsize/sizeof(Int_t); ++i)
     {
 	  //uint32_t be32toh(uint32_t big_endian_32bits);
@@ -154,7 +211,7 @@ Bool_t TGet4ppEventSource::NextEvent(TGo4MbsEvent* target)
 
 	// here we have to copy data from file buffer to eventbuffer and insert the vulom bytecount containers:
 	Int_t numchunks=fxBufsize/Get4pp_CHUNKSIZE;
-	Int_t chipid = 42;
+	//Int_t chipid = 42;
 	for(int i=0; i< numchunks; ++i)
 		{
 		// from unpacker:
@@ -162,14 +219,17 @@ Bool_t TGet4ppEventSource::NextEvent(TGo4MbsEvent* target)
 		//	Int_t chipid = (vulombytecount >> 16) & 0xFF;
 		//	UChar_t msize = (vulombytecount & 0x3F) / sizeof(Int_t); // message size in 32bit words
 		// put 	vulombytecount here:
-		*fxEventData++ =  (0x4 << 28) | ((chipid & 0xFF) << 16) | (Get4pp_CHUNKSIZE & 0x3F);
+		//*fxEventData++ =  (0x4 << 28) | ((chipid & 0xFF) << 16) | (Get4pp_CHUNKSIZE & 0x3F);
+		// assume vulombytecount is part of ascii file already...
 		memcpy(fxEventData, fxCursor, Get4pp_CHUNKSIZE);
 		fxEventData += Get4pp_CHUNKSIZE/sizeof(Int_t);
 		fxCursor+= Get4pp_CHUNKSIZE;
 		}
 
 		fiEventLen= ((Char_t* )fxEventData - (Char_t*) fxEventBuffer) /sizeof(Short_t);
-		*vdlength =numchunks * (Get4pp_CHUNKSIZE + sizeof(Int_t))/sizeof(Int_t);
+		//*vdlength =numchunks * (Get4pp_CHUNKSIZE + sizeof(Int_t))/sizeof(Int_t);
+		*vdlength =numchunks *Get4pp_CHUNKSIZE/sizeof(Int_t);
+
 		//fiEventLen = ( *vdlength + 4 * sizeof(Int_t)) / sizeof(Short_t); // why not 3*
 		printf("MBS subevent len: %d vulom length: %d  chunks:%d chunksize:%d\n",fiEventLen,*vdlength, numchunks, Get4pp_CHUNKSIZE);
 		target->AddSubEvent(fxSubevHead.fiFullid, fxEventBuffer, fiEventLen + 2, kTRUE);

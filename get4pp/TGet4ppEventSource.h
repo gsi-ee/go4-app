@@ -30,7 +30,8 @@
 using namespace std;
 
 #define Get4pp_BUFSIZE 0x1000
-#define Get4pp_CHUNKSIZE 0x8
+#define Get4pp_CHUNKSIZE 0x400
+//0x8
 //0x30
 
 #define Get4pp_PROCID  0x55

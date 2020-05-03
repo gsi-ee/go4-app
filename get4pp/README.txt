@@ -13,7 +13,7 @@
 
 ---------------------------------------------
 // Readout of Get4++ ASIC via VULOM/MBS.
-// V 0.9 28-Apr-2020
+// V 0.91 03-May-2020
 // Joern Adamczewski-Musch, CSEE, GSI Darmstadt
 // j.adamczewski@gsi.de
 ---------------------------------------------
@@ -21,7 +21,9 @@
 Processor class TGet4ppRawProc will unpack MBS formatted data from readout of Get4++ Test system.
 This readout is done with VULOM in VMEbus crate System driven by MBS data acquisition.
  
-With the special user event source (under construction), such readout container may be emulated using binary data from chip simulations.
+With the special user event source, such readout container may be emulated using ASCII data from chip simulations.
+Note that real chip data from MBS will use *.lmd file or stream server as event source.
+Simulation data can use Go4 user event source with *.dat files as input. The unpacker code is identical for both data sources.
 
 Unpacked TDC messages are histogrammed into several subfolders, sorted by channel id of messages. 
 Messages without meaningfull channel, such as some error messages, are accounted for channel 0.
@@ -52,4 +54,4 @@ Some more description will follow one day...
 
 
 
-JAM 28-Apr-2020
+JAM 03-May-2020
