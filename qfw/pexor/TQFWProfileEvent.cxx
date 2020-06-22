@@ -136,6 +136,7 @@ void TQFWProfileEvent::SetupGrids()
       if (board < 0)
         continue;
       Int_t channel = TQFWProfileEvent::fParameter->fGridChannel_Y[i][wy];
+      //printf("TQFWProfileEvent::SetupGrids() Y grid:%d wire:%d board:%d channel:%d \n",i, wy, board, channel);
       //if(channel<0) // we keep negative channel numbers to mask out broken wires later
       grid->AddYMapping(board, channel);
     }

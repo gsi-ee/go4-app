@@ -117,7 +117,17 @@ TH1* TQFWDisplay::MakeVarbinsTH1(Bool_t replace, char type, const char* fullname
     else
       TGo4Log::Info("There is histogram %s with type %s other than specified %s, rebuild", fullname, oldh->ClassName(),
           sclass);
+  // Adjusted with new code in go4 2020 JAM:
+   // do not delete histogram immediately
+      TGo4Analysis::Instance()->RemoveHistogram(fullname, kFALSE);
+	// note JAM: not yet as forward sith both arguments in processor base class:
+      // prevent ROOT to complain about same name
+      oldh->SetName("___");
+  
   }
+
+
+
 
   TH1* newh = 0;
 
@@ -146,18 +156,30 @@ TH1* TQFWDisplay::MakeVarbinsTH1(Bool_t replace, char type, const char* fullname
     newh->GetXaxis()->SetTitle(xtitle);
   if (ytitle)
     newh->GetYaxis()->SetTitle(ytitle);
+    
+// Adjusted with new code in go4 2020 JAM:
+ if (oldh) {
+      if ((oldh->GetDimension()==1) && !replace) newh->Add(oldh);
+      delete oldh; oldh = 0;
+   }
 
-  if (oldh)
-  {
-    if ((oldh->GetDimension() == 1) && !replace)
-      newh->Add(oldh);
-    RemoveHistogram(fullname);
-  }
+   if (foldername.Length() > 0)
+      AddHistogram(newh, foldername.Data());
+   else
+      AddHistogram(newh);
 
-  if (foldername.Length() > 0)
-    AddHistogram(newh, foldername.Data());
-  else
-    AddHistogram(newh);
+
+  //if (oldh)
+  //{
+    //if ((oldh->GetDimension() == 1) && !replace)
+      //newh->Add(oldh);
+    //RemoveHistogram(fullname);
+  //}
+
+  //if (foldername.Length() > 0)
+    //AddHistogram(newh, foldername.Data());
+  //else
+    //AddHistogram(newh);
 
   // fbObjMade = kTRUE;
 
@@ -529,7 +551,9 @@ void TQFWGridLoopDisplay::InitDisplay(int timeslices, Bool_t replace)
 
   /* xy beam display*/
 
-  foldername.Form("Beam/Grid%2d/Raw/Loop%2d", grid, loop);
+  foldername.Form("Beam/Grid%2d/Raw/Loop_%d", grid, loop);
+  //printf("JAM - grid:%d loop:%d binsX:%d binsY:%d minX:%d maxX:%d minY:%d maxY:%d timeslices:%d\n",
+  //grid, loop, binsX, binsY, minX, maxX, minY, maxY, timeslices);
 
   hBeamXSlice = MakeTH2('D', Form("%s/Profile_X_Time_G%d_L%d", foldername.Data(), grid, loop),
       Form("X Profile vs Time slices Grid%2d Loop%2d", grid, loop), binsX, minX, maxX, timeslices, 0, timeslices,
@@ -637,7 +661,7 @@ void TQFWGridLoopDisplay::InitDisplay(int timeslices, Bool_t replace)
     }
 
     // histograms for counts profiles versus calibrated positions:
-    foldername.Form("Beam/Grid%2d/Counts/Loop%2d", grid, loop);
+    foldername.Form("Beam/Grid%2d/Counts/Loop_%d", grid, loop);
 
     hPosLoopX = MakeVarbinsTH1(replace, 'I', Form("%s/N_Position_X_G%d_L%d", foldername.Data(), grid, loop),
         Form("X Position Grid%2d Loop%2d", grid, loop), binsX, xposition, "X-Position [mm]");
@@ -652,7 +676,7 @@ void TQFWGridLoopDisplay::InitDisplay(int timeslices, Bool_t replace)
         Form("Y Position accumulated Grid%2d Loop%2d", grid, loop), binsY, yposition, "Y-Position [mm]");
 
     //  here calibrated charge versus position profiles, trace and accumulated
-    foldername.Form("Beam/Grid%2d/Charge/Loop%2d", grid, loop);
+    foldername.Form("Beam/Grid%2d/Charge/Loop_%d", grid, loop);
 
     hPosQLoopX = MakeVarbinsTH1(replace, 'D', Form("%s/Q_Position_X_G%d_L%d", foldername.Data(), grid, loop),
         Form("X Charge profile Grid%2d Loop%2d", grid, loop), binsX, xposition, "X-Position [mm]", "Q [C]");
@@ -718,7 +742,7 @@ void TQFWGridLoopDisplay::InitDisplay(int timeslices, Bool_t replace)
 
 
     // here trace current profile, maybe also average current accumulated?
-    foldername.Form("Beam/Grid%2d/Current/Loop%2d", grid, loop);
+    foldername.Form("Beam/Grid%2d/Current/Loop_%d", grid, loop);
 
     hPosILoopX = MakeVarbinsTH1(replace, 'D', Form("%s/I_Position_X_G%d_L%d", foldername.Data(), grid, loop),
         Form("X Current profile Grid%2d Loop%2d", grid, loop), binsX, xposition, "X-Position [mm]", "I [A]");
@@ -793,8 +817,9 @@ void TQFWGridLoopDisplay::AdjustDisplay(TQFWLoop* loopdata)
   if (loopdata->fHasData && (loopdata->fQfwLoopSize != GetTimeSlices()))
   {
     //printf("TQFWGridLoopDisplay::AdjustDisplay with InitDisplay for loopdata %s with new timeslizes %d\n",
-//        loopdata->GetName(),
-//        loopdata->fQfwLoopSize);
+    //    loopdata->GetName(),
+    //    loopdata->fQfwLoopSize);
+
     InitDisplay(loopdata->fQfwLoopSize, kTRUE);
 
   }

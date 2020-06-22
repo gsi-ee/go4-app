@@ -29,13 +29,36 @@ static unsigned long missing_events=0;
 
 /* helper macro for BuildEvent to check if payload pointer is still inside delivered region:*/
 /* this one to be called at top data processing loop*/
+
+#define  QFWRAW_CHECK_PDATA                                    \
+if((pdata - pdatastart) > (opticlen/4)) \
+{ \
+  printf("############ unexpected end of payload for sfp:%d slave:%d with opticlen:0x%x, at line %d, skip event %ld\n",\
+      sfp_id, device_id, opticlen, __LINE__ , skipped_events++);\
+  GO4_SKIP_EVENT \
+  continue; \
+}
+
+/*
 #define  QFWRAW_CHECK_PDATA                                    \
 if((pdata - pdatastart) > (opticlen/4)) \
 { \
   printf("############ unexpected end of payload for sfp:%d slave:%d with opticlen:0x%x, skip event %ld\n",sfp_id, device_id, opticlen, skipped_events++);\
+  psubevt->PrintMbsSubevent(kTRUE,kTRUE,kTRUE);\
+  printf("Board %d has %d elements", theBoard->GetBoardId(), theBoard->getNElements());\
+   for (int loop = 0; loop < theBoard->getNElements(); loop++)\
+      {\
+        TQFWLoop* theLoop = theBoard->GetLoop(loop);\
+        if (theLoop)\      
+			printf("Loop %d has size %d\n", loop, theLoop->fQfwLoopSize );\
+        else\
+        	printf("NO LOOP!! ");\  
+		}\
+  GO4_STOP_ANALYSIS_MESSAGE("stopped for debug - pdata=0x%lx pdatastart=0x%lx ",pdata, pdatastart);\
   GO4_SKIP_EVENT \
   continue; \
 }
+*/
 
 /* JAM2016: do not skip event if we have naked poland test without data:*/
 #define  QFWRAW_CHECK_PDATA_CONTINUE                                    \
@@ -339,7 +362,7 @@ Bool_t TQFWRawProc::BuildEvent(TGo4EventElement* target)
         // avoid that we run second step on invalid raw event!
         //return kFALSE;
       }
-      QFWRAW_CHECK_PDATA;
+      //QFWRAW_CHECK_PDATA;
       int eventcounter = *pdata;
 
 

@@ -66,11 +66,52 @@ TQFWProfileProc::TQFWProfileProc(const char* name) :
 //      else
       fCountStatfile = TGo4Analysis::Instance()->GetInputEvent("Raw")->GetEventSource()->GetName(); // will also work with event servers!
 
+//      TGo4EventElement* ev=TGo4Analysis::Instance()->GetInputEvent("Raw");
+//      TGo4EventSource* src=0;
+//      if(ev) src=ev->GetEventSource();
+//      if(src)
+//        fCountStatfile=src->GetName();
+////
+////        fCountStatfile = TGo4Analysis::Instance()->GetInputEvent("Raw")->GetEventSource()->GetName(); // will also work with event servers!
+//      else
+        //fCountStatfile=GetInputEvent()->GetEventSource()->GetName(); // JAM2019- if first step is disabled!
+      //fCountStatfile="Nolmdinput";
       fCountStatfile+="_offset.txt";
 //    }
       printf("Will Write count statstics to file:%s .\n", fCountStatfile.Data());
       cout << endl;
 
+      TGo4AnalysisStep* first = TGo4Analysis::Instance()->GetAnalysisStep("Raw");
+  if (first)
+  {
+    printf("finds first analysis step:%s , enabled:%d\n", first->GetName(), first->IsProcessEnabled());
+    if (!first->IsProcessEnabled())
+    {
+      // JAM2019: to test input from hdf5, we have to configure our input event according to the setup of first step,
+      // although this step is not enabled!
+      TQFWRawParam* local = dynamic_cast<TQFWRawParam*>(MakeParameter("QFWRawParam", "TQFWRawParam",
+          "set_QFWRawParam.C"));
+      if (local)
+        local->SetConfigBoards();
+
+      TGo4AnalysisStep* mine = TGo4Analysis::Instance()->GetAnalysisStep("Profile");
+      TGo4EventSource* mysrc = 0;
+      if (mine)
+      {
+        TGo4EventElement* oldinp = mine->GetInputEvent();
+        mysrc = oldinp->GetEventSource();
+        mine->NewInputEvent();    // recreate input event with actual configuration
+        TGo4EventElement* myinp = mine->GetInputEvent();
+        if (myinp)
+        {
+          myinp->SetEventSource(mysrc);
+        }
+
+      }
+      printf("Recreated input event from config, src is :%s\n", (mysrc ? mysrc->GetName() : "NO SOURCE"));
+      cout << endl;
+    }    // if(!first->IsProcessEnabled())
+  }
   //InitDisplay(PEXOR_QFWSLICES);
 }
 
@@ -362,6 +403,13 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
         {
           loopDisplay->AdjustDisplay(loopData);
           loopfirst = kFALSE;
+          //JAM2020: PROBLEM - if loop trace sizes for this grid stem from boards with different loop sizes.
+          // this may lead to a wrong configuration of the loopsize in the histograms
+          // The trace size in the histograms will be taken from the _first_ board that delivers the loopData here
+          // If the other one has larger traces in lab setup, the trace histogram will crash at addbincontent!
+          // TODO: maybe different adjust/init display functions for X and Y wires (helps only if each direction is served
+          // by a different poland board, not when intermixing even/odd wires etc.)
+
         }
         Int_t xchan = xmap.fQFWChannel;
 //        printf("ProfileProc: processing board %d channel %d for grid %d X wire %d \n",
@@ -370,6 +418,10 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           continue;    // skip non configured channels
         std::vector < Double_t > &trace = loopData->fQfwTrace[xchan];
         Int_t maxtrace=trace.size();
+//        printf("ProfileProc: processing board %d channel %d for grid %d X wire %d, maxtrace=%d \n",
+//                 xmap.fBoardID, xchan, gridid, x, maxtrace);
+
+
         if(maxtrace>loopData->fQfwLoopSize)
         {
           TGo4Log::Error("TQFWProfileProc::BuildEvent Warning: trace size %d exeeds configured loops size %d for x channel %d, loop %s",
@@ -405,12 +457,15 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           sum += value;
           loopDisplay->hBeamXSlice->SetBinContent(binx, bint, value);    // assume all traces are scaled with same bindims
 
-          loopDisplay->hBeamTimeX->AddBinContent(t + 1, value);    // time slice is always direct index of trace
+//          loopDisplay->hBeamTimeX->AddBinContent(t + 1, value);    // time slice is always direct index of trace
+          loopDisplay->hBeamTimeX->Fill(t , value);    // time slice is always direct index of trace
+
 
           Double_t prev = loopDisplay->hBeamAccXSlice->GetBinContent(binx, bint);
           loopDisplay->hBeamAccXSlice->SetBinContent(binx, bint, prev + value);
-          loopDisplay->hBeamAccTimeX->AddBinContent(t + 1, value);    // time slice is always direct index of trace
 
+          //loopDisplay->hBeamAccTimeX->AddBinContent(t + 1, value);    // time slice is always direct index of trace
+          loopDisplay->hBeamAccTimeX->Fill(t, value);    // time slice is always direct index of trace
           // charge and current traces:
           Double_t slicecharge = CperCount * value;
           Double_t slicecurrent = 0;
@@ -538,12 +593,16 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           return kFALSE;
         }
         Int_t ychan = ymap.fQFWChannel;
+        // JAM2020 -
 //        printf("ProfileProc: processing board %d channel %d for grid %d Y wire %d \n",
 //                   ymap.fBoardID, ychan, gridid, y);
+                   //
         if (ychan < 0)
           continue;    // skip non configured channels
         std::vector < Double_t > &trace = loopData->fQfwTrace[ychan];
         Int_t maxtrace=trace.size();
+//        printf("ProfileProc: processing board %d channel %d for grid %d Y wire %d maxtrace=%d\n",
+//                         ymap.fBoardID, ychan, gridid, y, maxtrace);
         if(maxtrace>loopData->fQfwLoopSize)
         {
           TGo4Log::Error("TQFWProfileProc::BuildEvent Warning: trace size %d exeeds configured loops size %d for y channel %d, loop %s",
@@ -576,11 +635,20 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           Double_t value = fParam->GetCorrectedYValue(g, l, y, trace[t]);
           sum += value;
           loopDisplay->hBeamYSlice->SetBinContent(biny, bint, value);
-          loopDisplay->hBeamTimeY->AddBinContent(t + 1, value);    // time slice is always direct index of trace
+//           printf("AAAAAAAAA hBeamTimeY - AddBinContent %d with value %f\n",
+//                   t+1, value);
+
+          // JAM2020: boese Falle, if this grid gets different trace sizes from different boards
+          // AddBinContent has no boundary check in TH1 class!!!
+          //loopDisplay->hBeamTimeY->AddBinContent(t + 1, value);    // time slice is always direct index of trace
+          loopDisplay->hBeamTimeY->Fill(t, value);  // not perfect, but root should catch overflow here
+
+
 
           Double_t prev = loopDisplay->hBeamAccYSlice->GetBinContent(biny, bint);
           loopDisplay->hBeamAccYSlice->SetBinContent(biny, bint, prev + value);
-          loopDisplay->hBeamAccTimeY->AddBinContent(t + 1, value);    // time slice is always direct index of trace
+          //loopDisplay->hBeamAccTimeY->AddBinContent(t + 1, value);    // time slice is always direct index of trace
+          loopDisplay->hBeamAccTimeY->Fill(t, value);
 
           // charge and current traces:
           Double_t slicecharge = CperCount * value;
@@ -959,8 +1027,11 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 #endif
         }    // trace t
 
-        cupDisplay->hCupScaler->AddBinContent(1 + x, sum);
-        cupDisplay->hCupAccScaler->AddBinContent(1 + x, sum);
+//        cupDisplay->hCupScaler->AddBinContent(1 + x, sum);
+//        cupDisplay->hCupAccScaler->AddBinContent(1 + x, sum);
+
+        cupDisplay->hCupScaler->Fill(x, sum);
+        cupDisplay->hCupAccScaler->Fill(x, sum);
 
         Double_t charge = CperCount * sum;
         Double_t current = 0;
@@ -970,8 +1041,11 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
         segmentcharge[x] = charge;
         chargesum += charge;
 
-        cupDisplay->hCupScaler->AddBinContent(1 + x, sum);    // TODO better use Fill here?
-        cupDisplay->hCupAccScaler->AddBinContent(1 + x, sum);
+//        cupDisplay->hCupScaler->AddBinContent(1 + x, sum);    // TODO better use Fill here?
+//        cupDisplay->hCupAccScaler->AddBinContent(1 + x, sum);
+
+        cupDisplay->hCupScaler->Fill(x, sum);    // yes!
+        cupDisplay->hCupAccScaler->Fill(x, sum);
 
         loopDisplay->hCupLoopScaler->Fill(x, sum);
         loopDisplay->hCupAccLoopScaler->Fill(x, sum);
