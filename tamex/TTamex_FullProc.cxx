@@ -1067,8 +1067,7 @@ Bool_t TTamex_FullProc::BuildEvent(TGo4EventElement* target)
 
 
   // trending
-
-  if ( ((l_phy_evt_ct > N_CAL_EVT) || fPar->useOldCalibration )
+  if((fCalibrationDone)
           && ((l_phy_evt_ct % N_PHY_TREND_PRINT) == 0) )
   {
     gettimeofday (&s_time, NULL);
