@@ -74,7 +74,7 @@ TTamex_FullProc::TTamex_FullProc(const char* name) : TGo4EventProcessor(name)
   cout << "**** TTamex_FullProc: Create instance " << name << endl;
 
   fPar=dynamic_cast<TTamex_FullParam*> (MakeParameter("TamexControl", "TTamex_FullParam"));
-  
+  fCalibrationDone=kFALSE;
   Text_t c_mo_ch[MAX_CHA_AN][256];
   Text_t c_m_c  [MAX_CHA_AN][16];
   Text_t c_tmp  [64];
@@ -533,7 +533,7 @@ Bool_t TTamex_FullProc::BuildEvent(TGo4EventElement* target)
   {
     printf ("found request for new calibration \n");
     fPar->resetCalibration=kFALSE;
-
+    fCalibrationDone=kFALSE;
     l_phy_tr_i = 0; //  reset trending bin, begin from 0
 
     for (l_h=0; l_h<MAX_SSY; l_h++)
@@ -886,8 +886,9 @@ Bool_t TTamex_FullProc::BuildEvent(TGo4EventElement* target)
 
 //--------------------- do calibration ---------------------------------
  
-  if ((l_phy_evt_ct == N_CAL_EVT) || fPar->useOldCalibration)
+  if (!fCalibrationDone && ((l_phy_evt_ct >= N_CAL_EVT) || fPar->useOldCalibration))
   {
+
     printf ("charly! start calibration \n");
     if(fPar->useOldCalibration) printf ("CALibration is using previous time histograms from autosave file...");
 
@@ -913,6 +914,7 @@ Bool_t TTamex_FullProc::BuildEvent(TGo4EventElement* target)
         d_tim_su[l_i][l_j] = ((double) h_sum[l_i]->GetBinContent (l_j) / (double) l_phy_hit_ct[l_i])  *  CYCLE_TIME;
       }
     }
+    fCalibrationDone=kTRUE;
     printf ("calibration finished \n");  
     fflush (stdout);
   }
@@ -922,7 +924,8 @@ Bool_t TTamex_FullProc::BuildEvent(TGo4EventElement* target)
 
 //------------- calculate times, fill histogramms ---------------------- 
 
-  if ((l_phy_evt_ct >= N_CAL_EVT) || fPar->useOldCalibration)
+  //if ((l_phy_evt_ct >= N_CAL_EVT) || fPar->useOldCalibration)
+  if(fCalibrationDone)
   {
     for (l_i=0; l_i<MAX_CHA_AN; l_i++)
     {

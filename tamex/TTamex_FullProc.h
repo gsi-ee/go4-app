@@ -111,6 +111,8 @@ class TTamex_FullProc : public TGo4EventProcessor {
 
       TTamex_FullParam* fPar;
 
+      Bool_t fCalibrationDone;// flag if calibration is ready
+
       TH1   *h_box[MAX_SSY][MAX_SFP][MAX_TAM][MAX_CHA];  // box histogram in SFP id / TAMEX id / CHANNEL nr coordinates
 
       TH1   *h_err_box[MAX_SSY][MAX_SFP][MAX_TAM][MAX_CHA];  // box histogram in SFP id / TAMEX id / CHANNEL nr coordinates
