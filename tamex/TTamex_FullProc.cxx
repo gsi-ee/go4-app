@@ -911,7 +911,13 @@ Bool_t TTamex_FullProc::BuildEvent(TGo4EventElement* target)
     {
       for (l_j=1; l_j<N_BIN_T; l_j++)
       {
-        d_tim_su[l_i][l_j] = ((double) h_sum[l_i]->GetBinContent (l_j) / (double) l_phy_hit_ct[l_i])  *  CYCLE_TIME;
+
+        if(fPar->useOldCalibration)
+          d_tim_su[l_i][l_j] = ((double) h_sum[l_i]->GetBinContent (l_j) / (double) h_tim[l_i]->GetEntries())*  CYCLE_TIME;
+        else
+          d_tim_su[l_i][l_j] = ((double) h_sum[l_i]->GetBinContent (l_j) / (double) l_phy_hit_ct[l_i])  *  CYCLE_TIME;
+        // both should be the same. keep it just for checking here
+        //The h_tim[l_i]->GetEntries() from file should be same number as l_phy_hit_ct; JAM 19-aug-2020
       }
     }
     fCalibrationDone=kTRUE;

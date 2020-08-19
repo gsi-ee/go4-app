@@ -18,6 +18,7 @@ original version by N.Kurz (n.kurz@gsi.de)
 Changes:
 08-July-2020: Added output event class JAM(j.adamczewski@gsi.de)
 08-July-2020: Add switch to use old calibration from autosave file JAM(j.adamczewski@gsi.de)
+19-Aug-2020: Bugfix for old calibration from file JAM
 ...
 
 Classes:
