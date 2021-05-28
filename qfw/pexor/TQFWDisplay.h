@@ -16,7 +16,9 @@ class TQFWRawParam;
 /* enable position calibrated profile histograms */
 #define QFW_FILL_POSITION_PROFILES 1
 
-
+/* JAM 5-2021 enable rms over trace wire profile histograms
+ * currently slows it down to 500 Ev/s*/
+#define QFW_FILL_RMS_PROFILES 1
 /*
  * Base Class for all histogram containers ("displays") that are used in qfw analysis
  *  (JAM December 2013)
@@ -314,6 +316,14 @@ public:
   /* xy projections loopwise profiles accum*/
   TH1* hBeamAccLoopX;
   TH1* hBeamAccLoopY;
+
+  /** pforfile of RMS over time slice */
+  TH1* hBeamLoopRMSX;
+  TH1* hBeamLoopRMSY;
+
+  /** pforfile of RMS over time slice accumulated */
+  TH1* hBeamAccLoopRMSX;
+  TH1* hBeamAccLoopRMSY;
 
   /** loopwise time projections of different grid directions*/
   TH1* hBeamTimeX;

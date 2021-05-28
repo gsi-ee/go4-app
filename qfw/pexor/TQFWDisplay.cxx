@@ -586,6 +586,21 @@ void TQFWGridLoopDisplay::InitDisplay(int timeslices, Bool_t replace)
       Form("X Profile accumulated Grid%2d Loop%2d", grid, loop), binsX, minX, maxX, "Wire");
   hBeamAccLoopY = MakeTH1('D', Form("%s/ProfileSum_Y_G%d_L%d", foldername.Data(), grid, loop),
       Form("Y Profile accumulated Grid%2d Loop%2d", grid, loop), binsY, minY, maxY, "Wire");
+#ifdef       QFW_FILL_RMS_PROFILES
+  hBeamLoopRMSX = MakeTH1('D', Form("%s/ProfileRMS_X_G%d_L%d", foldername.Data(), grid, loop),
+        Form("X Profile RMS Grid%2d Loop%2d", grid, loop), binsX, minX, maxX, "Wire");
+
+    hBeamLoopRMSY = MakeTH1('D', Form("%s/ProfileRMS_Y_G%d_L%d", foldername.Data(), grid, loop),
+        Form("Y Profile RMS Grid%2d Loop%2d", grid, loop), binsY, minY, maxY, "Wire");
+
+    hBeamAccLoopRMSX = MakeTH1('D', Form("%s/ProfileRMSSum_X_G%d_L%d", foldername.Data(), grid, loop),
+        Form("X Profile RMS accumulated Grid%2d Loop%2d", grid, loop), binsX, minX, maxX, "Wire");
+    hBeamAccLoopRMSY = MakeTH1('D', Form("%s/ProfileRMSSum_Y_G%d_L%d", foldername.Data(), grid, loop),
+        Form("Y Profile RMS accumulated Grid%2d Loop%2d", grid, loop), binsY, minY, maxY, "Wire");
+#endif
+
+
+
 
   hBeamTimeX = MakeTH1('D', Form("%s/Time_X_G%d_L%d", foldername.Data(), grid, loop),
        Form("Time Profile X Grid%2d Loop%2d", grid, loop), timeslices, 0, timeslices, "Time Slice");
@@ -843,6 +858,11 @@ void TQFWGridLoopDisplay::AdjustDisplay(TQFWLoop* loopdata)
 
   hBeamLoopX->Reset("");
   hBeamLoopY->Reset("");
+
+#ifdef       QFW_FILL_RMS_PROFILES
+  hBeamLoopRMSX->Reset("");
+  hBeamLoopRMSY->Reset("");
+#endif
 #ifdef  QFW_FILL_POSITION_PROFILES
   hPosLoopX->Reset("");
   hPosLoopY->Reset("");

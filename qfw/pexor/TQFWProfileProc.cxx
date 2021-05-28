@@ -347,6 +347,9 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 //  printf("TQFWProfileProc::BuildEvent has input event %x (%s) \n",QFWRawEvent, QFWRawEvent->GetName());
 
   TString mtitle;
+
+
+
   // first loop over grids:
 
   for (unsigned g = 0; g < fGrids.size(); ++g)
@@ -436,6 +439,9 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
         Double_t TperSlice = 1.0e-6 * loopData->GetMicroSecsPerTimeSlice();
         Double_t TperLoop = TperSlice * loopData->fQfwLoopSize;    // unit s
 
+#ifdef          QFW_FILL_RMS_PROFILES
+        TH1I haux_rms("temprms", "temprms", maxtrace, 0, maxtrace); // JAM 5-2021: for evaluation of per wire rms profile
+#endif
         for (Int_t t = 0; t < maxtrace; ++t)
         {
           if (fParam->fMeasureBackground)
@@ -466,6 +472,9 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 
           //loopDisplay->hBeamAccTimeX->AddBinContent(t + 1, value);    // time slice is always direct index of trace
           loopDisplay->hBeamAccTimeX->Fill(t, value);    // time slice is always direct index of trace
+#ifdef          QFW_FILL_RMS_PROFILES
+          haux_rms.Fill(t,value); // only for this wire to get RMS over trace
+#endif
           // charge and current traces:
           Double_t slicecharge = CperCount * value;
           Double_t slicecurrent = 0;
@@ -510,7 +519,12 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
         // this one will not evaluate statistics! :
 //        gridDisplay->hBeamX->AddBinContent(1 + x, sum);
 //        gridDisplay->hBeamAccX->AddBinContent(1 + x, sum);
-
+#ifdef       QFW_FILL_RMS_PROFILES
+        // JAM 5-2021: Add evaluation of RMS over trace:
+        Double_t xrms=haux_rms.GetRMS();
+        loopDisplay->hBeamLoopRMSX->Fill(x, xrms);
+        loopDisplay->hBeamAccLoopRMSX->Fill(x, xrms);
+#endif
 
 
 #ifdef QFW_FILL_POSITION_PROFILES
@@ -616,6 +630,9 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
         Double_t CperCount = loopData->GetCoulombPerCount();    // unit C
         Double_t TperSlice = 1.0e-6 * loopData->GetMicroSecsPerTimeSlice();
         Double_t TperLoop = TperSlice * loopData->fQfwLoopSize;    // unit s
+#ifdef       QFW_FILL_RMS_PROFILES
+        TH1I hauy_rms("ytemprms", "ytemprms", maxtrace, 0, maxtrace); // JAM 5-2021: for evaluation of per wire rms profile
+#endif
         for (Int_t t = 0; t < maxtrace; ++t)
         {
 
@@ -649,7 +666,9 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
           loopDisplay->hBeamAccYSlice->SetBinContent(biny, bint, prev + value);
           //loopDisplay->hBeamAccTimeY->AddBinContent(t + 1, value);    // time slice is always direct index of trace
           loopDisplay->hBeamAccTimeY->Fill(t, value);
-
+#ifdef       QFW_FILL_RMS_PROFILES
+          hauy_rms.Fill(t,value); // only for this wire to get RMS over trace
+#endif
           // charge and current traces:
           Double_t slicecharge = CperCount * value;
           Double_t slicecurrent = 0;
@@ -686,6 +705,12 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
         loopDisplay->hBeamAccLoopY->Fill(y, sum);
         gridDisplay->hBeamY->Fill(y, sum);    // we need Fill instead SetBinContent to evaluate statistics
         gridDisplay->hBeamAccY->Fill(y, sum);
+#ifdef       QFW_FILL_RMS_PROFILES
+        // JAM 5-2021: Add evaluation of RMS over trace:
+        Double_t yrms=hauy_rms.GetRMS();
+        loopDisplay->hBeamLoopRMSY->Fill(y, yrms);
+        loopDisplay->hBeamAccLoopRMSY->Fill(y, yrms);
+#endif
 
 
 #ifdef QFW_FILL_POSITION_PROFILES
