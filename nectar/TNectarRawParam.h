@@ -1,0 +1,66 @@
+
+#ifndef TNectarRawParam_H
+#define TNectarRawParam_H
+
+#include "TGo4Parameter.h"
+#include "TNectarRawEvent.h"
+
+#define Nectar_FILTERCOEFFS 5
+
+
+class TNectarRawParam : public TGo4Parameter {
+   public:
+
+//    enum FilterTypes
+//    {
+//      FIL_NONE = 0,
+//      FIL_VONHANN = 1,
+//      FIL_HAMMING = 2,
+//      FIL_BLACKMAN = 3,
+//      FIL_NUTALL = 4,
+//      FIL_BLACKNUTALL = 5,
+//      FIL_BLACKHARRIS = 6,
+//      FIL_SRSFLATTOP = 7,
+//      FIL_USER = 8
+//    };
+
+
+      TNectarRawParam(const char* name = 0);
+
+      virtual Bool_t UpdateFrom(TGo4Parameter *);
+
+      Int_t fVMMR_BoardID[VMMR_MAXBOARDS]; // mapping of VMMR board numbers to (slot?) indices
+      Int_t fMDPP_BoardID[MDPP_MAXBOARDS]; // mapping of MDPP board numbers to (slot?) indices
+
+//      Int_t fNumSnapshots; // number of trace snapshots per mbs event
+//      Int_t fTraceLength; // length of trace to visualize (8, 16, 32)
+//      Bool_t fDoCalibrate; // switch on calibrate mode for adc correction
+//      Bool_t fDoFFT; // do fast fourier transform on trace long when complete
+//      TString fFFTOptions; // ROOT fft option string
+//      Int_t fFilterType; // pre-FFT filter type 0-none 1-VonHann 2-Hamming 3-Blackmann 4-Nutall 5-BlackmannNutall 6-Blackmann-Harris 7-FlatTop 8-User
+//      Double_t fFilterCoeff[Nectar_FILTERCOEFFS]; // coefficient for generalized cosine window filters
+//      Bool_t fDoSinusFit; // switch on sinus fit for trace long
+//      Double_t fSinusAmp; // initial sinus amplitude for fit
+//      Double_t fSinusPeriod; // initial sinus period length (samples) for fit
+//      Double_t fSinusBaseline; // initial sinus baseline for fit
+//      Double_t fSinusPhase; // initial sinus phase for fit
+//      Double_t fSinusTolerance; // define data point tolerance (n direction) for search of outliers/spikes
+
+
+      Bool_t fSlowMotion; // if true than only process one MBS event and stop.
+
+      /* initial mapping of board id to sfp/ gosip device cabling*/
+      void InitBoardMapping();
+
+      /* copy board configuration from this parameter to static event members
+       * before initialization. Usually this is done in UpdateFrom*/
+      Bool_t SetConfigBoards();
+
+   private:
+
+
+
+   ClassDef(TNectarRawParam,3)
+};
+
+#endif // TNectarRawParam_H
