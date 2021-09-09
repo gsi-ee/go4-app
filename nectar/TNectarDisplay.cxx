@@ -196,7 +196,7 @@ TVmmrSlaveDisplay* TVmmrDisplay::AddSlaveDisplay(UInt_t id)
 {
 
   TVmmrSlaveDisplay* theSlave = new TVmmrSlaveDisplay(id);
-  theSlave->InitDisplay(kTRUE);
+  theSlave->InitDisplay(fDisplayId, kTRUE);
   fSlaveDisplays.push_back(theSlave);
   return theSlave;
 
