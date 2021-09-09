@@ -33,11 +33,12 @@ void TNectarRawParam::InitBoardMapping()
   for (int i = 0; i < MDPP_MAXBOARDS; ++i)
     {
       fMDPP_BoardID[i] = -1;
+      fMDPP_ReferenceChannel[i] = -1;
     }
 
   fVMMR_BoardID[0] = 1;    // this might be a unique hardware id
   fMDPP_BoardID[0] = 1;    // this might be a unique hardware id
-
+  fMDPP_ReferenceChannel[0]=0;
 
   fSlowMotion=kFALSE;
 

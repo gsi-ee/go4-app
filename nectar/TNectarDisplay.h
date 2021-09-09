@@ -80,13 +80,20 @@ public:
    /* TDC values accumulated*/
    TH1 *hRawTDC[MDPP_CHANNELS];
 
+   /* TDC time difference to reference channel*/
+   TH1 *hDeltaTDC[MDPP_CHANNELS];
+
    /* extended time stamps*/
    TH1 *hExtTimeStamp;
 
    /* statistics of messages in data stream*/
    TH1* hMsgTypes;
 
+   /* account data amount for each ADC channel*/
+   TH1* hADC_ChannelScaler;
 
+   /* account data amount for each TDC channel*/
+     TH1* hTDC_ChannelScaler;
 
   ClassDef(TMdppDisplay,1)
 };

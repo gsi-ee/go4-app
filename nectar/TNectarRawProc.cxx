@@ -170,7 +170,10 @@ if (triggertype > 11)
 // and/or control: pSubevt->GetControl()
 // here we use only crate number
 
-//  TODO: fNectarRawEvent->fSequenceNumber from mbs event header! or general number for all  subsystems?
+
+//  take general event number from mbs event header. Note that subsystem sequence may differ:
+fNectarRawEvent->fSequenceNumber = source->GetCount();
+
 
 source->ResetIterator();
 while ((pSubevt = source->NextSubEvent()) != 0)
@@ -178,10 +181,9 @@ while ((pSubevt = source->NextSubEvent()) != 0)
 
   // JAM here one can exclude data from other subsystem by these id numbers
   // see mbs setup.usf how this is defined!
-//  if (pSubevt->GetSubcrate() != 0)
-//    continue;
-//  //if (pSubevt->GetControl() != 1) continue;
-//  if (pSubevt->GetProcid() != 9)
+if (pSubevt->GetSubcrate() != 0) continue;
+if (pSubevt->GetControl()  != 9)  continue;
+//  if (pSubevt->GetProcid() != 1)
 //    continue;
 
   pData = pSubevt->GetDataField();
@@ -277,6 +279,7 @@ if (boardDisplay == 0)
 boardDisplay->ResetDisplay();
 
 boardDisplay->hMsgTypes->Fill(TMdppMsg::MSG_HEADER);    // always account header if found
+
 // loop over following data words:
 Int_t* pdatastart = pData;    // remember begin of MDPP payload data section
 while ((pData - pdatastart) < sublen)
@@ -295,8 +298,9 @@ while ((pData - pdatastart) < sublen)
   }
   else if (isData)
   {
-    UChar_t channel = (word >> 16) & 0x1F;
+    UShort_t channel = (word >> 16) & 0x1F;
     UShort_t value = word & 0xFFFF;
+    printdeb("UnpackMdpp has data word 0x%x, channel=%d, value=0x%x\n", word, channel, value)
     Bool_t isTDC = channel > 15 ? kTRUE : kFALSE;
     if (isTDC)
     {
@@ -309,8 +313,9 @@ while ((pData - pdatastart) < sublen)
       // put data to output event structure (tree file, next analysis steps...)
       theBoard->AddTdcMessage(new TMdppTdcData(value), channel);
       // now do histogramming:
-      boardDisplay->hRawADC[channel]->Fill(value);
+      boardDisplay->hRawTDC[channel]->Fill(value);
       boardDisplay->hMsgTypes->Fill(TMdppMsg::MSG_TDC);
+      boardDisplay->hTDC_ChannelScaler->Fill(channel);
     }
     else
     {
@@ -321,8 +326,9 @@ while ((pData - pdatastart) < sublen)
       }
 
       theBoard->AddAdcMessage(new TMdppAdcData(value), channel);
-      boardDisplay->hRawTDC[channel]->Fill(value);
+      boardDisplay->hRawADC[channel]->Fill(value);
       boardDisplay->hMsgTypes->Fill(TMdppMsg::MSG_ADC);
+      boardDisplay->hADC_ChannelScaler->Fill(channel);
     }
 
   }
@@ -416,7 +422,7 @@ while ((pData - pdatastart) < sublen)
   {
 
     UChar_t slave = (word >> 24) & 0xF;
-    UChar_t channel = (word >> 12) & 0xFFF;
+    UShort_t channel = (word >> 12) & 0xFFF;
     UShort_t value = word & 0xFFF;
 
     // first put extracted data to output event structure:
@@ -519,7 +525,86 @@ return kTRUE;
 Bool_t TNectarRawProc::UpdateDisplays()
 {
 
-// maybe later some advanced analysis from output event data here, if not in the second go4 analysis step...
+// place for some advanced analysis from output event data here, if not in the second go4 analysis step...
+
+  // access now collected data of mdpp boards to evaluate delta t histograms:
+  for (UInt_t i = 0; i < TNectarRawEvent::fgConfigMdppBoards.size(); ++i)
+   {
+    UInt_t uniqueid = TNectarRawEvent::fgConfigMdppBoards[i];
+
+     TMdppBoard* theMDPP =  fNectarRawEvent->GetMdppBoard(uniqueid);
+     if (theMDPP == 0)
+     {
+       GO4_STOP_ANALYSIS_MESSAGE(
+           "Configuration error from UpdateDisplays: MDPP module id %d does not exist as subevent. Please check TNectarRawParam setup", uniqueid);
+       return kFALSE;
+     }
+
+//////////////////// JAM check if there is any data:
+#ifdef  NECTAR_VERBOSE_PRINT
+     for(UChar_t c=0; c<MDPP_CHANNELS; ++c)
+          {
+            UInt_t maxmessages=theMDPP->NumTdcMessages(c);
+            printdeb("Channel %d has %d maxmessages\n", c, maxmessages);
+            for(UInt_t i=0; i<maxmessages; ++i)
+            {
+              TMdppTdcData* msg= theMDPP->GetTdcMessage(c, i);
+              if(msg)
+              {
+                printdeb(" - data in channel %d (i=%d)  is %d\n", c, i, msg->fData);
+              }
+            }
+          }
+
+#endif
+
+     TMdppDisplay* boardDisplay = GetMdppDisplay(uniqueid);
+     if (boardDisplay == 0)
+     {
+       GO4_STOP_ANALYSIS_MESSAGE("Configuration error from UpdateDisplays: MDPP module id %d does not exist as histogram display set!", uniqueid);
+       return kFALSE;
+     }
+     Int_t refchannel=fPar->fMDPP_ReferenceChannel[i];
+     if(refchannel<0 ||  refchannel >= MDPP_CHANNELS) refchannel=0;
+
+     printdeb("UpdateDisplays - refchannel %d for board %d, index %d\n", refchannel,  uniqueid, i);
+
+     // first get all reference time messages of this event:
+     UInt_t maxrefs=theMDPP->NumTdcMessages(refchannel);
+     printdeb("UpdateDisplays - maxrefs=%d\n", maxrefs);
+
+     if(maxrefs==0) continue;
+     Int_t reftime[maxrefs];
+     for(UInt_t r=0; r<maxrefs; ++r)
+     {
+       TMdppTdcData* refdata=theMDPP->GetTdcMessage(refchannel, r);
+       if(refdata) reftime[r]=refdata->fData;
+
+       printdeb(" - reftime[%d]=%d\n", r, reftime[r]);
+     }
+     for(UChar_t c=0; c<MDPP_CHANNELS; ++c)
+     {
+       UInt_t maxmessages=theMDPP->NumTdcMessages(c);
+       printdeb("Channel %d has %d maxmessages\n", c, maxmessages);
+       for(UInt_t i=0; i<maxmessages; ++i)
+       {
+         TMdppTdcData* msg= theMDPP->GetTdcMessage(c, i);
+         if(msg)
+         {
+           UInt_t r=i; // always use reference time message of same buffer index
+           if(r  && r>=maxrefs) r=maxrefs-1; // (...if existing, otherwise use most recent one)
+           Int_t deltaT=msg->fData - reftime[r];
+           printdeb(" - deltaT channel %d (i=%d=  is %d\n", c, i, deltaT);
+
+           boardDisplay->hDeltaTDC[c]->Fill(deltaT);
+         }
+       }
+     }
+
+
+   }
+
+
 
 return kTRUE;
 }

@@ -67,9 +67,19 @@ void TMdppDisplay::InitDisplay(UInt_t dummy, Bool_t replace)
 
       obname.Form("Raw/MDPP/Board_%d/TDC/TDC_%d_Channel_%d", brd, brd, ch);
       obtitle.Form("MDPP Board %d TDC Channel %d ", brd, ch);
-      hRawTDC[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), MDPP_TDC_RANGE, 0, MDPP_TDC_RANGE, "ADC value", "counts");
+      hRawTDC[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), MDPP_TDC_RANGE, 0, MDPP_TDC_RANGE, "TDC value", "counts");
+
+      obname.Form("Raw/MDPP/Board_%d/dT/DeltaT_%d_(%d - ref)", brd, brd, ch);
+      obtitle.Form("MDPP Board %d TDC Delta channel %d ", brd, ch);
+      hDeltaTDC[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), MDPP_TDC_RANGE, -MDPP_TDC_RANGE/2, MDPP_TDC_RANGE/2, "Delta T", "counts");
+
+
 
     }// for ch
+
+
+
+
 
     obname.Form("Raw/MDPP/Board_%d/MDPP_ExtendedTimestamps_%d", brd, brd);
     obtitle.Form("MDPP Board %d Extended timestamps", brd);
@@ -87,7 +97,13 @@ void TMdppDisplay::InitDisplay(UInt_t dummy, Bool_t replace)
           hMsgTypes->GetXaxis()->SetBinLabel(1 + TMdppMsg::MSG_EOE, "EoE");
         }
 
+    obname.Form("Raw/MDPP/Board_%d/MDPP_TDC_ChannelScaler_%d", brd, brd);
+    obtitle.Form("MDPP Board %d TDC Channel scaler", brd);
+    hTDC_ChannelScaler= MakeTH1('I', obname.Data(), obtitle.Data(), MDPP_CHANNELS, 0, MDPP_CHANNELS, "channel", "counts");
 
+    obname.Form("Raw/MDPP/Board_%d/MDPP_ADC_ChannelScaler_%d", brd, brd);
+    obtitle.Form("MDPP Board %d ADC Channel scaler", brd);
+    hADC_ChannelScaler= MakeTH1('I', obname.Data(), obtitle.Data(), MDPP_CHANNELS, 0, MDPP_CHANNELS, "channel", "counts");
 
 
     SetMakeWithAutosave(kTRUE);

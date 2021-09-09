@@ -182,7 +182,7 @@ void TMdppBoard::AddAdcMessage(TMdppAdcData* msg, UChar_t channel)
    {
      if(channel>=MDPP_CHANNELS) return 0;
      if(i>=fTdcMessages[channel].size()) return 0;
-     return fTdcMessages[channel][i];
+     return fTdcMessages[channel].at(i);
    }
 
 
@@ -199,7 +199,7 @@ void TMdppBoard::AddAdcMessage(TMdppAdcData* msg, UChar_t channel)
   {
     if(channel>=MDPP_CHANNELS) return 0;
     if(i>=fAdcMessages[channel].size()) return 0;
-    return fAdcMessages[channel][i];
+    return fAdcMessages[channel].at(i);
   }
 
   Short_t TMdppBoard::GetAdcResolution()
