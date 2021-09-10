@@ -158,9 +158,9 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
    Int_t         l_fpga_energy;
 
   //UInt_t         l_trapez_e_found [MAX_SFP][MAX_SLAVE][N_CHA];
-  UInt_t         l_fpga_e_found   [MAX_SFP][MAX_SLAVE][N_CHA]; 
-  UInt_t         l_trapez_e       [MAX_SFP][MAX_SLAVE][N_CHA];  
-  UInt_t         l_fpga_e         [MAX_SFP][MAX_SLAVE][N_CHA]; 
+  //UInt_t         l_fpga_e_found   [MAX_SFP][MAX_SLAVE][N_CHA];
+  //UInt_t         l_trapez_e       [MAX_SFP][MAX_SLAVE][N_CHA];
+  //UInt_t         l_fpga_e         [MAX_SFP][MAX_SLAVE][N_CHA];
 
   UInt_t         l_dat_fir;
   UInt_t         l_dat_sec;
@@ -170,21 +170,25 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
   Double_t       f_bls_val=0.;
 
   Int_t       l_fpga_filt_on_off;
-  Int_t       l_fpga_filt_mode;
+  //Int_t       l_fpga_filt_mode;
   Int_t       l_dat_trace;
   Int_t       l_dat_filt;
   Int_t       l_filt_sign;
 
+
+
+#ifdef      USE_OLD_CSA_BASELINES
   Double_t       f_csa_base_val=0.;
   Double_t       f_csa_signal_val=0.;
   Double_t       f_csa_sum_sig=0.;
-  Double_t       f_ref_cha_base_val=0;
   Double_t       f_ref_peak=0;
+  Double_t       f_ref_cha_base_val=0;
   Double_t       f_csa_max_sig=0; 
   Int_t          l_csa_max_cha=0xff;
   Double_t       f_csa_pad_e_a[256];
   Double_t       f_csa_pad_e_b[MAX_SFP][MAX_SLAVE][N_CHA];   
-	
+#endif
+
   TGo4MbsSubEvent* psubevt;
 
   fInput = (TGo4MbsEvent* ) GetInputEvent();
@@ -223,7 +227,7 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
   //psubevt = fInput->NextSubEvent(); // only one subevent
   psubevt->GetControl();
   //printf ("sub-event procid: %d\n",  psubevt->GetControl()); fflush (stdout);
-  if (psubevt->GetControl() != 69) continue;
+  //if (psubevt->GetControl() != 69) continue;
 
   //printf ("         psubevt: 0x%x \n", (UInt_t)psubevt); fflush (stdout);
   //printf ("%d -------------next event-----------\n", l_evt_ct); fflush (stdout);
@@ -322,18 +326,20 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
           h_trapez_fpga [l_i][l_j][l_k]->Reset ("");
           l_ch_hitpat   [l_i][l_j][l_k] = 0;  
           l_ch_hitpat_tr[l_i][l_j][l_k] = 0;
-          l_fpga_e_found[l_i][l_j][l_k] = 0;
-          l_trapez_e    [l_i][l_j][l_k] = 0;
-          l_fpga_e      [l_i][l_j][l_k] = 0;
-					f_csa_pad_e_b [l_i][l_j][l_k] = 0;
-        }
+          //l_fpga_e_found[l_i][l_j][l_k] = 0;
+          //l_trapez_e    [l_i][l_j][l_k] = 0;
+          //l_fpga_e      [l_i][l_j][l_k] = 0;
+#ifdef      USE_OLD_CSA_BASELINES
+          f_csa_pad_e_b [l_i][l_j][l_k] = 0;
+#endif
+		}
         h_hitpat     [l_i][l_j]->Fill (-2, 1);  
         h_hitpat_tr  [l_i][l_j]->Fill (-2, 1);  
         l_first_trace[l_i][l_j] = 0;
       }
     }
   }
-
+#ifdef      USE_OLD_CSA_BASELINES
 	h_csa_pad_e->Reset ("");
 	
   for (l_i=0; l_i<256; l_i++)
@@ -349,6 +355,7 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
   }
 
 	f_csa_sum_sig = 0.;
+#endif
 	
   while ( (pl_tmp - pl_se_dat) < (l_dat_len_byte/4) )
   {
@@ -512,8 +519,8 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
                   //printf ("l_dat: 0x%x, fpga energy: 0x%x \n", l_dat, l_fpga_energy);  
                 }
 
-                l_fpga_e_found [l_sfp_id][l_feb_id][l_hit_cha_id] = 1;
-                l_fpga_e[l_sfp_id][l_feb_id][l_hit_cha_id] = l_fpga_energy;
+                //l_fpga_e_found [l_sfp_id][l_feb_id][l_hit_cha_id] = 1;
+                //l_fpga_e[l_sfp_id][l_feb_id][l_hit_cha_id] = l_fpga_energy;
               }
             }
             else 
@@ -555,7 +562,7 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
         }
 
         l_fpga_filt_on_off = (l_trace_head & 0x80000) >> 19;
-        l_fpga_filt_mode   = (l_trace_head & 0x40000) >> 18;
+        //l_fpga_filt_mode   = (l_trace_head & 0x40000) >> 18;
         //printf ("fpga filter on bit: %d, fpga filter mode: %d \n", l_fpga_filt_on_off, l_fpga_filt_mode);
         //fflush (stdout);
         //sleep (1);
@@ -655,6 +662,8 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
             l_trace_size = l_trace_size >> 1;
           }
 
+/////////// JAM21: this is generic febex baseline treatment from template analysis
+          // range for the trace baselin is set by compiled defines BASE_LINE_SUBT_START and BASE_LINE_SUBT_SIZE
           // find base line value of trace and correct it to baseline 0
           f_bls_val = 0.;
           for (l_l=l_bls_start; l_l<l_bls_stop; l_l++) 
@@ -673,11 +682,14 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
           h_peak  [l_sfp_id][l_feb_id][l_cha_id]->Fill (h_trace[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum ());
           h_valley[l_sfp_id][l_feb_id][l_cha_id]->Fill (h_trace[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum ());
 
+
+#ifdef      USE_OLD_CSA_BASELINES
           if ((l_sfp_id == 0) && (l_feb_id == 0) && (l_cha_id == 14))
           {
             f_ref_peak = (Double_t)h_trace[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum (); 
           }
-          
+
+          // this is additional baseline evaluation for 2020 beamtime. provided for comparison.
           // find average (febex samples) baseline value
           f_csa_base_val = 0.;
           for (l_l=CSA_BASE_START; l_l<(CSA_BASE_START + CSA_BASE_SIZE); l_l++) 
@@ -707,27 +719,8 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
               f_csa_sum_sig += f_csa_signal_val - f_csa_base_val;
 						}	
 					}		
-						
-					/*
-          if (((l_sfp_id == 0) && (l_feb_id == 0)) &&
-             ((l_cha_id ==  3) || (l_cha_id ==  4) || (l_cha_id ==  5) || (l_cha_id ==  8) ||
-              (l_cha_id ==  9) || (l_cha_id == 10) || (l_cha_id == 11) || (l_cha_id == 12)))
-          {
-            printf ("cha id %d, s - b: %f \n", l_cha_id, f_csa_signal_val - f_csa_base_val); 
-            f_csa_sum_sig += (f_csa_signal_val - f_csa_base_val);
+#endif
 
-            if ((f_csa_signal_val - f_csa_base_val) > f_csa_max_sig)
-            {  
-              f_csa_max_sig = f_csa_signal_val - f_csa_base_val;
-              l_csa_max_cha = l_cha_id;
-            }
-          }
-
-          if ((l_sfp_id == 0) && (l_feb_id == 0) && (l_cha_id == 14))
-          {
-            f_ref_cha_base_val = f_csa_base_val; 
-          }
-					*/
         }
 
         // jump over trace
@@ -765,7 +758,7 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
       }
     }
   }
-
+#ifdef      USE_OLD_CSA_BASELINES
   //printf ("f_csa_sum_sig %f \n", f_csa_sum_sig); 
   h_csa_sum_sig->Fill (f_csa_sum_sig * -1.);
 	/*
@@ -777,6 +770,7 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
     h_peak_ref__sum_csa2->Fill (f_csa_sum_sig, f_ref_peak - f_ref_cha_base_val);
   }
     */
+#endif
 
   // JAM 10-DEC-2019: for mapping, we first copy the raw traces into our output event:
   {
@@ -789,26 +783,49 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
        {
          for (l_k=0; l_k<N_CHA; l_k++)
          {
-           for(int bin=1; bin<h_trace[l_i][l_j][l_k]->GetNbinsX(); ++bin)
-           {
-               value=h_trace[l_i][l_j][l_k]->GetBinContent(bin);
-               outevent->fTrace[l_i][l_j][l_k].push_back(value);
-           }
 
-           for(int bin=1; bin<h_trace_blr[l_i][l_j][l_k]->GetNbinsX(); ++bin)
+           if(fParam->fMapTraces)
            {
-             value=h_trace_blr[l_i][l_j][l_k]->GetBinContent(bin);
-             outevent->fTraceBLR[l_i][l_j][l_k].push_back(value);
-           }
+             // may disable filling output event to speed up things in first step JAM
+             for(int bin=1; bin<h_trace[l_i][l_j][l_k]->GetNbinsX(); ++bin)
+             {
+                 value=h_trace[l_i][l_j][l_k]->GetBinContent(bin);
+                 outevent->fTrace[l_i][l_j][l_k].push_back(value);
+             }
 
-           for(int bin=1; bin<h_trapez_fpga[l_i][l_j][l_k]->GetNbinsX(); ++bin)
-           {
-             value=h_trapez_fpga[l_i][l_j][l_k]->GetBinContent(bin);
-             outevent->fTraceFPGA[l_i][l_j][l_k].push_back(value);
-           }
+             for(int bin=1; bin<h_trace_blr[l_i][l_j][l_k]->GetNbinsX(); ++bin)
+             {
+               value=h_trace_blr[l_i][l_j][l_k]->GetBinContent(bin);
+               outevent->fTraceBLR[l_i][l_j][l_k].push_back(value);
+             }
+
+             for(int bin=1; bin<h_trapez_fpga[l_i][l_j][l_k]->GetNbinsX(); ++bin)
+             {
+               value=h_trapez_fpga[l_i][l_j][l_k]->GetBinContent(bin);
+               outevent->fTraceFPGA[l_i][l_j][l_k].push_back(value);
+             }
+           } // map traces end
 
            /** JAM 28-Jan-2020: also do the optional fit within this loop:*/
            DoTraceFit(l_i,l_j,l_k);
+
+           /** JAM 10-Sep-2021: do more fast and simple evaluation of average heights here:*/
+           Double_t range_back=fxBackgroundRegion->GetXUp()-fxBackgroundRegion->GetXLow();
+           Double_t ave_back= 0;
+           if(range_back) ave_back=fxBackgroundRegion->GetIntegral(h_trace[l_i][l_j][l_k]) / range_back;
+           if(ave_back) h_background_height [l_i][l_j][l_k]->Fill(ave_back);
+
+           Double_t range_sig=fxSignalRegion->GetXUp()-fxSignalRegion->GetXLow();
+           Double_t ave_sig= 0;
+           if(range_sig) ave_sig=fxSignalRegion->GetIntegral(h_trace[l_i][l_j][l_k]) / range_sig;
+           if(ave_sig) h_signal_height [l_i][l_j][l_k]->Fill(ave_sig);
+
+           Double_t sigtoback=0;
+           sigtoback=ave_sig/ave_back;
+           if(sigtoback) h_signal_to_background [l_i][l_j][l_k]->Fill(sigtoback);
+
+           Double_t sigminusback=ave_sig -ave_back;
+           h_signal_minus_background [l_i][l_j][l_k]->Fill(sigminusback);
 
 
 
@@ -818,6 +835,8 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
    }
   }
 
+#ifdef      USE_OLD_CSA_BASELINES
+  // also historic mapping from 2020 test beam.
 f_csa_pad_e_a[0] = f_csa_pad_e_b[1][1][0];
   f_csa_pad_e_a[1] = f_csa_pad_e_b[0][7][8];   // nc
   f_csa_pad_e_a[2] = f_csa_pad_e_b[1][0][0];
@@ -1080,7 +1099,7 @@ f_csa_pad_e_a[0] = f_csa_pad_e_b[1][1][0];
 		h_csa_pad_e->SetBinContent (l_i, f_csa_pad_e_a[l_i]);
 	}
 
-
+#endif
 
 
 
@@ -1121,7 +1140,7 @@ bad_event:
 
 //--------------------------------------------------------------------------------------------------------
 
-void TGemCSABasicProc:: f_make_histo (Int_t l_mode)
+void TGemCSABasicProc::f_make_histo (Int_t l_mode)
 {
   Text_t chis[256];
   Text_t chead[256];
@@ -1129,8 +1148,8 @@ void TGemCSABasicProc:: f_make_histo (Int_t l_mode)
   UInt_t l_i, l_j, l_k;
   UInt_t l_tra_size;
   UInt_t l_trap_n_avg;
-  UInt_t l_left;
-  UInt_t l_right;
+//  UInt_t l_left;
+//  UInt_t l_right;
 
   #ifdef USE_MBS_PARAM
   l_tra_size   = l_trace & 0xffff;
@@ -1180,8 +1199,8 @@ void TGemCSABasicProc:: f_make_histo (Int_t l_mode)
         {
           sprintf(chis,"FPGA/FPGA Energy(hitlist) SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
           sprintf(chead,"FPGA Energy");
-          l_right = 0x1000 * l_trap_n_avg;
-          l_left = -1 * l_right;
+          //l_right = 0x1000 * l_trap_n_avg;
+          //l_left = -1 * l_right;
           //printf ("depp: %d %d\n", l_left, l_right); fflush (stdout); 
           //h_fpga_e[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x1000,l_left,l_right);
           h_fpga_e[l_i][l_j][l_k] = MakeTH1('F', chis,chead,100000,-1000000,1000000);
@@ -1235,26 +1254,14 @@ void TGemCSABasicProc:: f_make_histo (Int_t l_mode)
           sprintf(chead,"ADC Spectrum");
           h_adc_spect[l_i][l_j][l_k] = MakeTH1('F', chis,chead,16384,-1000,1000);
         }
-
+#ifdef      USE_OLD_CSA_BASELINES
         for (l_k=0; l_k<N_CHA; l_k++)
         {
           sprintf(chis,"CSA BASE/average baseline SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
           sprintf(chead,"Average baseline");
           h_csa_base[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x8000,-0x4000,0x4000);  // TODO create new histograms for fitter
-          /** will contain fit result curves: */
-        //       TH1          *h_trace_fitresult        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-        //
-        //
-        //       /** histograms the polygon parameters of each channel fit*/
-        //       TH1          *h_fit_par        [MAX_SFP][MAX_SLAVE][N_CHA][GEMCSA_FITPOLYPARS]; //!
-        //
-        //
-        //       /** histograms the chi2 of each channel fit*/
-        //       TH1          *h_fit_chi2        [MAX_SFP][MAX_SLAVE][N_CHA]; //!
-        //
-        //
-        //       /** histograms the polygon parameters of all channel fits*/
-        //       TH1          *h_fit_a_all[GEMCSA_FITPOLYPARS]; //!
+
+
 
 
         }
@@ -1264,10 +1271,18 @@ void TGemCSABasicProc:: f_make_histo (Int_t l_mode)
           sprintf(chead,"Average baseline");
           h_csa_signal[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x8000,-0x4000,0x4000);
         }
+#endif
+        // JAM2021: define regions for evaluation of average background and signal height:
+        fxBackgroundRegion=MakeWinCond("BackgroundRegion",CSA_BASE_START, CSA_BASE_START + CSA_BASE_SIZE);
+        fxSignalRegion=MakeWinCond("SignalRegion", CSA_SIGNAL_START, CSA_SIGNAL_START+ CSA_SIGNAL_SIZE);
+
+
+
+
 
         if(fParam->fDoBaselineFits)
         {
-
+            // here fit the height of the
 
           for (l_k=0; l_k<N_CHA; l_k++)
           {
@@ -1305,9 +1320,33 @@ void TGemCSABasicProc:: f_make_histo (Int_t l_mode)
 
 
         } //   if(fParam->fDoBaselineFits)
+
+          // JAM 2021: without the fitter, we define result histograms for background and signal average:
+          for (l_k=0; l_k<N_CHA; l_k++)
+                   {
+                     sprintf(chis,"Baselines/Background/Background SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                     sprintf(chead,"Average background region height SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                     h_background_height[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x8000, 0, 0x8000);
+
+                     sprintf(chis,"Baselines/Signals/Signals SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                     sprintf(chead,"Average signal region height SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                     h_signal_height[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x8000,0,0x8000);
+
+                     sprintf(chis,"Baselines/StoB/Signal_background_ratio SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                     sprintf(chead,"Average signal to background ratio SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                     h_signal_to_background[l_i][l_j][l_k] = MakeTH1('F', chis,chead,1000,0,5);
+
+                     sprintf(chis,"Baselines/S-B/Signal_minus_background_SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                     sprintf(chead,"Average signal minus background SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+                     h_signal_minus_background[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x8000,-0x4000,0x4000);
+                   }
+
+
       }
     }
   }
+
+#ifdef      USE_OLD_CSA_BASELINES
   sprintf(chis,"CSA SIGNAL SUM");
   sprintf(chead,"Summed CSA Signals");
   h_csa_sum_sig =  MakeTH1('F', chis,chead,250,0,100000); 
@@ -1326,12 +1365,12 @@ void TGemCSABasicProc:: f_make_histo (Int_t l_mode)
   sprintf(chis,"Pad Energy");
   sprintf(chead,"Pad Energy (PadNumber)");
   h_csa_pad_e =  MakeTH1('F', chis,chead,256,0,256); 
-
+#endif
 
   if(fParam->fDoBaselineFits)
         {
-          fxFitRegion=MakeWinCond("BaselineFitRegion",0, l_tra_size);
-        // JAM2020 - put trace and fit into common pictures:
+
+    // JAM2020 - put trace and fit into common pictures:
 
   for (l_i=0; l_i<MAX_SFP; l_i++)
    {
@@ -1339,7 +1378,7 @@ void TGemCSABasicProc:: f_make_histo (Int_t l_mode)
      {
        for (l_j=0; l_j<l_sfp_slaves[l_i]; l_j++)
        {
-         sprintf (cfolder,"SFP0%2d_Slave%2d",l_i,l_j);
+         sprintf (cfolder,"BaselineFits/SFP0%2d_Slave%2d",l_i,l_j);
          for (l_k=0; l_k<N_CHA; l_k++)
          {
            sprintf (chis,"PictureTracefit_%2d_%2d_%2d",l_i,l_j,l_k);
@@ -1353,7 +1392,7 @@ void TGemCSABasicProc:: f_make_histo (Int_t l_mode)
                pic->Pic(0, 0)->SetLineAtt(3, 1, 1);    // solid line
                pic->Pic(0, 0)->AddObject(h_trace_fitresult[l_i][l_j][l_k]);
                pic->Pic(0, 0)->SetLineAtt(5, 1, 1);    // solid line
-               pic->Pic(0, 0)->AddObject(fxFitRegion); // one region for all
+               pic->Pic(0, 0)->AddObject(fxBackgroundRegion); // one region for all
                pic->Pic(1, 0)->AddObject (h_fit_chi2[l_i][l_j][l_k]);
                pic->Pic(0, 1)->AddObject ( h_fit_par[l_i][l_j][l_k][0]);
                pic->Pic(1, 1)->AddObject ( h_fit_par[l_i][l_j][l_k][1]);
@@ -1368,6 +1407,46 @@ void TGemCSABasicProc:: f_make_histo (Int_t l_mode)
        }
      }
    }
+  else
+  {
+    // JAM2021 - new picture for baseline without fit:
+    for (l_i=0; l_i<MAX_SFP; l_i++)
+       {
+         if (l_sfp_slaves[l_i] != 0)
+         {
+           for (l_j=0; l_j<l_sfp_slaves[l_i]; l_j++)
+           {
+             sprintf (cfolder,"Baselines/SFP0%2d_Slave%2d",l_i,l_j);
+             for (l_k=0; l_k<N_CHA; l_k++)
+             {
+               sprintf (chis,"Picture_baselines_%2d_%2d_%2d",l_i,l_j,l_k);
+               TGo4Picture* pic = GetPicture(chis);
+               if (pic == 0)
+                {
+                   sprintf(chead,"Trace Baselines SFP: %2d FEBEX: %2d CHAN: %2d",l_i,l_j,l_k);
+                   pic = new TGo4Picture(chis, chead);
+                   pic->SetDivision(2, 2);
+                   pic->Pic(0, 0)->AddObject(h_trace[l_i][l_j][l_k]);
+                   //pic->Pic(0, 0)->SetLineAtt(3, 1, 1);    // solid line
+                   pic->Pic(0, 0)->AddObject(fxBackgroundRegion); // one region for all
+                   pic->Pic(0, 0)->AddObject(fxSignalRegion); // one region for all
+                   pic->Pic(0, 1)->AddObject (h_background_height[l_i][l_j][l_k]);
+                   //pic->Pic(0, 0)->SetLineAtt(3, 1, 1);    // solid line
+                   pic->Pic(0, 1)->AddObject (h_signal_height[l_i][l_j][l_k]);
+                   pic->Pic(1, 0)->AddObject (h_signal_minus_background[l_i][l_j][l_k]);
+                   pic->Pic(1, 1)->AddObject (h_signal_to_background[l_i][l_j][l_k]);
+                   AddPicture(pic,cfolder);
+                }
+             }
+
+
+             }
+
+
+           }
+         }
+
+  }
 
 
 
@@ -1395,7 +1474,8 @@ Bool_t TGemCSABasicProc::DoTraceFit(UInt_t sfp, UInt_t feb, UInt_t ch)
 
    TGo4Fitter fitter("Fitter", TGo4Fitter::ff_chi_square, kTRUE);
 
-   TGo4FitDataHistogram* hd=fitter.AddH1("data1", hist, kFALSE, fxFitRegion->GetXLow(), fxFitRegion->GetXUp());
+   //TGo4FitDataHistogram* hd=
+    fitter.AddH1("data1", hist, kFALSE, fxBackgroundRegion->GetXLow(), fxBackgroundRegion->GetXUp());
    //     hd->SetExcludeLessThen(-1000.0); // TODO: parameter entry - usually fitter will exclude everything below 0 from fit!
 
    fitter.AddPolynomX("data1", "Pol", GEMCSA_FITPOLYPARS-1);

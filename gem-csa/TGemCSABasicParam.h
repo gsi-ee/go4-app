@@ -25,12 +25,9 @@ class TGemCSABasicParam : public TGo4Parameter {
       TGemCSABasicParam(const char* name);
       virtual ~TGemCSABasicParam();
 
-      // samples for all supported data types:
-      // comments appear in the generic GUI editor
-      // dont forget to change the UpdateFrom and PrintParameter
-      // functions when changing members
 
        Bool_t fDoBaselineFits; // if true, polynomial fit is done for traces within the region
+       Bool_t fMapTraces; // if true, full traces are mapped to the output event
        Bool_t fSlowMotion; // if true than only process one MBS event and stop.
 
    ClassDef(TGemCSABasicParam,1)

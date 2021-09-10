@@ -30,6 +30,11 @@
 //#define WR_TIME_STAMP     1   // white rabbit time stamp is head of data
 #define USE_MBS_PARAM     1   // 
 
+// enable this to also see the old baseline plots of 2020 beamtime
+//#define USE_OLD_CSA_BASELINES 1
+
+
+
 // defined in event structure:
 //#define MAX_SFP           4
 //#define MAX_SLAVE        16
@@ -59,10 +64,13 @@
                                          // bit n fuer slave module n (max n = 31)
 #endif
 
-#define CSA_BASE_START    520
+
+// these are the default limits of the background (BASE) and signal regions for height evaluations
+// JAM2021 - may be adjusted by conditions later
+#define CSA_BASE_START    500
 #define CSA_BASE_SIZE    100
 #define CSA_SIGNAL_START 600
-#define CSA_SIGNAL_SIZE   50
+#define CSA_SIGNAL_SIZE   200
 
 #define RON  "\x1B[7m"
 #define RES  "\x1B[0m"
@@ -123,6 +131,8 @@ class TGemCSABasicProc : public TGo4EventProcessor {
       TH1          *h_ch_hitpat_tr [MAX_SFP][MAX_SLAVE][N_CHA];  //!
       TH1          *h_hitpat_tr    [MAX_SFP][MAX_SLAVE];         //!
       TH1          *h_adc_spect    [MAX_SFP][MAX_SLAVE][N_CHA];  //!
+
+#ifdef      USE_OLD_CSA_BASELINES
       TH1          *h_csa_base     [MAX_SFP][MAX_SLAVE][N_CHA];  //!
       TH1          *h_csa_signal   [MAX_SFP][MAX_SLAVE][N_CHA];  //!
       TH1          *h_csa_sum_sig;
@@ -131,15 +141,18 @@ class TGemCSABasicProc : public TGo4EventProcessor {
       TH2          *h_peak_ref__sum_csa2;
 	  TH1          *h_csa_pad_e;
 
+#endif
 
 	  /** JAM Jan-2020: following objects are for the linear baseline shape fitter: */
 
 	  /** we use a single fitter object that is assigned to data*/
 	//  TGo4Fitter *fxFitter;
 
-	  /** defines the region for the baseline fit*/
-	  TGo4WinCond* fxFitRegion;
+	  /** defines the region for the background baseline evaluation*/
+	  TGo4WinCond* fxBackgroundRegion;
 
+	  /** defines the region for the signal baseline evaluation*/
+	  TGo4WinCond* fxSignalRegion;
 
 	  /** will contain fit result curves: */
 	  TH1          *h_trace_fitresult        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
@@ -157,10 +170,18 @@ class TGemCSABasicProc : public TGo4EventProcessor {
 	  TH1          *h_fit_a_all[GEMCSA_FITPOLYPARS]; //!
 
 
+	 /** average height of trace contents in Window fxBackgroundRegion*/
+	  TH1          *h_background_height [MAX_SFP][MAX_SLAVE][N_CHA];
 
 
+	  /** average height of trace contents in Window fxSignalRegion*/
+      TH1          *h_signal_height [MAX_SFP][MAX_SLAVE][N_CHA ];
 
+      /** ratios of average contents between fxSignalRegion/fxBackgroundRegion*/
+      TH1          *h_signal_to_background [MAX_SFP][MAX_SLAVE][N_CHA ];
 
+      /** difference between average contents of fxSignalRegion and fxBackgroundRegion*/
+      TH1          *h_signal_minus_background[MAX_SFP][MAX_SLAVE][N_CHA ];
 
       ClassDef(TGemCSABasicProc,1)
 };
