@@ -93,6 +93,7 @@ TGemCSABasicProc::TGemCSABasicProc() : TGo4EventProcessor("Proc")
 TGemCSABasicProc::~TGemCSABasicProc()
 {
   cout << "**** TGemCSABasicProc: Delete instance " << endl;
+  l_first=0; // for resubmit mode: init histogram pointers correctly
 }
 //***********************************************************
 // this one is used in standard factory
