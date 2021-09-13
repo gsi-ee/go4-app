@@ -15,7 +15,7 @@ void set_NectarRawParam()
 
    TGo4Log::Info("Set parameter NectarRawParam as saved at Mon Sep 13 14:55:46 2021");
 
-   param0->fVMMR_BoardID[0] =  1; // this is board ID send by frontends
+   param0->fVMMR_BoardID[0] =  0; // this is board ID send by frontends
    param0->fVMMR_BoardID[1] = -1; // -1 means no board is expected
    param0->fVMMR_BoardID[2] = -1;
    param0->fVMMR_BoardID[3] = -1;
@@ -27,7 +27,7 @@ void set_NectarRawParam()
    param0->fVMMR_BoardID[9] = -1;
    
    
-   param0->fMDPP_BoardID[0] = 1; // this is board ID send by frontends
+   param0->fMDPP_BoardID[0] = 0; // this is board ID send by frontends
    param0->fMDPP_BoardID[1] = -1;
    param0->fMDPP_BoardID[2] = -1;
    param0->fMDPP_BoardID[3] = -1;
