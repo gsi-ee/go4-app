@@ -34,12 +34,13 @@ void TNectarRawParam::InitBoardMapping()
     {
       fMDPP_BoardID[i] = -1;
       fMDPP_ReferenceChannel[i] = -1;
+      fMDPP_is16Channels[i] = kFALSE;
     }
 
   fVMMR_BoardID[0] = 0;    // this might be a unique hardware id
   fMDPP_BoardID[0] = 0;    // this might be a unique hardware id
   fMDPP_ReferenceChannel[0]=0;
-
+  fMDPP_is16Channels[0]=kTRUE; // test setup with one mdpp16
   fSlowMotion=kFALSE;
 
 }
@@ -67,6 +68,19 @@ Bool_t TNectarRawParam::SetConfigBoards()
 
   return kTRUE;
 }
+
+Int_t TNectarRawParam::GetMDPPArrayindex(Int_t uniqueid)
+{
+
+  for (Int_t i = 0; i < MDPP_MAXBOARDS; ++i)
+     {
+       if (fMDPP_BoardID[i] == uniqueid) return i;
+
+     }
+  return -1;
+}
+
+
 
 Bool_t TNectarRawParam::UpdateFrom(TGo4Parameter *pp)
 {

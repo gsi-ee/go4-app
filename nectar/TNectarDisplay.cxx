@@ -22,11 +22,11 @@
 
 //***********************************************************
 
-TMdppDisplay::TMdppDisplay(UInt_t boardid) :
-  TNectarBoardDisplay(boardid)
+TMdppDisplay::TMdppDisplay(UInt_t boardid, Bool_t  sixteenchannels) :
+  TNectarBoardDisplay(boardid), fHas16channels(sixteenchannels)
 {
 
-  printf("TMdppDisplay ctor of id %d\n", fDisplayId);
+  printf("TMdppDisplay ctor of id %d for %d channels\n", fDisplayId, fHas16channels ? 16 : 32);
 
 
 }
@@ -59,7 +59,9 @@ void TMdppDisplay::InitDisplay(UInt_t dummy, Bool_t replace)
     TString binlabel;
     Int_t brd = fDisplayId;
 
-    for(Int_t ch=0; ch<MDPP_CHANNELS; ++ch)
+    Int_t maxchannels = (fHas16channels ? 16 : MDPP_CHANNELS);
+
+    for(Int_t ch=0; ch<maxchannels; ++ch)
     {
       obname.Form("Raw/MDPP/Board_%d/ADC/ADC_%d_Channel_%d", brd, brd, ch);
       obtitle.Form("MDPP Board %d ADC Channel %d ", brd, ch);
@@ -77,8 +79,16 @@ void TMdppDisplay::InitDisplay(UInt_t dummy, Bool_t replace)
 
     }// for ch
 
-
-
+    if(!fHas16channels)
+    {
+      //  this information only exist in mdpp-32:
+      for(Int_t ch=0; ch<MDPP_EXTDTCHANNELS; ++ch)
+            {
+              obname.Form("Raw/MDPP/Board_%d/Triggertime/Trigger_%d_Input_%d", brd, brd, ch);
+              obtitle.Form("MDPP 32 Board %d Trigger time difference imput  %d ", brd, ch);
+              hExtTrigTime[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), MDPP_TDC_RANGE, 0, MDPP_TDC_RANGE, "Trigger delta t value", "counts");
+            }
+    }
 
 
     obname.Form("Raw/MDPP/Board_%d/MDPP_ExtendedTimestamps_%d", brd, brd);
@@ -99,44 +109,14 @@ void TMdppDisplay::InitDisplay(UInt_t dummy, Bool_t replace)
 
     obname.Form("Raw/MDPP/Board_%d/MDPP_TDC_ChannelScaler_%d", brd, brd);
     obtitle.Form("MDPP Board %d TDC Channel scaler", brd);
-    hTDC_ChannelScaler= MakeTH1('I', obname.Data(), obtitle.Data(), MDPP_CHANNELS, 0, MDPP_CHANNELS, "channel", "counts");
+    hTDC_ChannelScaler= MakeTH1('I', obname.Data(), obtitle.Data(), maxchannels, 0, maxchannels, "channel", "counts");
 
     obname.Form("Raw/MDPP/Board_%d/MDPP_ADC_ChannelScaler_%d", brd, brd);
     obtitle.Form("MDPP Board %d ADC Channel scaler", brd);
-    hADC_ChannelScaler= MakeTH1('I', obname.Data(), obtitle.Data(), MDPP_CHANNELS, 0, MDPP_CHANNELS, "channel", "counts");
+    hADC_ChannelScaler= MakeTH1('I', obname.Data(), obtitle.Data(), maxchannels, 0, maxchannels, "channel", "counts");
 
 
     SetMakeWithAutosave(kTRUE);
-
-//    obname.Form("ADC_direct_Brd%d_Tr", brd);
-//  TGo4Picture* pic = GetPicture(obname.Data());
-//  if (pic == 0)
-//  {
-//    obtitle.Form("ADC direct trace Board%d", brd);
-//    pic = new TGo4Picture(obname.Data(), obtitle.Data());
-//
-//    pic->SetDivision(2, 2);
-//    pic->Pic(0, 0)->AddObject(hTraceLongPrev);
-//    pic->Pic(0, 0)->SetLineAtt(3, 1, 1);    // solid line
-//    pic->Pic(0, 0)->AddObject(cWindowFFT);
-//
-//    pic->Pic(0, 1)->AddObject(hTracePartFFT);
-//    pic->Pic(0, 1)->SetLogScale(1);
-//    pic->Pic(0, 1)->SetLineAtt(4, 1, 1);
-//    pic->Pic(0, 1)->SetFillAtt(4, 3001);
-//
-//    pic->Pic(1, 0)->AddObject(hTraceLong);
-//    pic->Pic(1, 0)->SetLineAtt(3, 1, 1);
-//    pic->Pic(1, 0)->SetFillAtt(3, 3001);
-//
-//    pic->Pic(1, 1)->AddObject(hTraceLongFFT);
-//    pic->Pic(1, 1)->SetLogScale(1);
-//    pic->Pic(1, 1)->SetLineAtt(4, 1, 1);
-//    pic->Pic(1, 1)->SetFillAtt(4, 3001);
-//    AddPicture(pic, Form("Board%d", brd));
-//  }
-
-
 
 }
 

@@ -64,7 +64,7 @@ class TMdppDisplay: public  TNectarBoardDisplay
 public:
   TMdppDisplay() : TNectarBoardDisplay(), hExtTimeStamp(0),hMsgTypes(0)
    {;}
-   TMdppDisplay(UInt_t boardid);
+   TMdppDisplay(UInt_t boardid, Bool_t has16channels);
    virtual ~TMdppDisplay();
 
    /* recreate histograms using actual parameters*/
@@ -74,6 +74,9 @@ public:
    virtual void ResetDisplay();
 
 
+   /* true if this display is meant for MDPP-16, false if we expect MDPP-32 */
+   Bool_t fHas16channels;
+
    /* ADC values accumulated*/
    TH1 *hRawADC[MDPP_CHANNELS];
 
@@ -82,6 +85,9 @@ public:
 
    /* TDC time difference to reference channel*/
    TH1 *hDeltaTDC[MDPP_CHANNELS];
+
+   /* delta t from external trigger inputs (MDPP32 only)*/
+   TH1 *hExtTrigTime[MDPP_EXTDTCHANNELS];
 
    /* extended time stamps*/
    TH1 *hExtTimeStamp;

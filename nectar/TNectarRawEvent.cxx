@@ -171,6 +171,14 @@ void TMdppBoard::AddAdcMessage(TMdppAdcData* msg, UChar_t channel)
        }
  }
 
+ void TMdppBoard::AddExtDTMessage(TMdppTdcData* msg, UChar_t trigchan)
+   {
+     if (trigchan < MDPP_EXTDTCHANNELS)
+            {
+             fExtTrigDT[trigchan].push_back(msg);
+            }
+   }
+
 
  UInt_t TMdppBoard::NumTdcMessages(UChar_t channel)
    {
@@ -187,14 +195,29 @@ void TMdppBoard::AddAdcMessage(TMdppAdcData* msg, UChar_t channel)
 
 
 
-  /** Number of ADC data messages of channel in buffer */
+
+     UInt_t TMdppBoard::NumExtDTMessages(UChar_t trigchan)
+     {
+       if(trigchan>=MDPP_EXTDTCHANNELS) return 0;
+             return fExtTrigDT[trigchan].size();
+     }
+
+     TMdppTdcData* TMdppBoard::GetExtDtMessage(UChar_t trigchan, UInt_t i)
+     {
+         if(trigchan>=MDPP_EXTDTCHANNELS) return 0;
+            if(i>=fExtTrigDT[trigchan].size()) return 0;
+            return fTdcMessages[trigchan].at(i);
+     }
+
+
+
+
   UInt_t TMdppBoard::NumAdcMessages(UChar_t channel)
   {
     if(channel>=MDPP_CHANNELS) return 0;
     return fAdcMessages[channel].size();
   }
 
-  /** Access ADC data messages of channel at position i in buffer */
   TMdppAdcData* TMdppBoard::GetAdcMessage(UChar_t channel, UInt_t i)
   {
     if(channel>=MDPP_CHANNELS) return 0;
@@ -233,7 +256,17 @@ void TMdppBoard::Clear(Option_t *t)
     }
     fTdcMessages[ch].clear();
 
+
+
   }
+  for (Int_t tc = 0; tc < MDPP_EXTDTCHANNELS; ++tc)
+   {
+    for (unsigned i = 0; i < fExtTrigDT[tc].size(); ++i)
+       {
+         delete fExtTrigDT[tc][i];
+       }
+    fExtTrigDT[tc].clear();
+   }
 
 }
 

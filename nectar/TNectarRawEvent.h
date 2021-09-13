@@ -22,7 +22,10 @@
 
 
 /* number of readout channels of single mdpp module*/
-#define MDPP_CHANNELS 16
+#define MDPP_CHANNELS 32
+
+/* number of external trigger inputs for delta time (MDPP32 only)*/
+#define MDPP_EXTDTCHANNELS 2
 
 /* range of possible ADC values*/
 #define MDPP_ADC_RANGE 0xFFFF
@@ -178,6 +181,17 @@ public:
    TMdppTdcData* GetTdcMessage(UChar_t channel, UInt_t i);
 
 
+   /** Add delta time data from  of external trigger input trigchan to buffer */
+   void AddExtDTMessage(TMdppTdcData* msg, UChar_t trigchan);
+
+   /** Number of delta time data messages of external trigger input trigchan in buffer */
+   UInt_t NumExtDTMessages(UChar_t trigchan);
+
+   /** Access ADC data messages of channel at position i in buffer */
+   TMdppTdcData* GetExtDtMessage(UChar_t trigchan, UInt_t i);
+
+
+
   /** Add data from ADC of channel to  buffer */
   void AddAdcMessage(TMdppAdcData* msg, UChar_t channel);
 
@@ -207,6 +221,8 @@ public:
 
   std::vector<TMdppAdcData*> fAdcMessages[MDPP_CHANNELS];
   std::vector<TMdppTdcData*> fTdcMessages[MDPP_CHANNELS];
+
+  std::vector<TMdppTdcData*> fExtTrigDT[MDPP_EXTDTCHANNELS];
 
 
   ClassDef(TMdppBoard,1)
