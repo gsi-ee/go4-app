@@ -371,7 +371,7 @@ public:
   /* This array keeps the unique id numbers of configured VMMR boards*/
   static std::vector<UInt_t> fgConfigVmmrBoards;
 
-  /* This array keeps the unique id numbers of configured VMMR boards*/
+  /* This array keeps the unique id numbers of configured MDPP boards*/
   static std::vector<UInt_t> fgConfigMdppBoards;
 
   /** Event sequence number incremented by MBS Trigger*/
