@@ -127,6 +127,9 @@ public:
 
    /* ADC values accumulated*/
      TH1 *hRawADC[VMMR_CHANNELS];
+     
+ /* test histogram*/
+     TH2 *hRawADC1vs2;
 
      /* Time differenceGate start to bus triggers*/
      TH1 *hDeltaTime;

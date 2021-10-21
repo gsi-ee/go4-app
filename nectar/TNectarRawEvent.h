@@ -122,7 +122,7 @@ public:
    };
 
 
-
+   TMdppMsg(){}
 
   TMdppMsg(UShort_t value) : fData(value)
    {
@@ -142,6 +142,7 @@ public:
 class TMdppAdcData:  public TMdppMsg
 {
   public:
+   TMdppAdcData():TMdppMsg(){}
   TMdppAdcData(UShort_t adcvalue): TMdppMsg(adcvalue)
   {}
   virtual ~TMdppAdcData(){;}
@@ -151,6 +152,7 @@ class TMdppAdcData:  public TMdppMsg
 class TMdppTdcData:  public TMdppMsg
 {
   public:
+  TMdppTdcData():TMdppMsg(){}
   TMdppTdcData(UShort_t tdcvalue):  TMdppMsg(tdcvalue)
   {}
   virtual ~TMdppTdcData(){;}
@@ -243,7 +245,8 @@ public:
      {
        MSG_HEADER = 0, MSG_ADC = 1, MSG_DELTA_T = 2, MSG_TIMESTAMP = 3, MSG_EOE = 4
      };
-
+     
+TVmmrMsg(){;}
   TVmmrMsg(UShort_t data, UShort_t FE_subaddress): fData(data),fFrontEndSubaddress(FE_subaddress)
    {
     ;
@@ -265,6 +268,7 @@ public:
 class TVmmrAdcData:  public TVmmrMsg
 {
 public:
+    TVmmrAdcData():TVmmrMsg(){}
   TVmmrAdcData(UShort_t adcvalue, UShort_t channel):
     TVmmrMsg((adcvalue & VMMR_ADC_RANGE), (channel & VMMR_SUBADDRESS_RANGE))
   {}

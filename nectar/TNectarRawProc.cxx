@@ -684,9 +684,82 @@ Bool_t TNectarRawProc::UpdateDisplays()
         }
       }
     }
-
   }
+    
+    //////////////////////////////////////////////
+    for (UInt_t i = 0; i < TNectarRawEvent::fgConfigVmmrBoards.size(); ++i)
+  {
+    UInt_t uniqueid = TNectarRawEvent::fgConfigVmmrBoards[i];
 
+    TVmmrBoard* theVmmr = fNectarRawEvent->GetVmmrBoard(uniqueid);
+    if (theVmmr== 0)
+    {
+      GO4_STOP_ANALYSIS_MESSAGE(
+          "Configuration error from UpdateDisplays: VMMR module id %d does not exist as subevent. Please check TNectarRawParam setup",
+          uniqueid);
+      return kFALSE;
+    }
+    
+    TVmmrDisplay* boardDisplay = GetVmmrDisplay(uniqueid);
+    if (boardDisplay == 0)
+    {
+      GO4_STOP_ANALYSIS_MESSAGE(
+          "Configuration error from UpdateDisplays: VMMR module id %d does not exist as histogram display set!",
+          uniqueid);
+      return kFALSE;
+    }
+    // just fil for slave number 1:
+    int slid=1;
+    TVmmrSlave* theslave=theVmmr->GetSlave(slid);
+     if (theslave== 0)
+    {
+      GO4_STOP_ANALYSIS_MESSAGE(
+          "Configuration error from UpdateDisplays: VMMR slave id %d does not exist as subevent. Please check TNectarRawParam setup",
+          slid);
+      return kFALSE;
+    }
+    
+    TVmmrSlaveDisplay* sldisplay= boardDisplay->GetSlaveDisplay(slid);
+    if (sldisplay == 0)
+    {
+      GO4_STOP_ANALYSIS_MESSAGE(
+          "Configuration error from UpdateDisplays: VMMR slave id %d does not exist as histogram display set!",
+          slid);
+      return kFALSE;
+    }
+    
+    // now get channel data from event structure for channels 1 and 2:
+    
+     UInt_t maxvmmrmessages = theslave->NumAdcMessages();
+      printdeb("slave %d has %d maxmessages\n", slid,  maxvmmrmessages);
+       UShort_t ch1[10];
+       UShort_t ch2[10];
+       int ix1=0, ix2=0;
+      for (UInt_t i = 0; i < maxvmmrmessages; ++i)
+      {
+          TVmmrAdcData* dat = theslave->GetAdcMessage(i);
+           if(dat->fFrontEndSubaddress==1)
+           {
+                ch1[ix1++]=dat->fData;
+                if(ix1>+10) break;
+            }
+           if(dat->fFrontEndSubaddress==2)
+           {
+                ch2[ix2++]=dat->fData;
+                 if(ix2>+10) break;
+            }    
+    
+      }
+      int maxi=ix1;
+      if(ix2<ix1)maxi=ix2;      
+      for(int i=0; i<maxi;i++)
+      {
+            sldisplay->hRawADC1vs2->Fill(ch1[i],ch2[i]);     
+      }
+    
+    }   
+  
+  
   return kTRUE;
 }
 

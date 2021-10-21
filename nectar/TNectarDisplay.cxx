@@ -283,6 +283,13 @@ void TVmmrSlaveDisplay::InitDisplay(UInt_t parentboard, Bool_t replace)
      obname.Form("Raw/VMMR/Board_%d/Slave_%d/VMMR_DeltaT_%d_%d", parentboard, brd, parentboard, brd);
      obtitle.Form("VMMR Board %d Frontend %d : Time difference (Gate start - trigger)", parentboard, brd);
      hDeltaTime= MakeTH1('I', obname.Data(), obtitle.Data(), VMMR_DT_RANGE, 0, VMMR_DT_RANGE, "Delta T", "counts");;
+     
+     
+     //hRawADC1vs2
+     obname.Form("Raw/VMMR/Board_%d/Slave_%d/VMMR_ADC1vs2_%d_%d", parentboard, brd, parentboard, brd);
+     obtitle.Form("VMMR Board %d Frontend %d : ADC 1 vs 2 map)", parentboard, brd);
+     hRawADC1vs2= MakeTH2('I', obname.Data(), obtitle.Data(), VMMR_ADC_RANGE/0xF, 0, VMMR_ADC_RANGE,  VMMR_ADC_RANGE/0xF, 0, VMMR_ADC_RANGE,"ADC 1", "ADC2");
+     
 }
 
 
