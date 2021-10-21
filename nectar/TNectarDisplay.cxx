@@ -142,8 +142,8 @@ void TMdppDisplay::ResetDisplay()
 TVmmrDisplay::TVmmrDisplay(UInt_t boardid) : TNectarBoardDisplay(boardid)
 {
 
-  printf("TVmmrDisplay ctor of id %d\n", boardid);
-
+  //printf("TVmmrDisplay ctor of id %d\n", boardid);
+ fSlaveDisplays.clear();
 }
 
 
@@ -168,13 +168,13 @@ TVmmrSlaveDisplay* TVmmrDisplay::GetSlaveDisplay(UInt_t id)
     if (theSlave->GetDevId() == id)
       return theSlave;
   }
-  if(theSlave==0) return AddSlaveDisplay(id);
+  if((theSlave==0) || (theSlave->GetDevId() != id)) 
+        return AddSlaveDisplay(id);
   return 0; // never come here.
 }
 
 TVmmrSlaveDisplay* TVmmrDisplay::AddSlaveDisplay(UInt_t id)
 {
-
   TVmmrSlaveDisplay* theSlave = new TVmmrSlaveDisplay(id);
   theSlave->InitDisplay(fDisplayId, kTRUE);
   fSlaveDisplays.push_back(theSlave);

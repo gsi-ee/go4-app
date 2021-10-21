@@ -474,10 +474,20 @@ Bool_t TNectarRawProc::UnpackVmmr()
     Int_t word = *pData++;
     Bool_t isTimestamp = ((word >> 28) & 0xF) == 0x2;
     Bool_t isAdc = ((word >> 28) & 0xF) == 0x1;
-    Bool_t isDeltaT = ((word >> 28) & 0xF) == 0x3;
+    //Bool_t isDeltaT = ((word >> 28) & 0xF) == 0x3;  // old definition  JAM
     Bool_t isEndmark = ((word >> 30) & 0x3) == 0x3;
     Bool_t isDummy = ((word >> 30) & 0x3) == 0x0;
-    if (isTimestamp)
+    Bool_t isDeltaT=kFALSE;
+    Bool_t isExtendedTS=kFALSE;
+
+
+    if(isTimestamp)
+    {
+      isExtendedTS= ((word >> 23) & 0x1) == 0x1;
+      isDeltaT = !isExtendedTS;
+    }
+
+    if (isExtendedTS)
     {
       UShort_t ts = word & 0xFFFF;
       theBoard->fExtendedTimeStamp = ts;
