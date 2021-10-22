@@ -502,7 +502,7 @@ Bool_t TNectarRawProc::UnpackVmmr()
       UShort_t value = word & 0xFFF;
 
       // first put extracted data to output event structure:
-      TVmmrSlave* theSubBoard = theBoard->GetSlave(slave);
+      TVmmrSlave* theSubBoard = theBoard->GetSlave(slave, kTRUE); // will create subcomponent if not exisiting
       if (theSubBoard == 0)
       {
         GO4_STOP_ANALYSIS_MESSAGE("NEVER  COME HERE: Could not access Vmmr subevent for FE slave %d", slave);
@@ -537,7 +537,7 @@ Bool_t TNectarRawProc::UnpackVmmr()
       UShort_t value = word & 0xFFFF;
 
       // first put extracted data to output event structure:
-      TVmmrSlave* theSubBoard = theBoard->GetSlave(slave);
+      TVmmrSlave* theSubBoard = theBoard->GetSlave(slave, kTRUE);
       if (theSubBoard == 0)
       {
         GO4_STOP_ANALYSIS_MESSAGE("NEVER  COME HERE: Could not access Vmmr subevent for FE slave %d", slave);
@@ -687,7 +687,7 @@ Bool_t TNectarRawProc::UpdateDisplays()
   }
     
     //////////////////////////////////////////////
-    for (UInt_t i = 0; i < TNectarRawEvent::fgConfigVmmrBoards.size(); ++i)
+  for (UInt_t i = 0; i < TNectarRawEvent::fgConfigVmmrBoards.size(); ++i)
   {
     UInt_t uniqueid = TNectarRawEvent::fgConfigVmmrBoards[i];
 
@@ -708,15 +708,14 @@ Bool_t TNectarRawProc::UpdateDisplays()
           uniqueid);
       return kFALSE;
     }
-    // just fil for slave number 1:
-    int slid=1;
-    TVmmrSlave* theslave=theVmmr->GetSlave(slid);
-     if (theslave== 0)
+
+    for (int slid=0; slid<VMMR_CHAINS; ++slid)
     {
-      GO4_STOP_ANALYSIS_MESSAGE(
-          "Configuration error from UpdateDisplays: VMMR slave id %d does not exist as subevent. Please check TNectarRawParam setup",
-          slid);
-      return kFALSE;
+
+    TVmmrSlave* theslave=theVmmr->GetSlave(slid, kFALSE); // will return 0 if not existing, do not create new element!
+     if (theslave==0)
+    {
+      continue; //  this means there is just empty slot in event
     }
     
     TVmmrSlaveDisplay* sldisplay= boardDisplay->GetSlaveDisplay(slid);
@@ -758,7 +757,7 @@ Bool_t TNectarRawProc::UpdateDisplays()
       }
     
     }   
-  
+  }
   
   return kTRUE;
 }

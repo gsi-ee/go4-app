@@ -322,9 +322,9 @@ public:
   TVmmrBoard(const char* name, UInt_t unid, Short_t index);
   virtual ~TVmmrBoard();
 
-  /** Access to substructure for frontend slave board connected at chain bus number of id*/
-  TVmmrSlave* GetSlave(UInt_t id);
-
+  /** Access to substructure for frontend slave board connected at chain bus number of id
+   * If addautomatic is true, willcreate slave component if not existing before*/
+  TVmmrSlave* GetSlave(UInt_t id ,  Bool_t addautomatic=kFALSE);
 
 
   /** Method called by the framework to clear the event element. */

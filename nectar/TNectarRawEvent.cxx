@@ -101,13 +101,13 @@ TVmmrBoard::~TVmmrBoard()
   fSlaves.clear();
 }
 
-TVmmrSlave* TVmmrBoard::GetSlave(UInt_t id)
+TVmmrSlave* TVmmrBoard::GetSlave(UInt_t id,  Bool_t addautomatic)
 {
   if (id >= VMMR_CHAINS)
     return 0;
   TVmmrSlave* theSlave = 0;
   theSlave = fSlaves[id];
-  if (theSlave == 0)
+  if ((theSlave == 0) && addautomatic)
     return AddSlave(id);
   return theSlave;
 }
