@@ -1209,6 +1209,39 @@ void TQFWGridDisplay::InitDisplay(int timeslices, Bool_t replace)
 //    hPosIAve_Y = MakeVarbinsTH1(replace, 'D', Form("%s/I_PositionAverage_Y_G%d", foldername.Data(), grid),
 //        Form("Y Current profile average Grid%2d", grid), binsY, yposition, "Position [mm]", "I [A]");
 
+
+    // JAM2022: new difference histograms for hades
+
+
+    foldername.Form("Beam/Grid%2d/Current/LoopDiffs", grid);
+    for (Int_t l1 = 0; l1 < PEXOR_QFWLOOPS; ++l1)
+    {
+      for (Int_t l2 = 0; l2 < PEXOR_QFWLOOPS; ++l2)
+      {
+        if (l1 == l2)
+          continue;
+        hPosILoopDeltaX[l1][l2] = MakeVarbinsTH1(replace, 'D',
+            Form("%s/I_Position_X_G%d_L%d-L%d", foldername.Data(), grid, l1, l2),
+            Form("X Current profile Grid%2d Loop%2d-Loop%2d", grid, l1, l2), binsX, xposition, "X-Position [mm]",
+            "I [A]");
+        hPosIAveLoopDeltaX[l1][l2] = MakeVarbinsTH1(replace, 'D',
+            Form("%s/I_PositionAverage_X_G%d_L%d-L%d", foldername.Data(), grid, l1, l2),
+            Form("X  Average current profile accumulated Grid%2d Loop%2d-Loop%2d", grid, l1, l2), binsX, xposition,
+            "X-Position [mm]", "I [A]");
+        hPosILoopDeltaY[l1][l2] = MakeVarbinsTH1(replace, 'D',
+            Form("%s/I_Position_Y_G%d_L%d-L%d", foldername.Data(), grid, l1, l2),
+            Form("Y Current profile Grid%2d Loop%2d-Loop%2d", grid, l1, l2), binsY, yposition, "Y-Position [mm]",
+            "I [A]");
+        hPosIAveLoopDeltaY[l1][l2] = MakeVarbinsTH1(replace, 'D',
+            Form("%s/I_PositionAverage_Y_G%d_L%d-L%d", foldername.Data(), grid, l1, l2),
+            Form("Y  Average current profileCharge profile accumulated Grid%2d Loop%2d-Loop%2d", grid, l1, l2), binsY,
+            yposition, "Y-Position [mm]", "I [A]");
+      }
+    }
+
+
+
+
   }    // if (fParam && gix >= 0)
 #endif
 

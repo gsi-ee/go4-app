@@ -464,6 +464,20 @@ public:
   TGo4Picture *pBeamRMS;
   TGo4Picture *pPosRMS;
 
+
+/*JAM 26-Jan-2022: new set of histograms in scope of hades feb22 beamtime: */
+
+  /* xy current projections loopwise differences, mapped to grid absolute positions (mm)*/
+  TH1* hPosILoopDeltaX[PEXOR_QFWLOOPS][PEXOR_QFWLOOPS];
+  TH1* hPosILoopDeltaY[PEXOR_QFWLOOPS][PEXOR_QFWLOOPS];
+
+  /* xy current projections loopwise differences accumulated average, mapped to grid absolute positions (mm)*/
+  TH1* hPosIAveLoopDeltaX[PEXOR_QFWLOOPS][PEXOR_QFWLOOPS];
+  TH1* hPosIAveLoopDeltaY[PEXOR_QFWLOOPS][PEXOR_QFWLOOPS];
+
+
+
+
   /* reference to the grid event object that we display*/
   TQFWGrid* fGridData;
 

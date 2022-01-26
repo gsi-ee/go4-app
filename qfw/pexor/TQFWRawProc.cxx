@@ -43,22 +43,26 @@ if((pdata - pdatastart) > (opticlen/4)) \
 #define  QFWRAW_CHECK_PDATA                                    \
 if((pdata - pdatastart) > (opticlen/4)) \
 { \
-  printf("############ unexpected end of payload for sfp:%d slave:%d with opticlen:0x%x, skip event %ld\n",sfp_id, device_id, opticlen, skipped_events++);\
+  printf("############ unexpected end of payload for sfp:%d slave:%d with opticlen:0x%x, at line %d, skip event %ld\n",sfp_id, device_id, opticlen, __LINE__, skipped_events++);\
   psubevt->PrintMbsSubevent(kTRUE,kTRUE,kTRUE);\
   printf("Board %d has %d elements", theBoard->GetBoardId(), theBoard->getNElements());\
+  int totalsize=0;\
    for (int loop = 0; loop < theBoard->getNElements(); loop++)\
       {\
         TQFWLoop* theLoop = theBoard->GetLoop(loop);\
-        if (theLoop)\      
+        if (theLoop){\
 			printf("Loop %d has size %d\n", loop, theLoop->fQfwLoopSize );\
-        else\
+			totalsize+=theLoop->fQfwLoopSize;\
+		    }\
+			else\
         	printf("NO LOOP!! ");\  
 		}\
-  GO4_STOP_ANALYSIS_MESSAGE("stopped for debug - pdata=0x%lx pdatastart=0x%lx ",pdata, pdatastart);\
+  GO4_STOP_ANALYSIS_MESSAGE("stopped for debug - pdata=0x%lx pdatastart=0x%lx totalsize=%d offset=%d opticlen=%d",pdata, pdatastart, (totalsize*32 + 50)*4, (pdata-pdatastart)*4, opticlen);\
   GO4_SKIP_EVENT \
   continue; \
 }
 */
+
 
 /* JAM2016: do not skip event if we have naked poland test without data:*/
 #define  QFWRAW_CHECK_PDATA_CONTINUE                                    \

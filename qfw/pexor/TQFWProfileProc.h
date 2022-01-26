@@ -52,7 +52,8 @@ protected:
   /* recreate histograms using the given number of time slice*/
   void InitDisplay(int timeslices, Bool_t replace = kFALSE);
 
-
+  /** JAM2022 new helper function to evaluate difference profiles between measurement loops*/
+  void FillDifferenceHistogram(TH1* result, TH1* minuend, TH1* subtrahend);
 
 private:
 

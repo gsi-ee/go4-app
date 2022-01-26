@@ -941,6 +941,28 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 // TODO: move above plots to each loop display.
 // maybe we keep overall plots here only if we account it with the current calibration!
 
+
+    // JAM2022: here new differences of loop profiles:
+#ifdef   QFW_FILL_POSITION_PROFILES
+
+
+    for (Int_t l1 = 0; l1 < PEXOR_QFWLOOPS; ++l1)
+      {
+        for (Int_t l2 = 0; l2 < PEXOR_QFWLOOPS; ++l2)
+        {
+          if (l1 == l2)
+            continue;
+          TQFWGridLoopDisplay* d1 = gridDisplay->GetLoopDisplay(l1);
+          TQFWGridLoopDisplay* d2 = gridDisplay->GetLoopDisplay(l2);
+          FillDifferenceHistogram(gridDisplay-> hPosILoopDeltaX[l1][l2], d1->hPosILoopX, d2->hPosILoopX);
+          FillDifferenceHistogram(gridDisplay-> hPosILoopDeltaY[l1][l2], d1->hPosILoopY, d2->hPosILoopY);
+          FillDifferenceHistogram(gridDisplay-> hPosIAveLoopDeltaX[l1][l2], d1->hPosIAveLoopX, d2->hPosIAveLoopX);
+          FillDifferenceHistogram(gridDisplay-> hPosIAveLoopDeltaY[l1][l2], d1->hPosIAveLoopY, d2->hPosIAveLoopY);
+        }
+      }
+#endif
+
+
   }    // grids
 
   // TODO: here fill segmented cup displays
@@ -1110,6 +1132,17 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
   }    // cups
   // end cup display
 
+
+
+
+
+
+
+
+
+
+
+
   fOutput->SetValid(kTRUE);    // to store
 
   if (fParam->fSlowMotionStart > 0)
@@ -1119,4 +1152,17 @@ Bool_t TQFWProfileProc::BuildEvent(TGo4EventElement* target)
 
   return kTRUE;
 }
+
+
+
+
+void TQFWProfileProc::FillDifferenceHistogram(TH1* result, TH1* minuend, TH1* subtrahend)
+{
+  result->Reset("");
+  result->Add(minuend,1.0);
+  result->Add(subtrahend,-1.0);
+}
+
+
+
 
