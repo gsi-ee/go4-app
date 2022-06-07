@@ -15,6 +15,7 @@
 
 #include "TGo4Log.h"
 
+
 //***********************************************************
 TTamex_FullEvent::TTamex_FullEvent() :
    TGo4EventElement()
@@ -39,10 +40,10 @@ void TTamex_FullEvent::Clear(Option_t *t)
   // all members should be cleared.
 //  for(int i=0;i<MAX_CHA_AN;++i)
 //      fTimeDiff[i]=-1;
-      for (Int_t l_k = 0; l_k < MAX_CHA_AN; l_k++)
+      for (Int_t l_k = 0; l_k < MAX_CHA_AN_DIFF; l_k++)
       {
         //fTimeStamp[l_k].clear();
-        fTimeStamp[l_k]=-1;
+        fTimeDiff[l_k]= 3 * RESET_VAL; // JAM should be out of bounce for regular data
       }
   
 }

@@ -17,7 +17,9 @@
 #include "TGo4EventElement.h"
 #include <vector>
 
-#define MAX_CHA_AN    64
+#include "TTamex_FullProc.h"
+
+#define MAX_CHA_AN_DIFF    MAX_CHA_AN / 2
 // JAM 3-jun-2022: we only use the preselected "analysis" channels from event processor here. This is redefinition of TTamex_FullProc.h
 // proper way would be to put all defines here, but we don't do this not to confuse legacy users...
 #define MAX_HITS 1
@@ -34,20 +36,15 @@ class TTamex_FullEvent : public TGo4EventElement {
       void Clear(Option_t *t="");
       
       /* add new timstamp to buffer*/
-      void AddTimestamp(UChar_t channel, Double_t value)
+      void SetTimeDiff(UChar_t channel, Double_t value)
       {
-        if(channel>=MAX_CHA_AN) return;
-        //fTimeStamp[channel].push_back(value);
-        fTimeStamp[channel]=value;
+        if(channel>=MAX_CHA_AN_DIFF) return;
+        fTimeDiff[channel]=value;
       }
-#
-      /* get timestamp from position i in buffer (0 is first in time sequence)*/
-      Double_t GetTimestamp(UInt_t channel, UInt_t i)
+      Double_t GetTimeDiff(UInt_t channel)
       {
-        if(channel>=MAX_CHA_AN) return -1; // TODO: proper error handling maybe..
-//        if(i>=fTimeStamp[channel].size()) return 0;
-//        return fTimeStamp[channel].at(i);
-        return fTimeStamp[channel];
+        if(channel>=MAX_CHA_AN_DIFF) return -1; // TODO: proper error handling maybe..
+        return fTimeDiff[channel];
       }
 
       /* Total number of timestamps in buffer for specific id. to be used in readout loops of second analysis step*/
@@ -57,12 +54,10 @@ class TTamex_FullEvent : public TGo4EventElement {
 //          return fTimeStamp[channel].size();
 //        }
 
-      // OLD example
-      //Double_t fTimeDiff[MAX_CHA_AN];
+   protected:
 
-       //std::vector<Double_t> fTimeStamp[MAX_CHA_AN]; //<full time information of this analysis channel
-      // JAM: vectors problematic with treeviewer? we restrict to one hit per channel/event
-      Double_t fTimeStamp[MAX_CHA_AN];
+      Double_t fTimeDiff[MAX_CHA_AN_DIFF];
+
 
 
    ClassDef(TTamex_FullEvent,1)

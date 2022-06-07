@@ -22,6 +22,7 @@
 
 
 #include "TTamex_FullProc.h"
+#include "TTamex_FullEvent.h"
 
 #include "Riostream.h"
 
@@ -1048,10 +1049,7 @@ l_ssy_idx = 0;
     {
       for (l_j=0; l_j<l_hct[l_i+1]; l_j++)
       {  
-        // JAM june22: new fill complete fulltime into output event
-        Double_t fulltime=l_coarse_x[l_i][l_j] *  CYCLE_TIME + d_ntim[l_i][l_j];
-        fOutput->AddTimestamp(l_i, fulltime);
-        // end filling output for optional tree
+
 
         for (l_k=0; l_k<l_hct[l_i]; l_k++)
         {
@@ -1097,6 +1095,12 @@ l_ssy_idx = 0;
             //printf ("l_i: %d \n", l_i); fflush (stdout);
             h_cal_tim_diff[l_i+1][l_i]->Fill (d_diff);
             h_cal_tim_diff_te[l_i+1][l_i]->Fill (d_diff);
+
+            // JAM june22: new fill predefined delta t into output event
+            fOutput->SetTimeDiff(l_i/2, d_diff); // each pair of indices gives only one difference
+           // end filling output for optional tree
+
+
 
             if (l_i == 0) {d_diff_7_5  = d_diff;}
             if (l_i == 2) {d_diff_11_9 = d_diff;}
