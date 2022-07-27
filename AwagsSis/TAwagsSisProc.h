@@ -50,9 +50,9 @@
 #endif
 
 #define CSA_BASE_START    20
-#define CSA_BASE_SIZE    100
-#define CSA_SIGNAL_START 400
-#define CSA_SIGNAL_SIZE  100
+#define CSA_BASE_SIZE    1400
+#define CSA_SIGNAL_START 1600
+#define CSA_SIGNAL_SIZE  1400
 
 #define RON  "\x1B[7m"
 #define RES  "\x1B[0m"
@@ -74,8 +74,26 @@ class TAwagsSisProc : public TGo4EventProcessor {
 
       Bool_t BuildEvent(TGo4EventElement* target); // event processing function
 
+     /* here put together MBS events to spill traces and trends*/
+      void EvaluateSpills();
+
  private:
       TGo4MbsEvent  *fInput;  //!
+
+      TAwagsSisParam* fPar;
+
+
+      Bool_t fNewSpill; //!< flag for begin of new spill
+      Bool_t fInSpill; //!< flag which is on during spill signals
+      Int_t fiEventInSpill; //!< index of MBS event in the spill
+
+
+
+      Double_t fDeltaQ[MAX_SFP][MAX_SLAVE][N_CHA]; //!< relative charge difference ("sig minus back" value)
+
+
+      TH1          *h_spill_scaler; //!< count spills and events
+      TH1          *h_signal_to_background_ave; //!<average of all channels, monitor spill on criterium
 
       TH1          *h_trace        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
       TH1          *h_trace_blr    [MAX_SFP][MAX_SLAVE][N_CHA];  //!
@@ -89,12 +107,33 @@ class TAwagsSisProc : public TGo4EventProcessor {
       TH1          *h_ch_hitpat_tr [MAX_SFP][MAX_SLAVE][N_CHA];  //!
       TH1          *h_hitpat_tr    [MAX_SFP][MAX_SLAVE];         //!
       TH1          *h_adc_spect    [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-      TH1          *h_csa_base     [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-      TH1          *h_csa_signal   [MAX_SFP][MAX_SLAVE][N_CHA];  //!
-      TH1          *h_csa_sum_sig;
-      TH1          *h_peak_ref_sig;
-      TH2          *h_peak_ref__sum_csa;
-      TH2          *h_peak_ref__sum_csa2;
+      
+      
+      TH1          *h_q_spill        [MAX_SFP][MAX_SLAVE][N_CHA];  //!< delta Q trend during spill, vs MBS event index
+      TH1          *h_q_spill_sum    [MAX_SFP][MAX_SLAVE][N_CHA];  //!< delta Q trend during spill, vs MBS event index, accum
+      TH1          *h_trace_stitched [MAX_SFP][MAX_SLAVE][N_CHA];  //!< stitched traces for each spill
+      TH1          *h_trace_stitched_sum [MAX_SFP][MAX_SLAVE][N_CHA];  //!< stitched traces for each spill, accumulated
+
+
+        /** defines the region for the background baseline evaluation - here before awags readout reset*/
+	  TGo4WinCond* fxBackgroundRegion;
+
+	  /** defines the region for the signal baseline evaluation - here after awags reset */
+	  TGo4WinCond* fxSignalRegion;
+      
+       /** average height of trace contents in Window fxBackgroundRegion*/
+	  TH1          *h_background_height [MAX_SFP][MAX_SLAVE][N_CHA];
+
+
+	  /** average height of trace contents in Window fxSignalRegion*/
+      TH1          *h_signal_height [MAX_SFP][MAX_SLAVE][N_CHA ];
+
+      /** ratios of average contents between fxSignalRegion/fxBackgroundRegion*/
+      TH1          *h_signal_to_background [MAX_SFP][MAX_SLAVE][N_CHA ];
+
+      /** difference between average contents of fxSignalRegion and fxBackgroundRegion*/
+      TH1          *h_signal_minus_background[MAX_SFP][MAX_SLAVE][N_CHA ];
+      
       
       ClassDef(TAwagsSisProc,1)
 };

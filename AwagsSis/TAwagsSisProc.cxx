@@ -15,7 +15,20 @@
 //This software can be used under the license agreements as stated
 //in Go4License.txt file which is part of the distribution.
 //----------------------------------------------------------------
+
+
+/**
+ * Analysis for the Febex readout of Awags at SIS tests in 2022
+ * v.01 on 25-Jul-2022 by JAM - modify original Feb3Basic unpacker (j.adamczewski@gsi.de)
+ *
+ * */
+
+
+
+
 #include "TAwagsSisProc.h"
+#include "TAwagsSisParam.h"
+
 #include "stdint.h"
 
 #include "Riostream.h"
@@ -31,8 +44,8 @@ using namespace std;
 #include "TGo4PolyCond.h"
 #include "TGo4CondArray.h"
 #include "TGo4Picture.h"
-#include "TAwagsSisParam.h"
-#include "TGo4Fitter.h"
+
+#include "TGo4UserException.h"
 
 #ifdef USE_MBS_PARAM
  static UInt_t    l_tr    [MAX_TRACE_SIZE];
@@ -68,7 +81,7 @@ static UInt_t    l_e_filt_out_of_trig_wind_ct=0;
 static UInt_t    l_first=0;
 
 //***********************************************************
-TAwagsSisProc::TAwagsSisProc() : TGo4EventProcessor("Proc")
+TAwagsSisProc::TAwagsSisProc() : TGo4EventProcessor("Proc"),  fNewSpill(kFALSE), fInSpill(kFALSE), fiEventInSpill(0)
 {
   cout << "**** TAwagsSisProc: Create instance " << endl;
 }
@@ -79,10 +92,26 @@ TAwagsSisProc::~TAwagsSisProc()
 }
 //***********************************************************
 // this one is used in standard factory
-TAwagsSisProc::TAwagsSisProc(const char* name) : TGo4EventProcessor(name)
+TAwagsSisProc::TAwagsSisProc(const char* name) : TGo4EventProcessor(name),  fNewSpill(kFALSE), fInSpill(kFALSE), fiEventInSpill(0)
 {
   cout << "**** TAwagsSisProc: Create instance " << name << endl;
   l_first = 0;  
+  fPar=dynamic_cast<TAwagsSisParam*> (MakeParameter("AwagsSisParam", "TAwagsSisParam","set_AwagsSisParam.C"));
+  TString obname;
+     TString obtitle;
+  obname.Form("Spills/EventScaler");
+     obtitle.Form("Spill counter");
+     h_spill_scaler=MakeTH1('I', obname.Data(), obtitle.Data(), 2, 0, 2);
+
+     if (IsObjMade()) {
+       h_spill_scaler->GetXaxis()->SetBinLabel(1 , "MBS Events");
+       h_spill_scaler->GetXaxis()->SetBinLabel(2, "Spills");
+     }
+
+     obname.Form("Baselines/StoB/Signal_background_ratio_average");
+     obtitle.Form("Average signal to background ratio all active channels");
+     h_signal_to_background_ave= MakeTH1('F', obname.Data(), obtitle.Data(), 1000, 0, 5);
+
 
   //printf ("Histograms created \n");  fflush (stdout);
 }
@@ -105,11 +134,11 @@ Bool_t TAwagsSisProc::BuildEvent(TGo4EventElement* target)
   UInt_t         l_feb_id;
   UInt_t         l_cha_id;
   UInt_t         l_n_hit;
-  UInt_t         l_hit_id;
+ // UInt_t         l_hit_id;
   UInt_t         l_hit_cha_id;
   Long64_t       ll_time;
   Long64_t       ll_trg_time;
-  Long64_t       ll_hit_time;
+ // Long64_t       ll_hit_time;
   UInt_t         l_ch_hitpat   [MAX_SFP][MAX_SLAVE][N_CHA];  
   UInt_t         l_ch_hitpat_tr[MAX_SFP][MAX_SLAVE][N_CHA];  
   UInt_t         l_first_trace [MAX_SFP][MAX_SLAVE];
@@ -132,10 +161,10 @@ Bool_t TAwagsSisProc::BuildEvent(TGo4EventElement* target)
   UInt_t         l_fpga_energy_sign;
    Int_t         l_fpga_energy;
 
-  UInt_t         l_trapez_e_found [MAX_SFP][MAX_SLAVE][N_CHA];  
-  UInt_t         l_fpga_e_found   [MAX_SFP][MAX_SLAVE][N_CHA]; 
-  UInt_t         l_trapez_e       [MAX_SFP][MAX_SLAVE][N_CHA];  
-  UInt_t         l_fpga_e         [MAX_SFP][MAX_SLAVE][N_CHA]; 
+  //UInt_t         l_trapez_e_found [MAX_SFP][MAX_SLAVE][N_CHA];
+  //UInt_t         l_fpga_e_found   [MAX_SFP][MAX_SLAVE][N_CHA];
+  //UInt_t         l_trapez_e       [MAX_SFP][MAX_SLAVE][N_CHA];
+  //UInt_t         l_fpga_e         [MAX_SFP][MAX_SLAVE][N_CHA];
 
   UInt_t         l_dat_fir;
   UInt_t         l_dat_sec;
@@ -145,19 +174,14 @@ Bool_t TAwagsSisProc::BuildEvent(TGo4EventElement* target)
   Double_t       f_bls_val=0.;
 
   Int_t       l_fpga_filt_on_off;
-  Int_t       l_fpga_filt_mode;
+  //Int_t       l_fpga_filt_mode;
   Int_t       l_dat_trace;
   Int_t       l_dat_filt;
   Int_t       l_filt_sign;
 
-  Double_t       f_csa_base_val=0.;
-  Double_t       f_csa_signal_val=0.;
-  Double_t       f_csa_sum_sig=0.;
-  Double_t       f_ref_cha_base_val=0;
-  Double_t       f_ref_peak=0;
-  Double_t       f_csa_max_sig=0; 
-  Int_t          l_csa_max_cha=0xff;
-  
+  Double_t sigtoback_average=0.0; // use average value of all channels to detect spill start
+  Int_t numvals=0;
+ 
   TGo4MbsSubEvent* psubevt;
 
   fInput = (TGo4MbsEvent* ) GetInputEvent();
@@ -189,13 +213,18 @@ Bool_t TAwagsSisProc::BuildEvent(TGo4EventElement* target)
   l_evt_ct++;
 
   fInput->ResetIterator();
-  //while((psubevt = fInput->NextSubEvent()) != 0) // loop over subevents
-  //{
+  while((psubevt = fInput->NextSubEvent()) != 0) // loop over subevents
+  {
 
-  psubevt = fInput->NextSubEvent(); // only one subevent    
+  //psubevt = fInput->NextSubEvent(); // only one subevent
+  //psubevt->GetControl();
+  //printf ("sub-event procid: %d\n",  psubevt->GetControl()); fflush (stdout);
+  //if (psubevt->GetControl() != 69) continue;
+  
+  
   
   //printf ("         psubevt: 0x%x \n", (UInt_t)psubevt); fflush (stdout);
-  printf ("%d -------------next event-----------\n", l_evt_ct); fflush (stdout);
+  //printf ("%d -------------next event-----------\n", l_evt_ct); fflush (stdout);
   //sleep (1);
 
   pl_se_dat = (uint32_t *)psubevt->GetDataField();
@@ -210,7 +239,7 @@ Bool_t TAwagsSisProc::BuildEvent(TGo4EventElement* target)
   if (pl_se_dat == (UInt_t*)0)
   {
     printf ("ERROR>> ");
-    printf ("pl_se_dat: 0x%x, ", pl_se_dat);
+    printf ("pl_se_dat: 0x%lx, ", (long) pl_se_dat);
     printf ("l_dat_len: 0x%x, ", (UInt_t)l_dat_len);
     printf ("l_trig_type_triva: 0x%x \n", (UInt_t)l_trig_type_triva); fflush (stdout);
     goto bad_event;  
@@ -291,9 +320,9 @@ Bool_t TAwagsSisProc::BuildEvent(TGo4EventElement* target)
           h_trapez_fpga [l_i][l_j][l_k]->Reset ("");
           l_ch_hitpat   [l_i][l_j][l_k] = 0;  
           l_ch_hitpat_tr[l_i][l_j][l_k] = 0;
-          l_fpga_e_found[l_i][l_j][l_k] = 0;
-          l_trapez_e    [l_i][l_j][l_k] = 0;
-          l_fpga_e      [l_i][l_j][l_k] = 0;
+          //l_fpga_e_found[l_i][l_j][l_k] = 0;
+          //l_trapez_e    [l_i][l_j][l_k] = 0;
+          //l_fpga_e      [l_i][l_j][l_k] = 0;
         }
         h_hitpat     [l_i][l_j]->Fill (-2, 1);  
         h_hitpat_tr  [l_i][l_j]->Fill (-2, 1);  
@@ -302,12 +331,7 @@ Bool_t TAwagsSisProc::BuildEvent(TGo4EventElement* target)
     }
   }
 
-  if ((l_sfp_id == 0) && (l_feb_id == 0))
-  {
-    f_csa_sum_sig = 0.;
-    l_csa_max_cha = 0xff;
-    f_csa_max_sig = 0.;
-  }
+ 
   
   while ( (pl_tmp - pl_se_dat) < (l_dat_len_byte/4) )
   {
@@ -471,8 +495,8 @@ Bool_t TAwagsSisProc::BuildEvent(TGo4EventElement* target)
                   //printf ("l_dat: 0x%x, fpga energy: 0x%x \n", l_dat, l_fpga_energy);  
                 }
 
-                l_fpga_e_found [l_sfp_id][l_feb_id][l_hit_cha_id] = 1;
-                l_fpga_e[l_sfp_id][l_feb_id][l_hit_cha_id] = l_fpga_energy;
+                //l_fpga_e_found [l_sfp_id][l_feb_id][l_hit_cha_id] = 1;
+                //l_fpga_e[l_sfp_id][l_feb_id][l_hit_cha_id] = l_fpga_energy;
               }
             }
             else 
@@ -514,7 +538,7 @@ Bool_t TAwagsSisProc::BuildEvent(TGo4EventElement* target)
         }
 
         l_fpga_filt_on_off = (l_trace_head & 0x80000) >> 19;
-        l_fpga_filt_mode   = (l_trace_head & 0x40000) >> 18;
+        //l_fpga_filt_mode   = (l_trace_head & 0x40000) >> 18;
         //printf ("fpga filter on bit: %d, fpga filter mode: %d \n", l_fpga_filt_on_off, l_fpga_filt_mode);
         //fflush (stdout);
         //sleep (1);
@@ -614,6 +638,8 @@ Bool_t TAwagsSisProc::BuildEvent(TGo4EventElement* target)
             l_trace_size = l_trace_size >> 1;
           }
 
+/////////// JAM21: this is generic febex baseline treatment from template analysis
+          // range for the trace baselin is set by compiled defines BASE_LINE_SUBT_START and BASE_LINE_SUBT_SIZE
           // find base line value of trace and correct it to baseline 0
           f_bls_val = 0.;
           for (l_l=l_bls_start; l_l<l_bls_stop; l_l++) 
@@ -632,50 +658,8 @@ Bool_t TAwagsSisProc::BuildEvent(TGo4EventElement* target)
           h_peak  [l_sfp_id][l_feb_id][l_cha_id]->Fill (h_trace[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum ());
           h_valley[l_sfp_id][l_feb_id][l_cha_id]->Fill (h_trace[l_sfp_id][l_feb_id][l_cha_id]->GetMinimum ());
 
-          if ((l_sfp_id == 0) && (l_feb_id == 0) && (l_cha_id == 14))
-          {
-            f_ref_peak = (Double_t)h_trace[l_sfp_id][l_feb_id][l_cha_id]->GetMaximum (); 
-          }
-          
-          // find average (febex samples) baseline value
-          f_csa_base_val = 0.;
-          for (l_l=CSA_BASE_START; l_l<(CSA_BASE_START + CSA_BASE_SIZE); l_l++) 
-          {
-            f_csa_base_val += (Double_t)l_tr[l_l];
-          }
-          f_csa_base_val = f_csa_base_val / (Double_t)CSA_BASE_SIZE;
-          //printf ("f_csa_base_val %f \n", f_csa_base_val);          
-          h_csa_base [l_sfp_id][l_feb_id][l_cha_id]->Fill (f_csa_base_val);
-
-          // find average (febex samples) signal value
-          f_csa_signal_val = 0.;
-          for (l_l=CSA_SIGNAL_START; l_l<(CSA_SIGNAL_START + CSA_SIGNAL_SIZE); l_l++) 
-          {
-            f_csa_signal_val += (Double_t)l_tr[l_l];
-          }
-          f_csa_signal_val = f_csa_signal_val / (Double_t)CSA_SIGNAL_SIZE;
-          h_csa_signal [l_sfp_id][l_feb_id][l_cha_id]->Fill (f_csa_signal_val - f_csa_base_val);
-
-          if (((l_sfp_id == 0) && (l_feb_id == 0)) &&
-             ((l_cha_id ==  3) || (l_cha_id ==  4) || (l_cha_id ==  5) || (l_cha_id ==  8) ||
-              (l_cha_id ==  9) || (l_cha_id == 10) || (l_cha_id == 11) || (l_cha_id == 12)))
-          {
-            printf ("cha id %d, s - b: %f \n", l_cha_id, f_csa_signal_val - f_csa_base_val); 
-            f_csa_sum_sig += (f_csa_signal_val - f_csa_base_val);
-
-            if ((f_csa_signal_val - f_csa_base_val) > f_csa_max_sig)
-            {  
-              f_csa_max_sig = f_csa_signal_val - f_csa_base_val;
-              l_csa_max_cha = l_cha_id;
-            }
-          }
-
-          if ((l_sfp_id == 0) && (l_feb_id == 0) && (l_cha_id == 14))
-          {
-            f_ref_cha_base_val = f_csa_base_val; 
-          }
-        }
-
+     
+}
         // jump over trace
         //pl_tmp += (l_cha_size >> 2) - 2;          
             
@@ -707,21 +691,57 @@ Bool_t TAwagsSisProc::BuildEvent(TGo4EventElement* target)
         {
           h_ch_hitpat   [l_i][l_j][l_k]->Fill (l_ch_hitpat   [l_i][l_j][l_k]);  
           h_ch_hitpat_tr[l_i][l_j][l_k]->Fill (l_ch_hitpat_tr[l_i][l_j][l_k]);  
-        }
-      }
-    }
-  }
-
-  //printf ("f_csa_sum_sig %f \n", f_csa_sum_sig); 
-  h_csa_sum_sig->Fill (f_csa_sum_sig); 
-  h_peak_ref_sig->Fill (f_ref_peak - f_ref_cha_base_val);    
-  h_peak_ref__sum_csa->Fill (f_csa_sum_sig, f_ref_peak - f_ref_cha_base_val);
-
-  if ((l_csa_max_cha == 4) || (l_csa_max_cha == 5))
-  {
-    h_peak_ref__sum_csa2->Fill (f_csa_sum_sig, f_ref_peak - f_ref_cha_base_val);
-  }
+        
+        
+          /** JAM 10-Sep-2021: do more fast and simple evaluation of average heights here:*/
+           Double_t range_back=fxBackgroundRegion->GetXUp()-fxBackgroundRegion->GetXLow();
+           Double_t ave_back= 0;
+           if(range_back) ave_back=fxBackgroundRegion->GetIntegral(h_trace[l_i][l_j][l_k]) / range_back;
+           if(ave_back) h_background_height [l_i][l_j][l_k]->Fill(ave_back);
     
+           Double_t range_sig=fxSignalRegion->GetXUp()-fxSignalRegion->GetXLow();
+           Double_t ave_sig= 0;
+           if(range_sig) ave_sig=fxSignalRegion->GetIntegral(h_trace[l_i][l_j][l_k]) / range_sig;
+           if(ave_sig) h_signal_height [l_i][l_j][l_k]->Fill(ave_sig);
+
+           Double_t sigtoback=0;
+           sigtoback=ave_sig/ave_back;
+           if(sigtoback) {
+             h_signal_to_background [l_i][l_j][l_k]->Fill(sigtoback);
+             sigtoback_average += sigtoback;
+             ++numvals;
+           }
+
+           Double_t sigminusback=ave_sig -ave_back;
+           h_signal_minus_background [l_i][l_j][l_k]->Fill(sigminusback);
+           fDeltaQ[l_i][l_j][l_k]=sigminusback; // evaluation of delta Q between subsequent event samples in spill
+
+        } // l_k
+      } // l_j
+    } // if slaves
+  } // l_i
+
+  if(numvals)
+    sigtoback_average/=numvals;
+  h_signal_to_background_ave->Fill(sigtoback_average);
+  if(!fNewSpill && sigtoback_average< fPar->fSpillBeginThreshold)
+  {
+    printf("LLLL - Looking for new spill because sigtoback_average=%e is below threshold %e", sigtoback_average, fPar->fSpillBeginThreshold);
+    fNewSpill=kTRUE;
+    fInSpill=kFALSE;
+  }
+if(fNewSpill && sigtoback_average >=fPar->fSpillBeginThreshold)
+{
+  printf("SSSS -Found begin of new spill because sigtoback_average=%e rises above threshold %e", sigtoback_average, fPar->fSpillBeginThreshold);
+  fInSpill=kTRUE;
+}
+
+
+
+  EvaluateSpills();
+
+
+
 bad_event:
 
 
@@ -744,9 +764,78 @@ bad_event:
     printf ("------------------------------------------------------\n");
     fflush (stdout);
   } 
+ } // while subevents
+
+
+  if (fPar->fSlowMotion)
+     {
+         Int_t evnum=fInput->GetCount();
+         GO4_STOP_ANALYSIS_MESSAGE("Stopped for slow motion mode after MBS event count %d. Click green arrow for next event. please.", evnum);
+     }
 
   return kTRUE;
 }
+
+
+void TAwagsSisProc::EvaluateSpills()
+{
+  UInt_t l_i, l_j, l_k;
+  if(!fInSpill) return;
+  h_spill_scaler->AddBinContent(1);
+
+  for (l_i=0; l_i<MAX_SFP; l_i++)
+   {
+     if (l_sfp_slaves[l_i] != 0)
+     {
+       for (l_j=0; l_j<l_sfp_slaves[l_i]; l_j++)
+       {
+         for (l_k=0; l_k<N_CHA; l_k++)
+         {
+
+           if(fNewSpill)
+           {
+             // TODO: when new spill is detected, copy q vs evt and traces to output event and set this valid.
+
+             // then clear the previous spill histograms:
+             fiEventInSpill=0;
+             h_q_spill [l_i][l_j][l_k]->Reset("");
+             h_trace_stitched[l_i][l_j][l_k]->Reset("");
+           }
+
+           Double_t value=0;
+           Int_t stitchbin=0;
+           Int_t tracebinmax=h_trace[l_i][l_j][l_k]->GetNbinsX();
+           for(Int_t bin=1; bin<tracebinmax; ++bin)
+             {
+              value=h_trace[l_i][l_j][l_k]->GetBinContent(bin);
+              stitchbin=bin+fiEventInSpill*tracebinmax;
+              if(stitchbin < h_trace_stitched[l_i][l_j][l_k]->GetNbinsX())
+              {
+                h_trace_stitched[l_i][l_j][l_k]->SetBinContent(stitchbin, value);
+                h_trace_stitched_sum[l_i][l_j][l_k]->AddBinContent(stitchbin, value);
+              }
+              // TODO for mapping            outevent->fTrace[l_i][l_j][l_k].push_back(value);
+             }
+
+           h_q_spill [l_i][l_j][l_k]->Fill(fiEventInSpill, fDeltaQ[l_i][l_j][l_k]);
+           h_q_spill_sum [l_i][l_j][l_k]->Fill(fiEventInSpill, fDeltaQ[l_i][l_j][l_k]);
+
+
+         }
+       }
+     }
+   }
+  fiEventInSpill++;
+  if(fNewSpill)
+  {
+      fNewSpill=kFALSE;
+      h_spill_scaler->AddBinContent(2);
+  }
+}
+
+
+
+
 
 //--------------------------------------------------------------------------------------------------------
 
@@ -754,11 +843,14 @@ void TAwagsSisProc:: f_make_histo (Int_t l_mode)
 {
   Text_t chis[256];
   Text_t chead[256];
+  Text_t cfolder[256];
   UInt_t l_i, l_j, l_k;
   UInt_t l_tra_size;
   UInt_t l_trap_n_avg;
-  UInt_t l_left;
-  UInt_t l_right;
+//  UInt_t l_left;
+//  UInt_t l_right;
+
+  Bool_t firstcheck=kTRUE;
 
   #ifdef USE_MBS_PARAM
   l_tra_size   = l_trace & 0xffff;
@@ -776,7 +868,7 @@ void TAwagsSisProc:: f_make_histo (Int_t l_mode)
   l_tra_size   = TRACE_SIZE;
   l_trap_n_avg = TRAPEZ_N_AVG;
   #endif // USE_MBS_PARAM      
-
+  SetMakeWithAutosave(kTRUE);
   for (l_i=0; l_i<MAX_SFP; l_i++)
   {
     if (l_sfp_slaves[l_i] != 0)
@@ -808,8 +900,8 @@ void TAwagsSisProc:: f_make_histo (Int_t l_mode)
         {
           sprintf(chis,"FPGA/FPGA Energy(hitlist) SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
           sprintf(chead,"FPGA Energy");
-          l_right = 0x1000 * l_trap_n_avg;
-          l_left = -1 * l_right;
+          //l_right = 0x1000 * l_trap_n_avg;
+          //l_left = -1 * l_right;
           //printf ("depp: %d %d\n", l_left, l_right); fflush (stdout); 
           //h_fpga_e[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x1000,l_left,l_right);
           h_fpga_e[l_i][l_j][l_k] = MakeTH1('F', chis,chead,100000,-1000000,1000000);
@@ -864,35 +956,140 @@ void TAwagsSisProc:: f_make_histo (Int_t l_mode)
           h_adc_spect[l_i][l_j][l_k] = MakeTH1('F', chis,chead,16384,-1000,1000);
         }
 
-        for (l_k=0; l_k<N_CHA; l_k++)
-        {
-          sprintf(chis,"CSA BASE/average baseline SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
-          sprintf(chead,"Average baseline");
-          h_csa_base[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x8000,-0x4000,0x4000);
-        }
-        for (l_k=0; l_k<N_CHA; l_k++)
-        {
-          sprintf(chis,"CSA SIGNAL/average signal - average baseline SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
-          sprintf(chead,"Average baseline");
-          h_csa_signal[l_i][l_j][l_k] = MakeTH1('F', chis,chead,0x8000,-0x4000,0x4000);
-        }
-      }
-    }
-  }
-  sprintf(chis,"CSA SIGNAL SUM");
-  sprintf(chead,"Summed CSA Signals");
-  h_csa_sum_sig =  MakeTH1('F', chis,chead,1000,0,2000); 
-  sprintf(chis,"PEAK REFERENCE SIGNAL");
-  sprintf(chead,"(peak - base) refefence signal ");
-  h_peak_ref_sig =  MakeTH1('F', chis,chead,1000,0,1000);
+ 
+ 
+ 
+ 
 
-  sprintf (chis,"Correlation Peak Ref vs. CSA sum");
-  sprintf (chead,"Peak Refernence vs CSA_SUM ");
-  h_peak_ref__sum_csa = MakeTH2 ('F', chis, chead, 200, 0, 2000, 200, 0, 1000);
+        // JAM2021: define regions for evaluation of average background and signal height:
+        fxBackgroundRegion=MakeWinCond("BackgroundRegion",CSA_BASE_START, CSA_BASE_START + CSA_BASE_SIZE);
+        fxSignalRegion=MakeWinCond("SignalRegion", CSA_SIGNAL_START, CSA_SIGNAL_START+ CSA_SIGNAL_SIZE);
 
-  sprintf (chis,"Correlation Peak Ref vs. CSA sum 2");
-  sprintf (chead,"Peak Refernence vs CSA_SUM 2");
-  h_peak_ref__sum_csa2 = MakeTH2 ('F', chis, chead, 200, 0, 2000, 200, 0, 1000);
+          // JAM 2021: without the fitter, we define result histograms for background and signal average:
+        for (l_k = 0; l_k < N_CHA; l_k++)
+        {
+          sprintf(chis, "Baselines/Background/Background SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+          sprintf(chead, "Average background region height SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+          h_background_height[l_i][l_j][l_k] = MakeTH1('F', chis, chead, 0x8000, 0, 0x8000);
+
+          sprintf(chis, "Baselines/Signals/Signals SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+          sprintf(chead, "Average signal region height SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+          h_signal_height[l_i][l_j][l_k] = MakeTH1('F', chis, chead, 0x8000, 0, 0x8000);
+
+          sprintf(chis, "Baselines/StoB/Signal_background_ratio SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+          sprintf(chead, "Average signal to background ratio SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+          h_signal_to_background[l_i][l_j][l_k] = MakeTH1('F', chis, chead, 1000, 0, 5);
+
+          sprintf(chis, "Baselines/S-B/Signal_minus_background_SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+          sprintf(chead, "Average signal minus background SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+          h_signal_minus_background[l_i][l_j][l_k] = MakeTH1('F', chis, chead, 0x8000, -0x4000, 0x4000);
+
+          // JAM2022: here special histograms for awags spill evaluation:
+
+
+
+
+
+          sprintf(chis, "Spills/Charge/Spillcharge SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+          sprintf(chead, "Charge trend during last spill SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+
+            // TODO first find out if we have changed preset range of spills:
+          if(firstcheck)
+          {
+            TH1* testhis = GetHistogram(chis);
+            if (testhis && (testhis->GetNbinsX() != fPar->fNumEventsPerSpill))
+            {
+              printf("SSSS MBS event range for Spill changed in parameter to %d, recreate spill histograms...\n", fPar->fNumEventsPerSpill);
+              SetMakeWithAutosave(kFALSE);
+            }
+            firstcheck = kFALSE;
+          }
+          h_q_spill[l_i][l_j][l_k] = MakeTH1('F', chis, chead, fPar->fNumEventsPerSpill, 0, fPar->fNumEventsPerSpill,
+              "MBS Event index", "#Delta Q");
+
+          sprintf(chis, "Spills/ChargeSum/SpillchargeSum SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+          sprintf(chead, "Accumulated charge trend during spill SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+          h_q_spill_sum[l_i][l_j][l_k] = MakeTH1('F', chis, chead, fPar->fNumEventsPerSpill, 0,
+              fPar->fNumEventsPerSpill, "MBS Event index", "#Delta Q");
+
+          sprintf(chis, "Spills/Traces/Spilltrace  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+          sprintf(chead, "Stitched traces during last spill SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+          h_trace_stitched[l_i][l_j][l_k] = MakeTH1('I', chis, chead, l_tra_size * fPar->fNumEventsPerSpill, 0,
+              l_tra_size * fPar->fNumEventsPerSpill);
+
+          sprintf(chis, "Spills/TracesSum/SpilltraceSum  SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+          sprintf(chead, "Accumulated stitched traces during last spill SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+          h_trace_stitched_sum[l_i][l_j][l_k] = MakeTH1('I', chis, chead, l_tra_size * fPar->fNumEventsPerSpill, 0,
+              l_tra_size * fPar->fNumEventsPerSpill);
+
+        }    // l_k
+
+      } // l_j
+    } // l_sfp_slaves
+  } // l_i
+  ///////////////////////////// Pictures below
+  
+  // JAM2021 - new picture for baseline without fit:
+  for (l_i = 0; l_i < MAX_SFP; l_i++)
+  {
+    if (l_sfp_slaves[l_i] != 0)
+    {
+      for (l_j = 0; l_j < l_sfp_slaves[l_i]; l_j++)
+      {
+        sprintf(cfolder, "Baselines/SFP0%2d_Slave%2d", l_i, l_j);
+        for (l_k = 0; l_k < N_CHA; l_k++)
+        {
+          sprintf(chis, "Picture_baselines_%2d_%2d_%2d", l_i, l_j, l_k);
+          TGo4Picture* pic = GetPicture(chis);
+          if (pic == 0)
+          {
+            sprintf(chead, "Trace Baselines SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+            pic = new TGo4Picture(chis, chead);
+            pic->SetDivision(2, 2);
+            pic->Pic(0, 0)->AddObject(h_trace[l_i][l_j][l_k]);
+            //pic->Pic(0, 0)->SetLineAtt(3, 1, 1);    // solid line
+            pic->Pic(0, 0)->AddObject(fxBackgroundRegion);    // one region for all
+            pic->Pic(0, 0)->AddObject(fxSignalRegion);    // one region for all
+            pic->Pic(0, 1)->AddObject(h_background_height[l_i][l_j][l_k]);
+            //pic->Pic(0, 0)->SetLineAtt(3, 1, 1);    // solid line
+            pic->Pic(0, 1)->AddObject(h_signal_height[l_i][l_j][l_k]);
+            pic->Pic(1, 0)->AddObject(h_signal_minus_background[l_i][l_j][l_k]);
+            pic->Pic(1, 1)->AddObject(h_signal_to_background[l_i][l_j][l_k]);
+            AddPicture(pic, cfolder);
+          }
+        }    // l_k
+
+
+         /////////////// spill overviews:
+
+          sprintf(cfolder, "Spills/SFP0%2d_Slave%2d", l_i, l_j);
+        for (l_k = 0; l_k < N_CHA; l_k++)
+        {
+          sprintf(chis, "Picture_Spills_%2d_%2d_%2d", l_i, l_j, l_k);
+          TGo4Picture* pic = GetPicture(chis);
+          if (pic == 0)
+          {
+            sprintf(chead, "Spill traces SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
+            pic = new TGo4Picture(chis, chead);
+            pic->SetDivision(2, 2);
+            pic->Pic(0, 0)->AddObject(h_trace_stitched[l_i][l_j][l_k]);
+            //pic->Pic(0, 0)->SetLineAtt(3, 1, 1);    // solid line
+            pic->Pic(0, 1)->AddObject(h_q_spill[l_i][l_j][l_k]);
+            pic->Pic(1, 0)->AddObject(h_trace_stitched_sum[l_i][l_j][l_k]);
+            pic->Pic(1, 1)->AddObject(h_q_spill_sum[l_i][l_j][l_k]);
+            AddPicture(pic, cfolder);
+          }
+
+        } // l_k
+
+      } // l_j
+    } //l_sfp_slaves
+  } // l_i
+
 }
+
+
+
+
 
 //----------------------------END OF GO4 SOURCE FILE ---------------------
