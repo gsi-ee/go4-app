@@ -20,7 +20,12 @@
 #pragma link off all functions;
 
 #pragma link C++ class TAwagsSisParam+;
+#pragma link C++ class TAwagsSisMapParam+;
 #pragma link C++ class TAwagsSisProc+;
+#pragma link C++ class TAwagsSisBasicEvent+;
+#pragma link C++ class TAwagsSisMapProc+;
+#pragma link C++ class TAwagsSisMapEvent+;
+#pragma link C++ class TAwagsSisAnalysis+;
 
 #endif
 

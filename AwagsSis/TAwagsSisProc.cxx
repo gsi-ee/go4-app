@@ -28,7 +28,7 @@
 
 #include "TAwagsSisProc.h"
 #include "TAwagsSisParam.h"
-
+#include "TAwagsSisBasicEvent.h"
 #include "stdint.h"
 
 #include "Riostream.h"
@@ -81,7 +81,8 @@ static UInt_t    l_e_filt_out_of_trig_wind_ct=0;
 static UInt_t    l_first=0;
 
 //***********************************************************
-TAwagsSisProc::TAwagsSisProc() : TGo4EventProcessor("Proc"),  fNewSpill(kFALSE), fInSpill(kFALSE), fiEventInSpill(0)
+TAwagsSisProc::TAwagsSisProc() : TGo4EventProcessor("Proc"),
+    fInput(0),fPar(0), fNewSpill(kFALSE), fInSpill(kFALSE), fiEventInSpill(0), h_spill_scaler(0), h_signal_to_background_ave(0),fxSpillSelector(0),fxBackgroundRegion(0),fxSignalRegion(0)
 {
   cout << "**** TAwagsSisProc: Create instance " << endl;
 }
@@ -92,7 +93,8 @@ TAwagsSisProc::~TAwagsSisProc()
 }
 //***********************************************************
 // this one is used in standard factory
-TAwagsSisProc::TAwagsSisProc(const char* name) : TGo4EventProcessor(name),  fNewSpill(kFALSE), fInSpill(kFALSE), fiEventInSpill(0)
+TAwagsSisProc::TAwagsSisProc(const char* name) : TGo4EventProcessor(name),fInput(0),fOutput(0),
+    fNewSpill(kFALSE), fInSpill(kFALSE), fiEventInSpill(0), fxBackgroundRegion(0),fxSignalRegion(0)
 {
   cout << "**** TAwagsSisProc: Create instance " << name << endl;
   l_first = 0;  
@@ -111,7 +113,7 @@ TAwagsSisProc::TAwagsSisProc(const char* name) : TGo4EventProcessor(name),  fNew
      obname.Form("Baselines/StoB/Signal_background_ratio_average");
      obtitle.Form("Average signal to background ratio all active channels");
      h_signal_to_background_ave= MakeTH1('F', obname.Data(), obtitle.Data(), 1000, 0, 5);
-
+     fxSpillSelector=MakeWinCond("SpillSelect", 1.01, 5, obname.Data());
 
   //printf ("Histograms created \n");  fflush (stdout);
 }
@@ -119,6 +121,7 @@ TAwagsSisProc::TAwagsSisProc(const char* name) : TGo4EventProcessor(name),  fNew
 // event function
 Bool_t TAwagsSisProc::BuildEvent(TGo4EventElement* target)
 {  // called by framework. We dont fill any output event here at all
+
 
   UInt_t         l_i, l_j, l_k, l_l;
   uint32_t      *pl_se_dat;
@@ -179,18 +182,20 @@ Bool_t TAwagsSisProc::BuildEvent(TGo4EventElement* target)
   Int_t       l_dat_filt;
   Int_t       l_filt_sign;
 
-  Double_t sigtoback_average=0.0; // use average value of all channels to detect spill start
-  Int_t numvals=0;
- 
-  TGo4MbsSubEvent* psubevt;
+  Double_t stob=0;
 
-  fInput = (TGo4MbsEvent* ) GetInputEvent();
+
+  TGo4MbsSubEvent* psubevt;
+  fInput = dynamic_cast<TGo4MbsEvent*> (GetInputEvent());
   if(fInput == 0)
   {
-    cout << "AnlProc: no input event !"<< endl;
-    return kFALSE;
+    GO4_STOP_ANALYSIS_MESSAGE(
+        "NEVER COME HERE: output event is not configured, wrong class!");
   }
-
+  fOutput= dynamic_cast<TAwagsSisBasicEvent*>  (target);
+  if(fOutput==0)  GO4_STOP_ANALYSIS_MESSAGE(
+      "NEVER COME HERE: output event is not configured, wrong class!");
+  fOutput->SetValid(kFALSE);
   l_trig_type_triva = fInput->GetTrigger();
   if (l_trig_type_triva == 1)
   {
@@ -304,7 +309,7 @@ Bool_t TAwagsSisProc::BuildEvent(TGo4EventElement* target)
     printf ("debug: 0x%x, 0x%x, 0x%x \n", l_slaves, l_trace, l_e_filt);
     fflush (stdout);
     #endif
-    f_make_histo (0);
+    InitDisplay (0);
   }
 
   for (l_i=0; l_i<MAX_SFP; l_i++)
@@ -680,6 +685,8 @@ Bool_t TAwagsSisProc::BuildEvent(TGo4EventElement* target)
     }       
   }
 
+  } // while subevents
+  /****************End of acual unpacker. below further treatments on histogram data********************************/
 
   for (l_i=0; l_i<MAX_SFP; l_i++)
   {
@@ -691,110 +698,151 @@ Bool_t TAwagsSisProc::BuildEvent(TGo4EventElement* target)
         {
           h_ch_hitpat   [l_i][l_j][l_k]->Fill (l_ch_hitpat   [l_i][l_j][l_k]);  
           h_ch_hitpat_tr[l_i][l_j][l_k]->Fill (l_ch_hitpat_tr[l_i][l_j][l_k]);  
-        
-        
-          /** JAM 10-Sep-2021: do more fast and simple evaluation of average heights here:*/
-           Double_t range_back=fxBackgroundRegion->GetXUp()-fxBackgroundRegion->GetXLow();
-           Double_t ave_back= 0;
-           if(range_back) ave_back=fxBackgroundRegion->GetIntegral(h_trace[l_i][l_j][l_k]) / range_back;
-           if(ave_back) h_background_height [l_i][l_j][l_k]->Fill(ave_back);
-    
-           Double_t range_sig=fxSignalRegion->GetXUp()-fxSignalRegion->GetXLow();
-           Double_t ave_sig= 0;
-           if(range_sig) ave_sig=fxSignalRegion->GetIntegral(h_trace[l_i][l_j][l_k]) / range_sig;
-           if(ave_sig) h_signal_height [l_i][l_j][l_k]->Fill(ave_sig);
-
-           Double_t sigtoback=0;
-           sigtoback=ave_sig/ave_back;
-           if(sigtoback) {
-             h_signal_to_background [l_i][l_j][l_k]->Fill(sigtoback);
-             sigtoback_average += sigtoback;
-             ++numvals;
-           }
-
-           Double_t sigminusback=ave_sig -ave_back;
-           h_signal_minus_background [l_i][l_j][l_k]->Fill(sigminusback);
-           fDeltaQ[l_i][l_j][l_k]=sigminusback; // evaluation of delta Q between subsequent event samples in spill
-
         } // l_k
       } // l_j
     } // if slaves
   } // l_i
 
-  if(numvals)
-    sigtoback_average/=numvals;
-  h_signal_to_background_ave->Fill(sigtoback_average);
-  if(!fNewSpill && sigtoback_average< fPar->fSpillBeginThreshold)
-  {
-    printf("LLLL - Looking for new spill because sigtoback_average=%e is below threshold %e", sigtoback_average, fPar->fSpillBeginThreshold);
-    fNewSpill=kTRUE;
-    fInSpill=kFALSE;
-  }
-if(fNewSpill && sigtoback_average >=fPar->fSpillBeginThreshold)
-{
-  printf("SSSS -Found begin of new spill because sigtoback_average=%e rises above threshold %e", sigtoback_average, fPar->fSpillBeginThreshold);
-  fInSpill=kTRUE;
-}
+/**** END of original Nik code for generic Febex *************************/
 
 
 
-  EvaluateSpills();
+ stob= HandleSignalToBackground();
+ EvaluateSpills(stob);
 
 
 
-bad_event:
 
 
-  if ( (l_evt_ct % 1000) == 0)
-  {
-    printf ("------------------------------------------------------\n");
-    printf ("nr of events processed:                  %10u \n", l_evt_ct);
-    printf ("nr of good_energies found:               %10u \n", l_good_energy_ct);
-    printf ("single hits found in trigger window:     %10u \n", l_1_hit_ct);
-    printf ("multi hits found in trigger window:      %10u \n", l_more_1_hit_ct);
-    printf ("multi hits found, first hit energy ok:   %10u \n", l_more_1_hit_first_energy_ok_ct);
-    printf ("nr of events with failed fpga energy:    %10u \n", l_eeeeee_ct);
-    printf ("nr of events with eeeee1:                %10u \n", l_eeeee1_ct);
-    printf ("nr of events with eeeee2:                %10u \n", l_eeeee2_ct);
-    printf ("nr of events with eeeee3:                %10u \n", l_eeeee3_ct);
-    printf ("nr of events with failed fpga energy - \n");
-    printf ("and a single hit found in trigger window %10u \n", l_1_hit_and_eeeeee_ct);
-    printf ("nr of events with failed fpga energy - \n");
-    printf ("and multi hits found in trigger window   %10u \n", l_more_1_hit_and_eeeeee_ct);
-    printf ("------------------------------------------------------\n");
-    fflush (stdout);
-  } 
- } // while subevents
 
-
-  if (fPar->fSlowMotion)
-     {
-         Int_t evnum=fInput->GetCount();
-         GO4_STOP_ANALYSIS_MESSAGE("Stopped for slow motion mode after MBS event count %d. Click green arrow for next event. please.", evnum);
-     }
+//  if ( (l_evt_ct % 1000) == 0)
+//  {
+//    printf ("------------------------------------------------------\n");
+//    printf ("nr of events processed:                  %10u \n", l_evt_ct);
+//    printf ("nr of good_energies found:               %10u \n", l_good_energy_ct);
+//    printf ("single hits found in trigger window:     %10u \n", l_1_hit_ct);
+//    printf ("multi hits found in trigger window:      %10u \n", l_more_1_hit_ct);
+//    printf ("multi hits found, first hit energy ok:   %10u \n", l_more_1_hit_first_energy_ok_ct);
+//    printf ("nr of events with failed fpga energy:    %10u \n", l_eeeeee_ct);
+//    printf ("nr of events with eeeee1:                %10u \n", l_eeeee1_ct);
+//    printf ("nr of events with eeeee2:                %10u \n", l_eeeee2_ct);
+//    printf ("nr of events with eeeee3:                %10u \n", l_eeeee3_ct);
+//    printf ("nr of events with failed fpga energy - \n");
+//    printf ("and a single hit found in trigger window %10u \n", l_1_hit_and_eeeeee_ct);
+//    printf ("nr of events with failed fpga energy - \n");
+//    printf ("and multi hits found in trigger window   %10u \n", l_more_1_hit_and_eeeeee_ct);
+//    printf ("------------------------------------------------------\n");
+//    fflush (stdout);
+//  }
 
   return kTRUE;
+
+  bad_event:
+    GO4_SKIP_EVENT_MESSAGE("Skipped bad event %d", fInput->GetCount());
+
 }
 
 
-void TAwagsSisProc::EvaluateSpills()
+Double_t TAwagsSisProc::HandleSignalToBackground()
 {
-  UInt_t l_i, l_j, l_k;
-  if(!fInSpill) return;
-  h_spill_scaler->AddBinContent(1);
-
-  for (l_i=0; l_i<MAX_SFP; l_i++)
+  // JAM 27-jul-2022: this code is reused from gem csa analysis of 2021. Apply it here to find begin of spill
+  // and also for calculating accumulated charge differences for each event
+  Double_t sigtoback_average=0.0; // use average value of all channels to detect spill start
+    Int_t numvals=0;
+  for (UInt_t l_i=0; l_i<MAX_SFP; l_i++)
    {
      if (l_sfp_slaves[l_i] != 0)
      {
-       for (l_j=0; l_j<l_sfp_slaves[l_i]; l_j++)
+       for (UInt_t l_j=0; l_j<l_sfp_slaves[l_i]; l_j++)
        {
-         for (l_k=0; l_k<N_CHA; l_k++)
+         for (UInt_t l_k=0; l_k<N_CHA; l_k++)
+         {
+            Double_t range_back=fxBackgroundRegion->GetXUp()-fxBackgroundRegion->GetXLow();
+            Double_t ave_back= 0;
+            if(range_back) ave_back=fxBackgroundRegion->GetIntegral(h_trace[l_i][l_j][l_k]) / range_back;
+            if(ave_back) h_background_height [l_i][l_j][l_k]->Fill(ave_back);
+
+            Double_t range_sig=fxSignalRegion->GetXUp()-fxSignalRegion->GetXLow();
+            Double_t ave_sig= 0;
+            if(range_sig) ave_sig=fxSignalRegion->GetIntegral(h_trace[l_i][l_j][l_k]) / range_sig;
+            if(ave_sig) h_signal_height [l_i][l_j][l_k]->Fill(ave_sig);
+
+            Double_t sigtoback=0;
+            sigtoback=ave_sig/ave_back;
+            if(sigtoback) {
+              h_signal_to_background [l_i][l_j][l_k]->Fill(sigtoback);
+              sigtoback_average += sigtoback;
+              ++numvals;
+            }
+
+            Double_t sigminusback=ave_sig -ave_back;
+            h_signal_minus_background [l_i][l_j][l_k]->Fill(sigminusback);
+            fDeltaQ[l_i][l_j][l_k]=sigminusback; // evaluation of delta Q between subsequent event samples in spill
+
+         } // l_k
+       } // l_j
+     } // if slaves
+   } // l_i
+
+   if(numvals)
+     sigtoback_average/=numvals;
+   h_signal_to_background_ave->Fill(sigtoback_average); // use overview histogram for setting condition
+  return sigtoback_average;
+}
+
+
+
+void TAwagsSisProc::EvaluateSpills(Double_t sigtoback)
+{
+  // first find out the state we are in: before, in, after spill:
+  if(!fNewSpill && !fxSpillSelector->Test(sigtoback))
+   {
+     printf("LLLL - Looking for new spill because sigtoback_average=%e is below threshold %e", sigtoback, fxSpillSelector->GetXLow());
+     fNewSpill=kTRUE;
+     fInSpill=kFALSE;
+   }
+   if(fNewSpill &&fxSpillSelector->Test(sigtoback))
+ {
+   printf("SSSS -Found begin of new spill because sigtoback_average=%e rises above threshold %e", sigtoback, fxSpillSelector->GetXLow());
+   fInSpill=kTRUE;
+ }
+
+   // TODO: breakout of in spill if we exceed the user limit for mbs events numbers at each spill
+
+
+
+  if(!fInSpill) return;
+
+  // if we are in the spill, put data to combined spill display and output event for mapping:
+  h_spill_scaler->AddBinContent(1);
+
+  for (UInt_t l_i=0; l_i<MAX_SFP; l_i++)
+   {
+     if (l_sfp_slaves[l_i] != 0)
+     {
+       for (UInt_t l_j=0; l_j<l_sfp_slaves[l_i]; l_j++)
+       {
+         for (UInt_t l_k=0; l_k<N_CHA; l_k++)
          {
 
            if(fNewSpill)
            {
-             // TODO: when new spill is detected, copy q vs evt and traces to output event and set this valid.
+             // when new spill is detected, copy previous q vs evt and traces to output event and set this valid.
+             if (fPar->fMapSpills)
+            {
+              Double_t value = 0;
+              for (Int_t bin = 1; bin < h_trace_stitched[l_i][l_j][l_k]->GetNbinsX(); ++bin)
+              {
+                value = h_trace_stitched[l_i][l_j][l_k]->GetBinContent(bin);
+                fOutput->fSpillTrace[l_i][l_j][l_k].push_back(value);
+              }
+              for (Int_t bin = 1; bin < h_q_spill[l_i][l_j][l_k]->GetNbinsX(); ++bin)
+              {
+                value = h_q_spill[l_i][l_j][l_k]->GetBinContent(bin);
+                fOutput->fChargeTrend[l_i][l_j][l_k].push_back(value);
+              }
+               fOutput->SetValid(kTRUE);
+            }
 
              // then clear the previous spill histograms:
              fiEventInSpill=0;
@@ -839,7 +887,7 @@ void TAwagsSisProc::EvaluateSpills()
 
 //--------------------------------------------------------------------------------------------------------
 
-void TAwagsSisProc:: f_make_histo (Int_t l_mode)
+void TAwagsSisProc:: InitDisplay (Int_t l_mode)
 {
   Text_t chis[256];
   Text_t chead[256];
@@ -855,13 +903,13 @@ void TAwagsSisProc:: f_make_histo (Int_t l_mode)
   #ifdef USE_MBS_PARAM
   l_tra_size   = l_trace & 0xffff;
   l_trap_n_avg = l_e_filt >> 21;
-  printf ("f_make_histo: trace size: %d, avg size %d \n", l_tra_size, l_trap_n_avg);
+  printf ("InitDisplay: trace size: %d, avg size %d \n", l_tra_size, l_trap_n_avg);
   fflush (stdout);
   l_sfp_slaves[0] =  l_slaves & 0xff;   
   l_sfp_slaves[1] = (l_slaves & 0xff00)     >>  8;
   l_sfp_slaves[2] = (l_slaves & 0xff0000)   >> 16;
   l_sfp_slaves[3] = (l_slaves & 0xff000000) >> 24;
-  printf ("f_make_histo: # of sfp slaves: 3:%d, 2:%d, 1: %d, 0: %d \n",
+  printf ("InitDisplay: # of sfp slaves: 3:%d, 2:%d, 1: %d, 0: %d \n",
           l_sfp_slaves[3], l_sfp_slaves[2], l_sfp_slaves[1], l_sfp_slaves[0]);
   fflush (stdout);
   #else

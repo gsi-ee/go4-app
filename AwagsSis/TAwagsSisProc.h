@@ -21,9 +21,12 @@
 //#define WR_TIME_STAMP     1   // white rabbit time stamp is head of data
 #define USE_MBS_PARAM     1   // 
 
-#define MAX_SFP           4
-#define MAX_SLAVE        16
-#define N_CHA            16
+
+
+// defined in event structure:
+//#define MAX_SFP           4
+//#define MAX_SLAVE        16
+//#define N_CHA            16
 
 #ifdef WR_TIME_STAMP
 #define SUB_SYSTEM_ID      0x100 // sub-system identifier pci express
@@ -61,24 +64,31 @@
 #define BASE_LINE_SUBT_SIZE   150
 
 #include "TGo4EventProcessor.h"
-
+#include "TAwagsSisBasicEvent.h"
 class TAwagsSisParam;
-class TGo4Fitter;
 
 class TAwagsSisProc : public TGo4EventProcessor {
    public:
       TAwagsSisProc() ;
       TAwagsSisProc(const char* name);
       virtual ~TAwagsSisProc() ;
-      void f_make_histo (Int_t); 
+
 
       Bool_t BuildEvent(TGo4EventElement* target); // event processing function
+protected:
+      /* dynamically init histograms. formerly known as f_init_histo*/
+       void InitDisplay (Int_t);
 
-     /* here put together MBS events to spill traces and trends*/
-      void EvaluateSpills();
+      /* treat signal and background regions for average heights
+       * Returns average of signal to background for all channels */
+       Double_t HandleSignalToBackground();
+
+      /* here put together MBS events to spill traces and trends*/
+      void EvaluateSpills(Double_t threshold);
 
  private:
       TGo4MbsEvent  *fInput;  //!
+      TAwagsSisBasicEvent *fOutput;
 
       TAwagsSisParam* fPar;
 
@@ -94,6 +104,8 @@ class TAwagsSisProc : public TGo4EventProcessor {
 
       TH1          *h_spill_scaler; //!< count spills and events
       TH1          *h_signal_to_background_ave; //!<average of all channels, monitor spill on criterium
+
+      TGo4WinCond* fxSpillSelector; //< window on signal to background average that defines when we are in spill
 
       TH1          *h_trace        [MAX_SFP][MAX_SLAVE][N_CHA];  //!
       TH1          *h_trace_blr    [MAX_SFP][MAX_SLAVE][N_CHA];  //!

@@ -19,12 +19,12 @@
 //using namespace std;
 
 //***********************************************************
-TAwagsSisParam::TAwagsSisParam() : TGo4Parameter("Parameter"), fNumEventsPerSpill(150),fSpillBeginThreshold(1.01), fSlowMotion(kFALSE)
+TAwagsSisParam::TAwagsSisParam() : TGo4Parameter("Parameter"), fNumEventsPerSpill(150), fMapSpills(kTRUE)
 {
 
 }
 //***********************************************************
-TAwagsSisParam::TAwagsSisParam(const char* name) : TGo4Parameter(name),fNumEventsPerSpill(150),fSpillBeginThreshold(1.01),fSlowMotion(kFALSE)
+TAwagsSisParam::TAwagsSisParam(const char* name) : TGo4Parameter(name),fNumEventsPerSpill(150),fMapSpills(kTRUE)
 {
 
 }
