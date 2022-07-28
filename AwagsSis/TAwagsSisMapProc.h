@@ -5,8 +5,8 @@
 #include "TGo4EventProcessor.h"
 
 #include "TAwagsSisMapEvent.h"
+#include "TAwagsSisMapParam.h"
 
-class TAwagsSisMapParam;
 class TAwagsSisMapEvent;
 
 class TAwagsSisMapProc: public TGo4EventProcessor
@@ -18,7 +18,26 @@ public:
 
   virtual Bool_t BuildEvent(TGo4EventElement* dest);
 
+
+protected:
+
   void ResetTraces();
+
+  Int_t GetNumWires(Int_t dev)
+  {
+    Int_t numwires=fParam->fMaxWire[dev];
+    if(numwires>CSA_MAXWIRES && numwires<0) numwires=CSA_MAXWIRES;
+    return numwires;
+  }
+
+  Int_t GetNumChambers()
+  {
+    Int_t numchambers=fParam->fMaxChamber;
+      if(numchambers>CSA_MAXCHAMBERS && numchambers<0) numchambers=CSA_MAXCHAMBERS;
+      return numchambers;
+  }
+
+private:
 
   TH1* hWireTraces[CSA_MAXCHAMBERS][CSA_MAXWIRES];
 
@@ -37,7 +56,8 @@ public:
    TH1* hWireChargeProfile[CSA_MAXCHAMBERS];
    TH1* hWireChargeProfile_Sum[CSA_MAXCHAMBERS];
 
-
+   TH1* hSampleChargeProfile[CSA_MAXCHAMBERS];
+   TH1* hSampleChargeProfile_Sum[CSA_MAXCHAMBERS];
 
 
   TAwagsSisMapParam *fParam;

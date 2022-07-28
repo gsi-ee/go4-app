@@ -25,9 +25,9 @@ class TAwagsSisParam : public TGo4Parameter {
       TAwagsSisParam(const char* name);
       virtual ~TAwagsSisParam();
 
-      Int_t fNumEventsPerSpill; // maximum number of MBS event for each spill
-      Double_t fSpillBeginThreshold; // maximum signal to background to find spill begin event
-      Bool_t fSlowMotion; // if true than only process one MBS event and stop.
+      Int_t fNumEventsPerSpill; // estimated number of MBS event for each spill - for display
+      Int_t fMaxSpillEvent;    // maximum MBS event index for each spill. After this we are out of spill for sure.
+      Bool_t fMapSpills; // if true copy spill traces to output event for mapping step.
 
 
    ClassDef(TAwagsSisParam,1)

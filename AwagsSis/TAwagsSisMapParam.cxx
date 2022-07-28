@@ -28,6 +28,8 @@ TAwagsSisMapParam::TAwagsSisMapParam() : TGo4Parameter("Parameter")
 TAwagsSisMapParam::TAwagsSisMapParam(const char* name) : TGo4Parameter(name)
 {
   fSlowMotion=kFALSE;
+  fStopAtEachSpill=kFALSE;
+  fMaxChamber=CSA_MAXCHAMBERS;
   for (Int_t dev = 0; dev < CSA_MAXCHAMBERS; ++dev)
    {
      for (Int_t wire = 0; wire < CSA_MAXWIRES; ++wire)
@@ -36,14 +38,11 @@ TAwagsSisMapParam::TAwagsSisMapParam(const char* name) : TGo4Parameter(name)
        fSlave [dev][wire]=-1;
        fChannel[dev][wire]=-1;
      }
-
+     fMaxWire[dev]=CSA_MAXCHAMBERS;
    }
 
   InitAwagsMapping();
-  // TODO: put here default mapping
-
-
-}
+  }
 //***********************************************************
 TAwagsSisMapParam::~TAwagsSisMapParam()
 {
@@ -54,6 +53,11 @@ TAwagsSisMapParam::~TAwagsSisMapParam()
 void TAwagsSisMapParam::InitAwagsMapping()
 {
   // some fake mapping to see something JAM
+
+   fMaxChamber=2; // total number of units/chambers/grids, resp.
+  fMaxWire[0]=16; // number of wires/strips for unit of index
+  fMaxWire[1]=16;
+
   for (Int_t wire = 0; wire < N_CHA; ++wire)
        {
          fSFP [0][wire]=0;
@@ -63,7 +67,6 @@ void TAwagsSisMapParam::InitAwagsMapping()
          fSlave [1][wire]=1;
          fChannel[1][wire]=wire;
        }
-
 
 
 
@@ -344,6 +347,7 @@ Bool_t TAwagsSisMapParam::UpdateFrom(TGo4Parameter *pp){
 
     for (Int_t dev = 0; dev < CSA_MAXCHAMBERS; ++dev)
        {
+         fMaxWire[dev]=from->fMaxWire[dev];
          for (Int_t wire = 0; wire < CSA_MAXWIRES; ++wire)
          {
            fSFP [dev][wire]=from->fSFP [dev][wire];
@@ -353,6 +357,8 @@ Bool_t TAwagsSisMapParam::UpdateFrom(TGo4Parameter *pp){
 
        }
     fSlowMotion=from->fSlowMotion;
+    fStopAtEachSpill=from->fStopAtEachSpill;
+    fMaxChamber=from->fMaxChamber;
   }
      else
      cout << "Wrong parameter object: " << pp->ClassName() << endl;

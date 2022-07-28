@@ -18,6 +18,9 @@ class TAwagsSisMapParam : public TGo4Parameter {
       virtual Int_t  PrintParameter(Text_t * n, Int_t);
       virtual Bool_t UpdateFrom(TGo4Parameter *);
       Bool_t fSlowMotion; // if true than only process one MBS event and stop.
+      Bool_t fStopAtEachSpill; // if true stop processing after each complete spill
+      Int_t fMaxChamber; // number of chambers in use
+      Int_t fMaxWire[CSA_MAXCHAMBERS]; // number of wires for each chamber
       Int_t fSFP [CSA_MAXCHAMBERS][CSA_MAXWIRES]; // sfp that produces data for wire on device
       Int_t fSlave [CSA_MAXCHAMBERS][CSA_MAXWIRES]; // slave that produces data for wire on device
       Int_t fChannel [CSA_MAXCHAMBERS][CSA_MAXWIRES]; // channel that produces data for wire on device

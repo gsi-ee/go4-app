@@ -797,18 +797,26 @@ void TAwagsSisProc::EvaluateSpills(Double_t sigtoback)
   // first find out the state we are in: before, in, after spill:
   if(!fNewSpill && !fxSpillSelector->Test(sigtoback))
    {
-     printf("LLLL - Looking for new spill because sigtoback_average=%e is below threshold %e", sigtoback, fxSpillSelector->GetXLow());
+     printf("LLLL - Looking for new spill because sigtoback_average=%e is below threshold %e\n", sigtoback, fxSpillSelector->GetXLow());
+     std::cout << std::endl;
      fNewSpill=kTRUE;
      fInSpill=kFALSE;
    }
-   if(fNewSpill &&fxSpillSelector->Test(sigtoback))
+   if(fNewSpill && fxSpillSelector->Test(sigtoback))
  {
-   printf("SSSS -Found begin of new spill because sigtoback_average=%e rises above threshold %e", sigtoback, fxSpillSelector->GetXLow());
+   printf("SSSS -Found begin of new spill because sigtoback_average=%e rises above threshold %e\n", sigtoback, fxSpillSelector->GetXLow());
+   std::cout << std::endl;
    fInSpill=kTRUE;
  }
 
    // TODO: breakout of in spill if we exceed the user limit for mbs events numbers at each spill
-
+  if(!fNewSpill && fInSpill &&  fiEventInSpill> fPar->fMaxSpillEvent)
+  {
+    printf("EEEE - Set end of spill  as number of MBS samples exceed expected maximum %d\n", fiEventInSpill);
+    std::cout << std::endl;
+    fInSpill=kFALSE;
+    // new spill will be searched  only when we are once below threshold
+  }
 
 
   if(!fInSpill) return;
@@ -831,11 +839,13 @@ void TAwagsSisProc::EvaluateSpills(Double_t sigtoback)
              if (fPar->fMapSpills)
             {
               Double_t value = 0;
+#ifdef AWAGS_STORE_TRACES
               for (Int_t bin = 1; bin < h_trace_stitched[l_i][l_j][l_k]->GetNbinsX(); ++bin)
               {
                 value = h_trace_stitched[l_i][l_j][l_k]->GetBinContent(bin);
                 fOutput->fSpillTrace[l_i][l_j][l_k].push_back(value);
               }
+#endif
               for (Int_t bin = 1; bin < h_q_spill[l_i][l_j][l_k]->GetNbinsX(); ++bin)
               {
                 value = h_q_spill[l_i][l_j][l_k]->GetBinContent(bin);
@@ -874,10 +884,14 @@ void TAwagsSisProc::EvaluateSpills(Double_t sigtoback)
      }
    }
   fiEventInSpill++;
+
+
+
   if(fNewSpill)
   {
       fNewSpill=kFALSE;
       h_spill_scaler->AddBinContent(2);
+      fOutput->fuSpillCount++;
   }
 }
 
