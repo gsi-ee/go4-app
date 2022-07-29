@@ -21,7 +21,8 @@
 //#define WR_TIME_STAMP     1   // white rabbit time stamp is head of data
 #define USE_MBS_PARAM     1   // 
 
-
+/* switch between "signal to background" or "signal minus background" spill decision*/
+#define USE_SIGNALTOBACK_RATIO 1
 
 // defined in event structure:
 //#define MAX_SFP           4
@@ -103,8 +104,9 @@ protected:
 
 
       TH1          *h_spill_scaler; //!< count spills and events
+      TH1          *h_spill_size;   //!< sizes of spills in mbs events
       TH1          *h_signal_to_background_ave; //!<average of all channels, monitor spill on criterium
-
+      TH1          *h_signal_minus_background_ave; //!<average of all channels, monitor spill on criterium
       TGo4WinCond* fxSpillSelector; //< window on signal to background average that defines when we are in spill
 
       TH1          *h_trace        [MAX_SFP][MAX_SLAVE][N_CHA];  //!

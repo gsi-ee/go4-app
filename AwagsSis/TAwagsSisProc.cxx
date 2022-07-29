@@ -93,27 +93,69 @@ TAwagsSisProc::~TAwagsSisProc()
 }
 //***********************************************************
 // this one is used in standard factory
-TAwagsSisProc::TAwagsSisProc(const char* name) : TGo4EventProcessor(name),fInput(0),fOutput(0),
-    fNewSpill(kFALSE), fInSpill(kFALSE), fiEventInSpill(0), fxBackgroundRegion(0),fxSignalRegion(0)
+TAwagsSisProc::TAwagsSisProc(const char* name) :
+    TGo4EventProcessor(name), fInput(0), fOutput(0), fNewSpill(kFALSE), fInSpill(kFALSE), fiEventInSpill(0),
+        fxBackgroundRegion(0), fxSignalRegion(0)
 {
   cout << "**** TAwagsSisProc: Create instance " << name << endl;
-  l_first = 0;  
-  fPar=dynamic_cast<TAwagsSisParam*> (MakeParameter("AwagsSisParam", "TAwagsSisParam","set_AwagsSisParam.C"));
+  l_first = 0;
+  fPar = dynamic_cast<TAwagsSisParam*>(MakeParameter("AwagsSisParam", "TAwagsSisParam", "set_AwagsSisParam.C"));
   TString obname;
-     TString obtitle;
+  TString obtitle;
   obname.Form("Spills/EventScaler");
-     obtitle.Form("Spill counter");
-     h_spill_scaler=MakeTH1('I', obname.Data(), obtitle.Data(), 2, 0, 2);
+  obtitle.Form("Spill counter");
+  h_spill_scaler = MakeTH1('I', obname.Data(), obtitle.Data(), 2, 0, 2);
 
-     if (IsObjMade()) {
-       h_spill_scaler->GetXaxis()->SetBinLabel(1 , "MBS Events");
-       h_spill_scaler->GetXaxis()->SetBinLabel(2, "Spills");
-     }
+  if (IsObjMade())
+  {
+    h_spill_scaler->GetXaxis()->SetBinLabel(1, "MBS Events");
+    h_spill_scaler->GetXaxis()->SetBinLabel(2, "Spills");
+  }
 
-     obname.Form("Baselines/StoB/Signal_background_ratio_average");
-     obtitle.Form("Average signal to background ratio all active channels");
-     h_signal_to_background_ave= MakeTH1('F', obname.Data(), obtitle.Data(), 1000, 0, 5);
-     fxSpillSelector=MakeWinCond("SpillSelect", 1.01, 5, obname.Data());
+  obname.Form("Spills/SpillSize");
+  obtitle.Form("Spill size distribution");
+  TH1* testhis = GetHistogram(obname.Data());
+  if (testhis && (testhis->GetNbinsX() != fPar->fNumEventsPerSpill))
+    {
+        printf("SSSS MBS event range for Spill changed in parameter to %d, recreate spillsize histogram.\n", fPar->fNumEventsPerSpill);
+        SetMakeWithAutosave(kFALSE);
+    }
+
+
+  h_spill_size = MakeTH1('I', obname.Data(), obtitle.Data(), fPar->fNumEventsPerSpill, 0, fPar->fNumEventsPerSpill, "MBS Events");
+  SetMakeWithAutosave(kTRUE);
+  if (fPar->fSpillTriggerSFP < 0)
+  {
+    obname.Form("Baselines/StoB/Signal_background_ratio_average");
+    obtitle.Form("Average signal to background ratio all active channels");
+  }
+  else
+  {
+    obname.Form("Baselines/StoB/Signal_background_ratio_trigger channel");
+    obtitle.Form("Signal to background ratio of trigger channel (%d %d %d)", fPar->fSpillTriggerSFP,
+        fPar->fSpillTriggerSlave, fPar->fSpillTriggerChan);
+  }
+
+  h_signal_to_background_ave = MakeTH1('F', obname.Data(), obtitle.Data(), 1000, 0, 5);
+#ifdef  USE_SIGNALTOBACK_RATIO
+  fxSpillSelector = MakeWinCond("SpillSelect", 1.01, 5000, obname.Data());
+#endif
+  if (fPar->fSpillTriggerSFP < 0)
+  {
+    obname.Form("Baselines/S-B/Signal_background_diff_average");
+    obtitle.Form("Average signal minus background  all active channels");
+  }
+  else
+  {
+    obname.Form("Baselines/S-B/Signal_background_diff_trigger channel");
+    obtitle.Form("Signal minus background of trigger channel (%d %d %d)", fPar->fSpillTriggerSFP,
+        fPar->fSpillTriggerSlave, fPar->fSpillTriggerChan);
+  }
+
+  h_signal_minus_background_ave = MakeTH1('F', obname.Data(), obtitle.Data(), 4000, -2000, 2000);
+#ifndef      USE_SIGNALTOBACK_RATIO
+  fxSpillSelector=MakeWinCond("SpillSelect", 100, 20000, obname.Data());
+#endif
 
   //printf ("Histograms created \n");  fflush (stdout);
 }
@@ -747,47 +789,90 @@ Double_t TAwagsSisProc::HandleSignalToBackground()
 {
   // JAM 27-jul-2022: this code is reused from gem csa analysis of 2021. Apply it here to find begin of spill
   // and also for calculating accumulated charge differences for each event
-  Double_t sigtoback_average=0.0; // use average value of all channels to detect spill start
-    Int_t numvals=0;
-  for (UInt_t l_i=0; l_i<MAX_SFP; l_i++)
-   {
-     if (l_sfp_slaves[l_i] != 0)
-     {
-       for (UInt_t l_j=0; l_j<l_sfp_slaves[l_i]; l_j++)
-       {
-         for (UInt_t l_k=0; l_k<N_CHA; l_k++)
-         {
-            Double_t range_back=fxBackgroundRegion->GetXUp()-fxBackgroundRegion->GetXLow();
-            Double_t ave_back= 0;
-            if(range_back) ave_back=fxBackgroundRegion->GetIntegral(h_trace[l_i][l_j][l_k]) / range_back;
-            if(ave_back) h_background_height [l_i][l_j][l_k]->Fill(ave_back);
+  Double_t sigtoback_average = 0.0;    // use average value of all channels to detect spill start
+  Double_t sigminusback_average = 0.0;    //
+  Int_t numvals = 0, numvalsdiff = 0;
+  for (UInt_t l_i = 0; l_i < MAX_SFP; l_i++)
+  {
+    if (l_sfp_slaves[l_i] != 0)
+    {
+      for (UInt_t l_j = 0; l_j < l_sfp_slaves[l_i]; l_j++)
+      {
+        for (UInt_t l_k = 0; l_k < N_CHA; l_k++)
+        {
+          Double_t range_back = fxBackgroundRegion->GetXUp() - fxBackgroundRegion->GetXLow();
+          Double_t ave_back = 0;
+          if (range_back)
+            ave_back = fxBackgroundRegion->GetIntegral(h_trace[l_i][l_j][l_k]) / range_back;
+          if (ave_back)
+            h_background_height[l_i][l_j][l_k]->Fill(ave_back);
 
-            Double_t range_sig=fxSignalRegion->GetXUp()-fxSignalRegion->GetXLow();
-            Double_t ave_sig= 0;
-            if(range_sig) ave_sig=fxSignalRegion->GetIntegral(h_trace[l_i][l_j][l_k]) / range_sig;
-            if(ave_sig) h_signal_height [l_i][l_j][l_k]->Fill(ave_sig);
+          Double_t range_sig = fxSignalRegion->GetXUp() - fxSignalRegion->GetXLow();
+          Double_t ave_sig = 0;
+          if (range_sig)
+            ave_sig = fxSignalRegion->GetIntegral(h_trace[l_i][l_j][l_k]) / range_sig;
+          if (ave_sig)
+            h_signal_height[l_i][l_j][l_k]->Fill(ave_sig);
 
-            Double_t sigtoback=0;
-            sigtoback=ave_sig/ave_back;
-            if(sigtoback) {
-              h_signal_to_background [l_i][l_j][l_k]->Fill(sigtoback);
-              sigtoback_average += sigtoback;
-              ++numvals;
+          Double_t sigtoback = 0;
+          sigtoback = ave_sig / ave_back;
+          h_signal_to_background[l_i][l_j][l_k]->Fill(sigtoback);
+          if (fPar->fSpillTriggerSFP < 0)
+          {
+            // no spill trigger set: try with average of all
+            sigtoback_average += sigtoback;
+            ++numvals;
+          }
+          else
+          {
+            if (((UInt_t) fPar->fSpillTriggerSFP == l_i) && (fPar->fSpillTriggerSlave == l_j)
+                && (fPar->fSpillTriggerChan == l_k))
+            {
+              sigtoback_average = sigtoback;    // select spill trigger channel value only
             }
 
-            Double_t sigminusback=ave_sig -ave_back;
-            h_signal_minus_background [l_i][l_j][l_k]->Fill(sigminusback);
-            fDeltaQ[l_i][l_j][l_k]=sigminusback; // evaluation of delta Q between subsequent event samples in spill
+          }
 
-         } // l_k
-       } // l_j
-     } // if slaves
-   } // l_i
+          Double_t sigminusback = ave_sig - ave_back;
 
-   if(numvals)
-     sigtoback_average/=numvals;
-   h_signal_to_background_ave->Fill(sigtoback_average); // use overview histogram for setting condition
+          if (fPar->fSpillTriggerSFP < 0)
+          {
+            // no spill trigger set: try with average of all
+
+            sigminusback_average += sigminusback;
+            ++numvalsdiff;
+          }
+          else
+          {
+            if (((UInt_t)fPar->fSpillTriggerSFP == l_i) && (fPar->fSpillTriggerSlave == l_j)
+                && (fPar->fSpillTriggerChan == l_k))
+            {
+              sigminusback_average = sigminusback;    // select spill trigger channel value only
+            }
+
+          }
+          h_signal_minus_background[l_i][l_j][l_k]->Fill(sigminusback);
+          fDeltaQ[l_i][l_j][l_k] = sigminusback;    // evaluation of delta Q between subsequent event samples in spill
+
+        }    // l_k
+      }    // l_j
+    }    // if slaves
+  }    // l_i
+
+  if (fPar->fSpillTriggerSFP < 0)
+  {
+    if (numvals)
+      sigtoback_average /= numvals;
+    if (numvalsdiff)
+      sigminusback_average /= numvalsdiff;
+  }
+  h_signal_to_background_ave->Fill(sigtoback_average);    // use overview histogram for setting condition
+  h_signal_minus_background_ave->Fill(sigminusback_average);
+#ifdef  USE_SIGNALTOBACK_RATIO
   return sigtoback_average;
+#else
+  return sigminusback_average;
+#endif
 }
 
 
@@ -852,10 +937,9 @@ void TAwagsSisProc::EvaluateSpills(Double_t sigtoback)
                 fOutput->fChargeTrend[l_i][l_j][l_k].push_back(value);
               }
                fOutput->SetValid(kTRUE);
-            }
+            } // if (fPar->fMapSpills)
 
              // then clear the previous spill histograms:
-             fiEventInSpill=0;
              h_q_spill [l_i][l_j][l_k]->Reset("");
              h_trace_stitched[l_i][l_j][l_k]->Reset("");
            }
@@ -872,7 +956,6 @@ void TAwagsSisProc::EvaluateSpills(Double_t sigtoback)
                 h_trace_stitched[l_i][l_j][l_k]->SetBinContent(stitchbin, value);
                 h_trace_stitched_sum[l_i][l_j][l_k]->AddBinContent(stitchbin, value);
               }
-              // TODO for mapping            outevent->fTrace[l_i][l_j][l_k].push_back(value);
              }
 
            h_q_spill [l_i][l_j][l_k]->Fill(fiEventInSpill, fDeltaQ[l_i][l_j][l_k]);
@@ -882,17 +965,17 @@ void TAwagsSisProc::EvaluateSpills(Double_t sigtoback)
          }
        }
      }
-   }
-  fiEventInSpill++;
-
-
+   } // for (UInt_t l_i=0
 
   if(fNewSpill)
   {
       fNewSpill=kFALSE;
       h_spill_scaler->AddBinContent(2);
       fOutput->fuSpillCount++;
+      h_spill_size->Fill(fiEventInSpill);
+      fiEventInSpill=0;
   }
+  fiEventInSpill++;
 }
 
 
@@ -1044,7 +1127,7 @@ void TAwagsSisProc:: InitDisplay (Int_t l_mode)
 
           sprintf(chis, "Baselines/S-B/Signal_minus_background_SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
           sprintf(chead, "Average signal minus background SFP: %2d FEBEX: %2d CHAN: %2d", l_i, l_j, l_k);
-          h_signal_minus_background[l_i][l_j][l_k] = MakeTH1('F', chis, chead, 0x8000, -0x4000, 0x4000);
+          h_signal_minus_background[l_i][l_j][l_k] = MakeTH1('F', chis, chead, 4000, -2000, 2000);
 
           // JAM2022: here special histograms for awags spill evaluation:
 

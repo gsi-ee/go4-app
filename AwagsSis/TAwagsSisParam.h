@@ -28,7 +28,9 @@ class TAwagsSisParam : public TGo4Parameter {
       Int_t fNumEventsPerSpill; // estimated number of MBS event for each spill - for display
       Int_t fMaxSpillEvent;    // maximum MBS event index for each spill. After this we are out of spill for sure.
       Bool_t fMapSpills; // if true copy spill traces to output event for mapping step.
-
+      Int_t fSpillTriggerSFP; // sfp for spill trigger decision channel. set to -1 to use average of all channels
+      UInt_t fSpillTriggerSlave; // slave for spill trigger decision channel
+      UInt_t fSpillTriggerChan; // slave for spill trigger decision channel
 
    ClassDef(TAwagsSisParam,1)
 };

@@ -22,7 +22,9 @@ void TAwagsSisBasicEvent::Clear(Option_t *t)
     {
       for (int k = 0; k < N_CHA; k++)
       {
+#ifdef AWAGS_STORE_TRACES
         fSpillTrace[i][j][k].clear();
+#endif
         fChargeTrend[i][j][k].clear();
       }
     }
