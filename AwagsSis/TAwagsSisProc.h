@@ -128,7 +128,8 @@ protected:
       TH1          *h_trace_stitched [MAX_SFP][MAX_SLAVE][N_CHA];  //!< stitched traces for each spill
       TH1          *h_trace_stitched_sum [MAX_SFP][MAX_SLAVE][N_CHA];  //!< stitched traces for each spill, accumulated
 
-
+      TH1          *h_signal_trace_stitched;  //!< stitched traces over signal reagion of all channels, for each spill
+      TH1          *h_signal_trace_stitched_sum;  //!< stitched traces over signal reagion of all channels, accumulated
         /** defines the region for the background baseline evaluation - here before awags readout reset*/
 	  TGo4WinCond* fxBackgroundRegion;
 
