@@ -829,7 +829,8 @@ Double_t TAwagsSisProc::HandleSignalToBackground()
             h_signal_height[l_i][l_j][l_k]->Fill(ave_sig);
 
           Double_t sigtoback = 0;
-          sigtoback = ave_sig / ave_back;
+          if (ave_back)
+            sigtoback = ave_sig / ave_back;
           h_signal_to_background[l_i][l_j][l_k]->Fill(sigtoback);
           if (fPar->fSpillTriggerSFP < 0)
           {
@@ -894,7 +895,7 @@ Double_t TAwagsSisProc::HandleSignalToBackground()
 void TAwagsSisProc::EvaluateSpills(Double_t sigtoback)
 {
   // first find out the state we are in: before, in, after spill:
-  if(!fNewSpill && !fxSpillSelector->Test(sigtoback))
+  if(!fNewSpill && sigtoback>0 && !fxSpillSelector->Test(sigtoback))
    {
      printf("LLLL - Looking for new spill because sigtoback_average=%e is below threshold %e\n", sigtoback, fxSpillSelector->GetXLow());
      std::cout << std::endl;
