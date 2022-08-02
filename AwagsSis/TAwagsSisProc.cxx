@@ -958,7 +958,9 @@ void TAwagsSisProc::EvaluateSpills(Double_t sigtoback)
              h_q_spill [l_i][l_j][l_k]->Reset("");
              h_trace_stitched[l_i][l_j][l_k]->Reset("");
            }
-
+           else
+           {
+             // only fill histograms when we are still in spill:
            Double_t value=0;
            Int_t stitchbin=0;
            Int_t tracebinmax=h_trace[l_i][l_j][l_k]->GetNbinsX();
@@ -989,7 +991,7 @@ void TAwagsSisProc::EvaluateSpills(Double_t sigtoback)
            h_q_spill [l_i][l_j][l_k]->Fill(fiEventInSpill, fDeltaQ[l_i][l_j][l_k]);
            h_q_spill_sum [l_i][l_j][l_k]->Fill(fiEventInSpill, fDeltaQ[l_i][l_j][l_k]);
 
-
+           } // no new spill
          }
        }
      }
