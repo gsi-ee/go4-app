@@ -925,6 +925,12 @@ void TAwagsSisProc::EvaluateSpills(Double_t sigtoback)
   // if we are in the spill, put data to combined spill display and output event for mapping:
   h_spill_scaler->AddBinContent(1);
 
+  if(fNewSpill)
+  {
+    // TODO here: optionally copy stitched signal trace to output event
+       h_signal_trace_stitched->Reset(""); // clear it before we fill it with new spill data in loop!
+  }
+
   for (UInt_t l_i=0; l_i<MAX_SFP; l_i++)
    {
      if (l_sfp_slaves[l_i] != 0)
@@ -958,6 +964,7 @@ void TAwagsSisProc::EvaluateSpills(Double_t sigtoback)
              // then clear the previous spill histograms:
              h_q_spill [l_i][l_j][l_k]->Reset("");
              h_trace_stitched[l_i][l_j][l_k]->Reset("");
+
              if(fiEventInSpill)lastspill_len=fiEventInSpill;
              fiEventInSpill=0;
            }
@@ -980,7 +987,7 @@ void TAwagsSisProc::EvaluateSpills(Double_t sigtoback)
               {
                 Double_t winsize=fxSignalRegion->GetXUp() - fxSignalRegion->GetXLow() -1;
 
-                Int_t signalbin= bin+ (fiEventInSpill)*winsize;
+              Int_t signalbin= bin- fxSignalRegion->GetXLow() + (fiEventInSpill)*winsize ;
               if ((signalbin > 0) && signalbin < h_signal_trace_stitched->GetNbinsX())
               {
                 h_signal_trace_stitched->AddBinContent(signalbin, value);
@@ -1003,9 +1010,6 @@ void TAwagsSisProc::EvaluateSpills(Double_t sigtoback)
       h_spill_scaler->AddBinContent(2);
       fOutput->fuSpillCount++;
       h_spill_size->Fill(lastspill_len);
-      // TODO here: copy stitched signal trace to output event
-      h_signal_trace_stitched->Reset("");
-      //fiEventInSpill=0;
   }
   fiEventInSpill++;
 }
