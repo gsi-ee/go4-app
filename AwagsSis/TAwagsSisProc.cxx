@@ -894,6 +894,7 @@ Double_t TAwagsSisProc::HandleSignalToBackground()
 
 void TAwagsSisProc::EvaluateSpills(Double_t sigtoback)
 {
+  Int_t lastspill_len=0;
   // first find out the state we are in: before, in, after spill:
   if(!fNewSpill && sigtoback>0 && !fxSpillSelector->Test(sigtoback))
    {
@@ -957,18 +958,18 @@ void TAwagsSisProc::EvaluateSpills(Double_t sigtoback)
              // then clear the previous spill histograms:
              h_q_spill [l_i][l_j][l_k]->Reset("");
              h_trace_stitched[l_i][l_j][l_k]->Reset("");
+             if(fiEventInSpill)lastspill_len=fiEventInSpill;
+             fiEventInSpill=0;
            }
-           else
-           {
-             // only fill histograms when we are still in spill:
+
            Double_t value=0;
            Int_t stitchbin=0;
            Int_t tracebinmax=h_trace[l_i][l_j][l_k]->GetNbinsX();
            for(Int_t bin=1; bin<tracebinmax; ++bin)
              {
               value=h_trace[l_i][l_j][l_k]->GetBinContent(bin);
-              stitchbin=bin+(fiEventInSpill-1)*(tracebinmax -1);
-              if((stitchbin > 1) && stitchbin < h_trace_stitched[l_i][l_j][l_k]->GetNbinsX())
+              stitchbin=bin+(fiEventInSpill)*(tracebinmax -1);
+              if((stitchbin > 0) && stitchbin < h_trace_stitched[l_i][l_j][l_k]->GetNbinsX())
               {
                 h_trace_stitched[l_i][l_j][l_k]->SetBinContent(stitchbin, value);
                 h_trace_stitched_sum[l_i][l_j][l_k]->AddBinContent(stitchbin, value);
@@ -979,8 +980,8 @@ void TAwagsSisProc::EvaluateSpills(Double_t sigtoback)
               {
                 Double_t winsize=fxSignalRegion->GetXUp() - fxSignalRegion->GetXLow() -1;
 
-                Int_t signalbin= bin+ (fiEventInSpill-1)*winsize;
-              if ((signalbin > 1) && signalbin < h_signal_trace_stitched->GetNbinsX())
+                Int_t signalbin= bin+ (fiEventInSpill)*winsize;
+              if ((signalbin > 0) && signalbin < h_signal_trace_stitched->GetNbinsX())
               {
                 h_signal_trace_stitched->AddBinContent(signalbin, value);
                 h_signal_trace_stitched_sum->AddBinContent(signalbin, value);
@@ -991,7 +992,6 @@ void TAwagsSisProc::EvaluateSpills(Double_t sigtoback)
            h_q_spill [l_i][l_j][l_k]->Fill(fiEventInSpill, fDeltaQ[l_i][l_j][l_k]);
            h_q_spill_sum [l_i][l_j][l_k]->Fill(fiEventInSpill, fDeltaQ[l_i][l_j][l_k]);
 
-           } // no new spill
          }
        }
      }
@@ -1002,10 +1002,10 @@ void TAwagsSisProc::EvaluateSpills(Double_t sigtoback)
       fNewSpill=kFALSE;
       h_spill_scaler->AddBinContent(2);
       fOutput->fuSpillCount++;
-      h_spill_size->Fill(fiEventInSpill);
+      h_spill_size->Fill(lastspill_len);
       // TODO here: copy stitched signal trace to output event
       h_signal_trace_stitched->Reset("");
-      fiEventInSpill=0;
+      //fiEventInSpill=0;
   }
   fiEventInSpill++;
 }
