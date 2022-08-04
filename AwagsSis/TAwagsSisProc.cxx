@@ -895,6 +895,7 @@ Double_t TAwagsSisProc::HandleSignalToBackground()
 void TAwagsSisProc::EvaluateSpills(Double_t sigtoback)
 {
   Int_t lastspill_len=0;
+  Double_t value = 0;
   // first find out the state we are in: before, in, after spill:
   if(!fNewSpill && sigtoback>0 && !fxSpillSelector->Test(sigtoback))
    {
@@ -925,10 +926,15 @@ void TAwagsSisProc::EvaluateSpills(Double_t sigtoback)
   // if we are in the spill, put data to combined spill display and output event for mapping:
   h_spill_scaler->AddBinContent(1);
 
-  if(fNewSpill)
+  if (fNewSpill)
   {
-    // TODO here: optionally copy stitched signal trace to output event
-       h_signal_trace_stitched->Reset(""); // clear it before we fill it with new spill data in loop!
+    // first copy last spill's stitched signal trace to output event
+    for (Int_t bin = 1; bin < h_signal_trace_stitched->GetNbinsX(); ++bin)
+    {
+      value = h_signal_trace_stitched->GetBinContent(bin);
+      fOutput->fSignalTrace.push_back(value);
+    }
+    h_signal_trace_stitched->Reset("");    // clear it before we fill it with new spill data in loop!
   }
 
   for (UInt_t l_i=0; l_i<MAX_SFP; l_i++)
@@ -945,7 +951,6 @@ void TAwagsSisProc::EvaluateSpills(Double_t sigtoback)
              // when new spill is detected, copy previous q vs evt and traces to output event and set this valid.
              if (fPar->fMapSpills)
             {
-              Double_t value = 0;
 #ifdef AWAGS_STORE_TRACES
               for (Int_t bin = 1; bin < h_trace_stitched[l_i][l_j][l_k]->GetNbinsX(); ++bin)
               {
@@ -969,7 +974,6 @@ void TAwagsSisProc::EvaluateSpills(Double_t sigtoback)
              fiEventInSpill=0;
            }
 
-           Double_t value=0;
            Int_t stitchbin=0;
            Int_t tracebinmax=h_trace[l_i][l_j][l_k]->GetNbinsX();
            for(Int_t bin=1; bin<tracebinmax; ++bin)

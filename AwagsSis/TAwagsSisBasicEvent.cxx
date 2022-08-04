@@ -16,6 +16,7 @@
 void TAwagsSisBasicEvent::Clear(Option_t *t)
 {
   if(!IsValid()) return;
+  fSignalTrace.clear();
   for (int i = 0; i < MAX_SFP; i++)
   {
     for (int j = 0; j < MAX_SLAVE; j++)

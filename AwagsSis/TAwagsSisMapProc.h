@@ -59,6 +59,14 @@ private:
    TH1* hSampleChargeProfile[CSA_MAXCHAMBERS];
    TH1* hSampleChargeProfile_Sum[CSA_MAXCHAMBERS];
 
+   TH1* hSignalTrace;
+
+   TH1* hSignalTraceSum;
+
+
+
+
+
 
   TAwagsSisMapParam *fParam;
 

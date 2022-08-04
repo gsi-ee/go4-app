@@ -141,6 +141,26 @@ TAwagsSisMapProc::TAwagsSisMapProc(const char* name) :
 
   }    // devs
 
+
+  obname.Form("Mapped/AllSigTrace");
+  obtitle.Form("Stitched trace of signal region during last spill");
+
+   TH1* testhis = GetHistogram(obname.Data());
+      if (testhis && (testhis->GetNbinsX() != spillsamples*CSA_SIGNAL_SIZE))
+      {
+        printf(
+            "QQQ MBS event range for Spill changed in parameter to %d, recreate signal trace histograms\n",
+            spillsamples);
+        SetMakeWithAutosave(kFALSE);
+      }
+   hSignalTrace = MakeTH1('I', obname.Data(), obtitle.Data(), CSA_SIGNAL_SIZE * spillsamples, 0,
+              CSA_SIGNAL_SIZE * spillsamples,"time [febex samples]");
+
+   obname.Form("Mapped/AllSigTraceSum");
+   obtitle.Form("Stitched trace of signal region accumulated");
+   hSignalTraceSum = MakeTH1('I', obname.Data(), obtitle.Data(), CSA_SIGNAL_SIZE * spillsamples, 0,
+       CSA_SIGNAL_SIZE * spillsamples,"time [febex samples]");
+   SetMakeWithAutosave(kTRUE);
 }
 //-----------------------------------------------------------
 TAwagsSisMapProc::~TAwagsSisMapProc()
@@ -173,7 +193,7 @@ Bool_t TAwagsSisMapProc::BuildEvent(TGo4EventElement* dest)
 
 #ifdef AWAGS_STORE_TRACES
         std::vector<Double_t> & theTrace = inp_evt->fSpillTrace[sfp][slave][chan];
-        for (size_t bin = 0; bin < theTrace.size(); bin++)
+a        for (size_t bin = 0; bin < theTrace.size(); bin++)
         {
           if ((Int_t) bin >= hWireTraces[dev][wire]->GetNbinsX())
           break;    // avoid crash by accidental overflow
@@ -181,6 +201,8 @@ Bool_t TAwagsSisMapProc::BuildEvent(TGo4EventElement* dest)
 //              sfp, slave, chan, bin, theTrace.size());
           if ((Int_t) (1 + bin) < hWireTraces[dev][wire]->GetNbinsX())
           {
+
+
             hWireTraces[dev][wire]->SetBinContent(1 + bin, theTrace[bin]);
           }
           hWireProfile[dev]->Fill(wire, theTrace[bin]);
@@ -220,6 +242,16 @@ Bool_t TAwagsSisMapProc::BuildEvent(TGo4EventElement* dest)
       }
     }
 
+    std::vector<Double_t> & theSignals = inp_evt->fSignalTrace;
+            for (size_t bin = 0; bin < theSignals.size(); bin++)
+            {
+//              if ((Int_t) bin >= hSignalTrace->GetNbinsX())
+//                break;    // avoid crash by accidental overflow
+
+              hSignalTrace->Fill(bin, theSignals[bin]);
+              hSignalTraceSum->Fill(bin, theSignals[bin]);
+            }
+
     out_evt->SetValid(kTRUE);
 
 
@@ -247,6 +279,7 @@ Bool_t TAwagsSisMapProc::BuildEvent(TGo4EventElement* dest)
 
 void TAwagsSisMapProc::ResetTraces()
 {
+  hSignalTrace->Reset("");
   for (Int_t dev = 0; dev < GetNumChambers(); ++dev)
   {
     for (Int_t wire = 0; wire < GetNumWires(dev); ++wire)

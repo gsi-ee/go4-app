@@ -8,6 +8,10 @@
 #define MAX_SLAVE        16
 #define N_CHA            16
 
+#define CSA_BASE_START    20
+#define CSA_BASE_SIZE    1400
+#define CSA_SIGNAL_START 1600
+#define CSA_SIGNAL_SIZE  1400
 
 /* enable forwarding stitched traces into output event*/
 //#define AWAGS_STORE_TRACES 1
@@ -19,7 +23,6 @@
 /* JAM 27-jul-2022: the output event for awags contains data of complete spill only.
  * This means that mapping in second analysis step is always done spill-wise.
  * This is flagged by the IsValid state of this event object.*/
-
 class TAwagsSisBasicEvent : public TGo4EventElement {
    public:
       TAwagsSisBasicEvent() : TGo4EventElement(), fuSpillCount(0) {Clear();}
@@ -38,6 +41,9 @@ class TAwagsSisBasicEvent : public TGo4EventElement {
       /* trend of charge evaluation between acquired MBS febex events.
        * size of this vector should be below #mbs events per spill */
       std::vector<Double_t> fChargeTrend[MAX_SFP][MAX_SLAVE][N_CHA];
+
+      /* stitched trace of all "signal window" regions*/
+      std::vector<Double_t> fSignalTrace;
 
       /* sequence number of spill found*/
       UInt_t fuSpillCount;

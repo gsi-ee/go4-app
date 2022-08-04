@@ -53,10 +53,11 @@
                                          // bit n fuer slave module n (max n = 31)
 #endif
 
-#define CSA_BASE_START    20
-#define CSA_BASE_SIZE    1400
-#define CSA_SIGNAL_START 1600
-#define CSA_SIGNAL_SIZE  1400
+// defined in event structure now:
+//#define CSA_BASE_START    20
+//#define CSA_BASE_SIZE    1400
+//#define CSA_SIGNAL_START 1600
+//#define CSA_SIGNAL_SIZE  1400
 
 #define RON  "\x1B[7m"
 #define RES  "\x1B[0m"
