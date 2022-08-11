@@ -978,7 +978,7 @@ void TQFWGridDisplay::InitDisplay(int timeslices, Bool_t replace)
     if (gix >= 0)
     {
       //printf("GGGGGG Using index %d of grid uid%d \n", gix, grid);
-      if (fParam->fGridMinWire_X >= 0)
+      if (fParam->fGridMinWire_X[gix] >= 0)
         minX = fParam->fGridMinWire_X[gix];
       if (fParam->fGridMaxWire_X[gix] >= 0)
         maxX = fParam->fGridMaxWire_X[gix];

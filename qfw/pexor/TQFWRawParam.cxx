@@ -12,7 +12,7 @@
 //-----------------------------------------------------------------------
 
 #include "TQFWRawParam.h"
-//#include "Riostream.h"
+#include "Riostream.h"
 #include "TGo4Log.h"
 
 using namespace std;
