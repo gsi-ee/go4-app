@@ -34,7 +34,7 @@ if (fPar->fVerbosity>1) printf( args);
 #define Get4ppWarn( args... ) \
 if(fPar->fVerbosity>0) printf( args);
 
-static unsigned long skipped_events = 0;
+//static unsigned long skipped_events = 0;
 
 static unsigned long skipped_msgs = 0;
 
