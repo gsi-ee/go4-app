@@ -12,7 +12,7 @@
 //-----------------------------------------------------------------------
 
 #include "TGet4ppRawParam.h"
-//#include "Riostream.h"
+#include "Riostream.h"
 #include "TGo4Log.h"
 
 using namespace std;
