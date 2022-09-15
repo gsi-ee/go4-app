@@ -308,7 +308,8 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 							Int_t data[3] =
 							{ -1 };
 							// need to treat here special case that we have messages shorter than 3 words:
-							for (Int_t j = 0; ((j < 3) && (j < msize - 1)); ++j) // first word of message is header, already handled above! -> msize-1
+							//for (Int_t j = 0; ((j < 3) && (j < msize - 1)); ++j) // first word of message is header, already handled above! -> msize-1
+							for (Int_t j = 0; ((j < 3) && (pdata  - pdatastartMsg < msize )); ++j)
 							{
 								Get4ppEVENTLASTMSG_CHECK_PDATA
 								Get4ppRAW_CHECK_PDATA;
