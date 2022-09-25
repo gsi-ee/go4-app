@@ -12,8 +12,15 @@
 #include "TGo4EventElement.h"
 #include "TGo4CompositeEvent.h"
 
+#include "TObjString.h"
+
 #include <vector>
 #include "TString.h"
+
+
+// if this is set, do not store complete events, but evaluate channel fine times for tree JAM 21.09.22
+#define Get4pp_DOFINETIMSAMPLES 1
+
 
 // maximum number of boards to investigate at once
 #define Get4pp_MAXBOARDS 10
@@ -508,6 +515,20 @@ public:
 
   /** number of payload words in vulom buffer (u32)*/
   Int_t fDataCount;
+
+#ifdef Get4pp_DOFINETIMSAMPLES
+  TObjString fLmdFileName;
+  Int_t fTapConfig;
+  Int_t fDelayConfig;
+
+  /** contents of fine time bins at end of measurments, leading edge*/
+  Int_t fFineTimeBinLeading[Get4pp_CHANNELS][Get4pp_FINERANGE+1];
+  /** contents of fine time bins at end of measurments, trailing edge*/
+  Int_t fFineTimeBinTrailing[Get4pp_CHANNELS][Get4pp_FINERANGE+1];
+  // TODO: put fine time for each channel of test board here
+
+#endif
+
 
 ClassDef(TGet4ppRawEvent,1)
 };

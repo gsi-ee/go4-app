@@ -89,7 +89,7 @@ TGet4ppRawProc::TGet4ppRawProc() :
 //***********************************************************
 // this one is used in standard factory
 TGet4ppRawProc::TGet4ppRawProc(const char* name) :
-		TGo4EventProcessor(name), Get4ppRawEvent(0)
+		TGo4EventProcessor(name), Get4ppRawEvent(0),fEventCounter(0)
 {
 	TGo4Log::Info("TGet4ppRawProc: Create instance %s", name);
 	fBoards.clear();
@@ -173,6 +173,17 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 
 	source->ResetIterator();
 	TGo4MbsSubEvent* psubevt(0);
+	fEventCounter++; // local counter, independent of MBS header
+
+
+
+
+
+
+
+
+
+
 	while ((psubevt = source->NextSubEvent()) != 0)
 	{    // loop over subevents
 		Int_t *pdata = psubevt->GetDataField();
@@ -236,6 +247,7 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 			// now fetch boardwise subcomponents for output data and histograming:
 			Int_t slix = 0; // JAM here we later could evaluate a board identifier mapped to a slot/sfp number contained in subevent
 			UInt_t brdid = fPar->fBoardID[slix]; // get hardware identifier from "DAQ link index" number
+#ifndef Get4pp_DOFINETIMSAMPLES
 			TGet4ppBoard* theBoard = Get4ppRawEvent->GetBoard(brdid);
 			if (theBoard == 0)
 			{
@@ -245,6 +257,7 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 
 				return kFALSE;
 			}
+#endif
 			TGet4ppBoardDisplay* boardDisplay = GetBoardDisplay(brdid);
 			if (boardDisplay == 0)
 			{
@@ -400,7 +413,9 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 									}
 									theMsg->SetEpoch(theEpoch);
 									theMsg->SetLeadingEdge(leadingedge);
+#ifndef Get4pp_DOFINETIMSAMPLES
 									theBoard->AddMessage(theMsg, chan);
+#endif
 ///////// end of unpacking: the rest is histogram fill stuff
 //////////////////////////////////////////////////////////////////////////////////////////////////
 									// here directly fill histograms
@@ -570,8 +585,9 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 								theMsg->GetSource());
 						boardDisplay->lWishboneText->SetText(0.1, 0.9,
 								theMsg->DumpMsg());
+#ifndef Get4pp_DOFINETIMSAMPLES
 						theBoard->AddMessage(theMsg, 0); // wishbone messages accounted for channel 0
-
+#endif
 //                if(theMsg->GetDataSize()>0)
 //                {
 //                  printf("Wishbone text: %s",theMsg->DumpMsg().Data());
@@ -627,10 +643,82 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 	return kTRUE;
 }
 
+
 Bool_t TGet4ppRawProc::UpdateDisplays()
 {
+#ifdef Get4pp_DOFINETIMSAMPLES
+	// for labtest: write fine time histogram bins to tree when we have enough statistics
+    UInt_t brdid = fPar->fFineTimeSampleBoard; // use defined board under test
+	TGet4ppBoardDisplay *boardDisplay = GetBoardDisplay(brdid);
+	if (boardDisplay == 0) {
+		GO4_SKIP_EVENT_MESSAGE(
+				"Configuration error in UpdateDisplays: Board id %d does not exist as histogram display set!",
+				brdid);
+		return kFALSE;
+	}
 
-// maybe later some advanced analysis from output event data here
+
+	if (fEventCounter==fPar->fFineTimeStatsLimit && fPar->fFineTimeSampleBoard>0)
+		{
+		// TODO: check contents in sample histograms here
+		TGo4MbsEvent* source = (TGo4MbsEvent*) GetInputEvent();
+
+		s_filhe* head=source->GetMbsSourceHeader();
+        if(head)
+           {
+    		Get4ppRawEvent->fTapConfig=1; // TODO: find out where to get this from header
+    			Get4ppRawEvent->fTapConfig=5;
+    			Get4ppRawEvent->fLmdFileName.SetString(head->filhe_file);
+
+//	               std::cout <<"found filhe structure:" << std::endl;
+//	               std::cout <<"\tdatalen: "<<head->filhe_dlen << std::endl;
+//	               std::cout <<"\tfilename_l: "<<head->filhe_file_l << std::endl;
+//	               std::cout <<"\tfilename: "<<head->filhe_file << std::endl;
+//	               std::cout <<"\ttype: "<<head->filhe_type << std::endl;
+//	               std::cout <<"\tsubtype: "<<head->filhe_subtype << std::endl;
+//	               std::cout <<"\t#commentlines: "<<head->filhe_lines << std::endl;
+           }
+  //      else
+  //         {
+  //            std::cout <<"zero file header" << std::endl;
+  //         }
+
+		Get4ppWarn("UpDateDisplays: writing channel infos to output event after %d events, filename:%s\n",
+				fEventCounter,Get4ppRawEvent->fLmdFileName.GetString().Data());
+		// if reached threshold, write out bins to output event
+		for (Int_t chan = 0; chan < Get4pp_CHANNELS; ++chan) {
+			for (Int_t edgeindex = 0; edgeindex < 2; ++edgeindex) {
+				TH1 *his = boardDisplay->hFineTime[chan][edgeindex];
+				for (Int_t bin = 1; bin < Get4pp_FINERANGE; ++bin) {
+					Int_t val = his->GetBinContent(bin);
+					if (edgeindex)
+						Get4ppRawEvent->fFineTimeBinTrailing[chan][bin] = val;
+					else
+						Get4ppRawEvent->fFineTimeBinLeading[chan][bin] = val;
+				} //bin
+			} //edgeindex
+		} //chan
+
+		// set output event valid for tree storage
+		Get4ppRawEvent->SetValid(kTRUE);
+		// reset all histograms (or only histograms under test?
+		TGo4Analysis::Instance()->ClearObjects("Histograms");
+		// changed to next file?
+		fEventCounter=0; // only for testing TODO
+		// later reset this at begin of new file
+
+		}
+	else
+	{
+		Get4ppRawEvent->SetValid(kFALSE);
+	}
+
+
+
+
+
+#else
+// maybe later some advanced analysis from full output event data here
 
 	for (unsigned i = 0; i < TGet4ppRawEvent::fgConfigGet4ppBoards.size(); ++i)
 	{
@@ -655,7 +743,8 @@ Bool_t TGet4ppRawProc::UpdateDisplays()
 		// TODO JAM 2020 TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTOOOOOOOOOOOOOOOTTTTTTTTTOOOOOOOOOOOOO
 
 	}    // i board
-
+#endif
 	return kTRUE;
 }
+
 

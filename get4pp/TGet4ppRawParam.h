@@ -35,6 +35,10 @@ class TGet4ppRawParam : public TGo4Parameter {
       Int_t fVerbosity; // degree of debug printouts. 0 - mostly silent, 1- show data problems, 2 - dump all data words
       Bool_t fSlowMotion; // if true than only process one MBS event and stop.
 
+#ifdef Get4pp_DOFINETIMSAMPLES
+      Int_t fFineTimeSampleBoard; // id of board for fine time evaluation
+      Int_t fFineTimeStatsLimit; // histogram conten threshold for writing fine times
+#endif
       /* initial mapping of board id to sfp/ gosip device cabling*/
       void InitBoardMapping();
 

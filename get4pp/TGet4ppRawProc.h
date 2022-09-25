@@ -57,10 +57,8 @@ protected:
   /** remember most recent message for delta T evaluation*/
   //TGet4ppMsgEvent fLastMessages[Get4pp_CHANNELS];
 
-
-
-
- // TGo4Fitter* fSinusFitter;
+/* local event counter for writing out fine time binds decision (simple approach)*/
+  UInt_t fEventCounter;
 
   ClassDef(TGet4ppRawProc,1)
 };

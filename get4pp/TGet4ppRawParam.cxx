@@ -35,7 +35,10 @@ void TGet4ppRawParam::InitBoardMapping()
 
   fVerbosity=0;
   fSlowMotion=kFALSE;
-
+#ifdef Get4pp_DOFINETIMSAMPLES
+  fFineTimeSampleBoard=42; // the only one we have...
+  fFineTimeStatsLimit=10; // software test only
+#endif
 }
 
 Bool_t TGet4ppRawParam::SetConfigBoards()

@@ -63,12 +63,14 @@ TGet4ppRawEvent::TGet4ppRawEvent(const char* name, Short_t id) :
   TGo4Log::Info("TGet4ppRawEvent: Create instance %s with composite id %d", name, id);
   TString modname;
   UInt_t uniqueid;
+#ifndef Get4pp_DOFINETIMSAMPLES
   for (unsigned i = 0; i < TGet4ppRawEvent::fgConfigGet4ppBoards.size(); ++i)
   {
     uniqueid = TGet4ppRawEvent::fgConfigGet4ppBoards[i];
     modname.Form("Get4pp_Board_%02d", uniqueid);
     addEventElement(new TGet4ppBoard(modname.Data(), uniqueid, i));
   }
+#endif
 
 }
 //***********************************************************
@@ -97,4 +99,9 @@ void TGet4ppRawEvent::Clear(Option_t *t)
   fSequenceNumber = -1;
   fVULOMStatus = 0;
   fDataCount = 0;
+#ifdef Get4pp_DOFINETIMSAMPLES
+  // TODO: clear fine time sample elements here
+#endif
+
+
 }
