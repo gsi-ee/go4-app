@@ -431,6 +431,8 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 #ifndef Get4pp_DOFINETIMSAMPLES
 									theBoard->AddMessage(theMsg, chan);
 #endif
+
+
 ///////// end of unpacking: the rest is histogram fill stuff
 //////////////////////////////////////////////////////////////////////////////////////////////////
 									// here directly fill histograms
@@ -561,7 +563,9 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 												(int) kind);
 										continue;
 									}
-
+#ifdef Get4pp_DOFINETIMSAMPLES
+                                     delete theMsg; // have to remove it here, since it is not part of output event and cleared after each event anymore!
+#endif
 								} // for e
 
 							} // skipmessage
@@ -602,6 +606,8 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 								theMsg->DumpMsg());
 #ifndef Get4pp_DOFINETIMSAMPLES
 						theBoard->AddMessage(theMsg, 0); // wishbone messages accounted for channel 0
+#else
+						 delete theMsg; // remove it here, since it is not part of output event and cleared after each event anymore!
 #endif
 //                if(theMsg->GetDataSize()>0)
 //                {
