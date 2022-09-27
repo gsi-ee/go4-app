@@ -42,11 +42,8 @@ protected:
   /** recreate histograms using the given number of time slice*/
   void InitDisplay(Bool_t replace = kFALSE);
 
-
-
   /** subdisplays for each frotend board */
   std::vector<TGet4ppBoardDisplay*> fBoards;
-
 
   /** parameter for runtime settings*/
   TGet4ppRawParam* fPar;
@@ -54,11 +51,10 @@ protected:
   /** reference to output data*/
   TGet4ppRawEvent* Get4ppRawEvent;  //!
 
-  /** remember most recent message for delta T evaluation*/
-  //TGet4ppMsgEvent fLastMessages[Get4pp_CHANNELS];
-
+#ifdef Get4pp_DOFINETIMSAMPLES
 /* local event counter for writing out fine time binds decision (simple approach)*/
-  UInt_t fEventCounter;
+  Int_t fEventCounter;
+#endif
 
   ClassDef(TGet4ppRawProc,1)
 };

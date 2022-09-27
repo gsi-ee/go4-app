@@ -12,7 +12,6 @@
 #include "TGo4EventElement.h"
 #include "TGo4CompositeEvent.h"
 
-#include "TObjString.h"
 
 #include <vector>
 #include "TString.h"
@@ -491,8 +490,11 @@ ClassDef(TGet4ppBoard,1)
  * with all board components in the readout chain
  *
  * */
-
+#ifdef Get4pp_DOFINETIMSAMPLES
+class TGet4ppRawEvent: public TGo4EventElement
+#else
 class TGet4ppRawEvent: public TGo4CompositeEvent
+#endif
 {
 public:
   TGet4ppRawEvent();
@@ -517,15 +519,15 @@ public:
   Int_t fDataCount;
 
 #ifdef Get4pp_DOFINETIMSAMPLES
-  TObjString fLmdFileName;
+  TString fLmdFileName;
   Int_t fTapConfig;
-  Int_t fDelayConfig;
+  UInt_t fDelayConfig;
 
-  /** contents of fine time bins at end of measurments, leading edge*/
-  Int_t fFineTimeBinLeading[Get4pp_CHANNELS][Get4pp_FINERANGE+1];
-  /** contents of fine time bins at end of measurments, trailing edge*/
-  Int_t fFineTimeBinTrailing[Get4pp_CHANNELS][Get4pp_FINERANGE+1];
-  // TODO: put fine time for each channel of test board here
+  /** contents of (normalized?) fine time bins at end of measurments, leading edge*/
+  Double_t fFineTimeBinLeading[Get4pp_CHANNELS][Get4pp_FINERANGE];
+  /** contents of (normalized?) fine time bins at end of measurments, trailing edge*/
+  Double_t fFineTimeBinTrailing[Get4pp_CHANNELS][Get4pp_FINERANGE];
+
 
 #endif
 

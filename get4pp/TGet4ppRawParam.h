@@ -37,7 +37,7 @@ class TGet4ppRawParam : public TGo4Parameter {
 
 #ifdef Get4pp_DOFINETIMSAMPLES
       Int_t fFineTimeSampleBoard; // id of board for fine time evaluation
-      Int_t fFineTimeStatsLimit; // histogram conten threshold for writing fine times
+      Int_t fFineTimeStatsLimit; // number of event threshold for writing fine times
 #endif
       /* initial mapping of board id to sfp/ gosip device cabling*/
       void InitBoardMapping();

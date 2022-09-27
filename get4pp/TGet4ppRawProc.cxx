@@ -173,8 +173,19 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 
 	source->ResetIterator();
 	TGo4MbsSubEvent* psubevt(0);
-	fEventCounter++; // local counter, independent of MBS header
 
+#ifdef Get4pp_DOFINETIMSAMPLES
+
+	if(fPar->fFineTimeSampleBoard>0 &&  TGo4Analysis::Instance()->IsNewInputFile())
+	{
+	  fEventCounter=0;
+	  TGo4Analysis::Instance()->ClearObjects("Histograms");
+	  printf ("NNNNNNNNNN Found new input file: clearing histograms and resetting the counter!!\n");
+	}
+
+
+	fEventCounter++; // local counter, independent of MBS header
+#endif
 
 
 
@@ -232,11 +243,15 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 						lwords, Get4ppRawEvent->fDataCount,
 						Get4ppRawEvent->fVULOMStatus,
 						Get4ppRawEvent->fSequenceNumber);
-				//GO4_SKIP_EVENT
+#ifdef Get4pp_DOFINETIMSAMPLES
+				// for scanning mode, just ignore such buggy subevent
+				GO4_SKIP_EVENT
+#else
 				GO4_STOP_ANALYSIS_MESSAGE(
 						"Severe data error! mismatch in payload header, check terminal! Stopping.");
 
 				// avoid that we run optional second step on invalid raw event!
+#endif
 			}
 
 			Int_t* pdatastart = pdata; // remember begin of asic payload data section
@@ -630,7 +645,6 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 //
 
 	UpdateDisplays(); // we fill the raw displays immediately, but may do additional histogramming later
-	Get4ppRawEvent->SetValid(kTRUE);    // to store
 
 	if (fPar->fSlowMotion)
 	{
@@ -647,104 +661,112 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 Bool_t TGet4ppRawProc::UpdateDisplays()
 {
 #ifdef Get4pp_DOFINETIMSAMPLES
-	// for labtest: write fine time histogram bins to tree when we have enough statistics
-    UInt_t brdid = fPar->fFineTimeSampleBoard; // use defined board under test
-	TGet4ppBoardDisplay *boardDisplay = GetBoardDisplay(brdid);
-	if (boardDisplay == 0) {
-		GO4_SKIP_EVENT_MESSAGE(
-				"Configuration error in UpdateDisplays: Board id %d does not exist as histogram display set!",
-				brdid);
-		return kFALSE;
-	}
+  // for labtest: write fine time histogram bins to tree when we have enough statistics
+  Get4ppRawEvent->SetValid(kFALSE);    // do not store by default
+  UInt_t brdid = fPar->fFineTimeSampleBoard;    // use defined board under test
+  if (brdid > 0)
+  {
+    TGet4ppBoardDisplay *boardDisplay = GetBoardDisplay(brdid);
+    if (boardDisplay == 0)
+    {
+      GO4_SKIP_EVENT_MESSAGE(
+          "Configuration error in UpdateDisplays: Board id %d does not exist as histogram display set!", brdid);
+      return kFALSE;
+    }
 
+    if (fEventCounter == fPar->fFineTimeStatsLimit)
+    {
+      // we reach the point to get the accuumlated samples:
+      TGo4MbsEvent* source = (TGo4MbsEvent*) GetInputEvent();
 
-	if (fEventCounter==fPar->fFineTimeStatsLimit && fPar->fFineTimeSampleBoard>0)
-		{
-		// TODO: check contents in sample histograms here
-		TGo4MbsEvent* source = (TGo4MbsEvent*) GetInputEvent();
+      s_filhe* head = source->GetMbsSourceHeader();
+      if (head)
+      {
+        char* filename = head->filhe_file;
+        Get4ppRawEvent->fLmdFileName = TString(filename, head->filhe_file_l);
+        //We expect files of form ConfigScan_<TapConfig>_<DelayConfig>.lmd
+        Int_t rev = sscanf(filename, "ConfigScan_%d_%x", &(Get4ppRawEvent->fTapConfig),
+            &(Get4ppRawEvent->fDelayConfig));
+        if (rev > 0)
+        {
+          printf("Got From filename: %s the tapconfig:%d and delayconf:0x%x \n", filename, Get4ppRawEvent->fTapConfig,
+              Get4ppRawEvent->fDelayConfig);
+        }
+        else
+        {
+          printf("Error %d when scanning filename: %s", rev, filename);
+        }
 
-		s_filhe* head=source->GetMbsSourceHeader();
-        if(head)
-           {
-    		Get4ppRawEvent->fTapConfig=1; // TODO: find out where to get this from header
-    			Get4ppRawEvent->fTapConfig=5;
-    			Get4ppRawEvent->fLmdFileName.SetString(head->filhe_file);
+      }
+      //Get4ppWarn
+      printf("UpDateDisplays: writing channel infos to output event after %d events, filename:%s\n", fEventCounter,
+          Get4ppRawEvent->fLmdFileName.Data());
+      // if reached threshold, write out bins to output event
+      for (Int_t chan = 0; chan < Get4pp_CHANNELS; ++chan)
+      {
+        for (Int_t edgeindex = 0; edgeindex < 2; ++edgeindex)
+        {
+          TH1 *his = boardDisplay->hFineTime[chan][edgeindex];
+          for (Int_t bin = 0; bin < Get4pp_FINERANGE; ++bin)
+          {
+            Double_t val = his->GetBinContent(bin+1);
+            if (edgeindex)
+              Get4ppRawEvent->fFineTimeBinTrailing[chan][bin] = val;
+            else
+              Get4ppRawEvent->fFineTimeBinLeading[chan][bin] = val;
+          }    //bin
+        }    //edgeindex
+      }    //chan
 
-//	               std::cout <<"found filhe structure:" << std::endl;
-//	               std::cout <<"\tdatalen: "<<head->filhe_dlen << std::endl;
-//	               std::cout <<"\tfilename_l: "<<head->filhe_file_l << std::endl;
-//	               std::cout <<"\tfilename: "<<head->filhe_file << std::endl;
-//	               std::cout <<"\ttype: "<<head->filhe_type << std::endl;
-//	               std::cout <<"\tsubtype: "<<head->filhe_subtype << std::endl;
-//	               std::cout <<"\t#commentlines: "<<head->filhe_lines << std::endl;
-           }
-  //      else
-  //         {
-  //            std::cout <<"zero file header" << std::endl;
-  //         }
-
-		Get4ppWarn("UpDateDisplays: writing channel infos to output event after %d events, filename:%s\n",
-				fEventCounter,Get4ppRawEvent->fLmdFileName.GetString().Data());
-		// if reached threshold, write out bins to output event
-		for (Int_t chan = 0; chan < Get4pp_CHANNELS; ++chan) {
-			for (Int_t edgeindex = 0; edgeindex < 2; ++edgeindex) {
-				TH1 *his = boardDisplay->hFineTime[chan][edgeindex];
-				for (Int_t bin = 1; bin < Get4pp_FINERANGE; ++bin) {
-					Int_t val = his->GetBinContent(bin);
-					if (edgeindex)
-						Get4ppRawEvent->fFineTimeBinTrailing[chan][bin] = val;
-					else
-						Get4ppRawEvent->fFineTimeBinLeading[chan][bin] = val;
-				} //bin
-			} //edgeindex
-		} //chan
-
-		// set output event valid for tree storage
-		Get4ppRawEvent->SetValid(kTRUE);
-		// reset all histograms (or only histograms under test?
-		TGo4Analysis::Instance()->ClearObjects("Histograms");
-		// changed to next file?
-		fEventCounter=0; // only for testing TODO
-		// later reset this at begin of new file
-
-		}
-	else
-	{
-		Get4ppRawEvent->SetValid(kFALSE);
-	}
-
-
-
-
+      // set output event valid for tree storage
+      Get4ppRawEvent->SetValid(kTRUE);
+    }
+    else if (fEventCounter > fPar->fFineTimeStatsLimit)
+    {
+      // after sample was stored, just skip all other events in file
+      Get4ppRawEvent->SetValid(kFALSE);
+      if((fEventCounter%500 ==0))printf("SSSS ignoring event %d from %s ...\n", fEventCounter, Get4ppRawEvent->fLmdFileName.Data());
+       //GO4_SKIP_EVENT;
+      // JAM DEBUG
+//      fEventCounter=0;
+//      TGo4Analysis::Instance()->ClearObjects("Histograms");
+//      printf ("RRRR DEBUG: clearing histograms and resetting the counter!!\n");
+    }
+    else
+    {
+      // if not yet at sampling point, do not store
+      Get4ppRawEvent->SetValid(kFALSE);
+    }
+  }    // boardid
 
 #else
 // maybe later some advanced analysis from full output event data here
 
-	for (unsigned i = 0; i < TGet4ppRawEvent::fgConfigGet4ppBoards.size(); ++i)
-	{
-		UInt_t brdid = TGet4ppRawEvent::fgConfigGet4ppBoards[i];
-		TGet4ppBoard* theBoard = Get4ppRawEvent->GetBoard(brdid);
-		if (theBoard == 0)
-		{
-			GO4_SKIP_EVENT_MESSAGE(
-					"FillDisplays Configuration error: Board id %d does not exist!",
-					brdid);
-			//return kFALSE;
-		}
-		TGet4ppBoardDisplay* boardDisplay = GetBoardDisplay(brdid);
-		if (boardDisplay == 0)
-		{
-			GO4_SKIP_EVENT_MESSAGE(
-					"FillDisplays Configuration error: Board id %d does not exist as histogram display set!",
-					brdid);
-			//return kFALSE;
-		}
+  for (unsigned i = 0; i < TGet4ppRawEvent::fgConfigGet4ppBoards.size(); ++i)
+  {
+    UInt_t brdid = TGet4ppRawEvent::fgConfigGet4ppBoards[i];
+    TGet4ppBoard* theBoard = Get4ppRawEvent->GetBoard(brdid);
+    if (theBoard == 0)
+    {
+      GO4_SKIP_EVENT_MESSAGE(
+          "FillDisplays Configuration error: Board id %d does not exist!",
+          brdid);
+      //return kFALSE;
+    }
+    TGet4ppBoardDisplay* boardDisplay = GetBoardDisplay(brdid);
+    if (boardDisplay == 0)
+    {
+      GO4_SKIP_EVENT_MESSAGE(
+          "FillDisplays Configuration error: Board id %d does not exist as histogram display set!",
+          brdid);
+      //return kFALSE;
+    }
 
-		// TODO JAM 2020 TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTOOOOOOOOOOOOOOOTTTTTTTTTOOOOOOOOOOOOO
+    // TODO JAM 2020 TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTOOOOOOOOOOOOOOOTTTTTTTTTOOOOOOOOOOOOO
 
-	}    // i board
+  }    // i board
 #endif
-	return kTRUE;
+  return kTRUE;
 }
 
 

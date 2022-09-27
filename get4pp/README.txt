@@ -13,8 +13,8 @@
 
 ---------------------------------------------
 // Readout of Get4++ ASIC via VULOM/MBS.
-// V 0.91 03-May-2020
-// Joern Adamczewski-Musch, CSEE, GSI Darmstadt
+// V 0.99 27-September-2022
+// Joern Adamczewski-Musch, EEL, GSI Darmstadt
 // j.adamczewski@gsi.de
 ---------------------------------------------
 
@@ -37,7 +37,7 @@ Wishbone messages (if existing in data stream) are treated and their contents hi
 Other (impossible?) message types are also counted and may indicate some problem with the readout.
 
 
-The parameter class TG4et4ppRawParam offers some switches to control processing:
+The parameter class TGet4ppRawParam offers some switches to control processing:
 
  - Int_t fVerbosity; 
   	// degree of debug printouts. 
@@ -48,10 +48,25 @@ The parameter class TG4et4ppRawParam offers some switches to control processing:
 - Bool_t fSlowMotion; 
    // if set to true than only process one MBS event and stop.
 
+--------
+For evaluation of measurement series files, it has been implemented to write the bins of leading and trailing fine time histograms 
+for each file into the output event. If file store is enabled, this will be written to an output tree. Each tree entry corresponds to one input file.
+This feature can be enabled/disabled at compile time with #define Get4pp_DOFINETIMSAMPLES (in TGet4ppRawEvent.h). By default it is on.
+
+Example root macro readGet4ppTree.C shows how to read back the fine time bins into histograms from the written Go4 eventstore tree.
+
+Control of this fine time samples can be done with additional parameters in TGet4ppRawParam:
+
+  Int_t fFineTimeSampleBoard; 
+   		// id of board for fine time evaluation - default is 42 (the only board for lab setup :))
+  Int_t fFineTimeStatsLimit; 
+        // number of event threshold for writing fine times
+        - after this number of events is reached, the fine time bin entries of leading and trailing edge histograms are copied to output event for tree storage.
+          All other event in the current input lmd file are skipped. When the next file of the lml input list/name wildcard is opened, the event counter is reset and another
+          measuerment result will be storead after this number of events, etc.
 
 
-Some more description will follow one day...
 
 
 
-JAM 03-May-2020
+JAM 27-September-2022

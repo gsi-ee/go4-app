@@ -25,6 +25,8 @@ void set_Get4ppRawParam()
    param0->fBoardID[8] = -1;
    param0->fBoardID[9] = -1;
    param0->fVerbosity = 0;
+   param0->fFineTimeStatsLimit =8000;
+
    param0->fSlowMotion = kFALSE;
 
 }

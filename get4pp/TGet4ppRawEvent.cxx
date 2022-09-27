@@ -53,17 +53,28 @@ void TGet4ppBoard::Clear(Option_t *t)
 std::vector<UInt_t> TGet4ppRawEvent::fgConfigGet4ppBoards;
 
 TGet4ppRawEvent::TGet4ppRawEvent() :
-    TGo4CompositeEvent(), fSequenceNumber(-1), fVULOMStatus(0), fDataCount(0)
+#ifdef Get4pp_DOFINETIMSAMPLES
+    TGo4EventElement(),
+#else
+    TGo4CompositeEvent(),
+#endif
+
+    fSequenceNumber(-1), fVULOMStatus(0), fDataCount(0)
 {
 }
 //***********************************************************
 TGet4ppRawEvent::TGet4ppRawEvent(const char* name, Short_t id) :
+#ifdef Get4pp_DOFINETIMSAMPLES
+    TGo4EventElement(name, name, id), fSequenceNumber(-1), fVULOMStatus(0), fDataCount(0)
+#else
     TGo4CompositeEvent(name, name, id), fSequenceNumber(-1), fVULOMStatus(0), fDataCount(0)
+#endif
+
 {
+#ifndef Get4pp_DOFINETIMSAMPLES
   TGo4Log::Info("TGet4ppRawEvent: Create instance %s with composite id %d", name, id);
   TString modname;
   UInt_t uniqueid;
-#ifndef Get4pp_DOFINETIMSAMPLES
   for (unsigned i = 0; i < TGet4ppRawEvent::fgConfigGet4ppBoards.size(); ++i)
   {
     uniqueid = TGet4ppRawEvent::fgConfigGet4ppBoards[i];
@@ -71,6 +82,8 @@ TGet4ppRawEvent::TGet4ppRawEvent(const char* name, Short_t id) :
     addEventElement(new TGet4ppBoard(modname.Data(), uniqueid, i));
   }
 #endif
+
+
 
 }
 //***********************************************************
@@ -80,6 +93,7 @@ TGet4ppRawEvent::~TGet4ppRawEvent()
 
 TGet4ppBoard* TGet4ppRawEvent::GetBoard(UInt_t id)
 {
+#ifndef Get4pp_DOFINETIMSAMPLES
   TGet4ppBoard* theBoard = 0;
   Short_t numBoards = getNElements();
   for (int i = 0; i < numBoards; ++i)
@@ -89,18 +103,30 @@ TGet4ppBoard* TGet4ppRawEvent::GetBoard(UInt_t id)
       return theBoard;
 
   }
+#endif
   return 0;
 }
 
 void TGet4ppRawEvent::Clear(Option_t *t)
 {
   //TGo4Log::Info("TGet4ppRawEvent: Clear ");
+#ifndef Get4pp_DOFINETIMSAMPLES
   TGo4CompositeEvent::Clear();
+#endif
   fSequenceNumber = -1;
   fVULOMStatus = 0;
   fDataCount = 0;
 #ifdef Get4pp_DOFINETIMSAMPLES
   // TODO: clear fine time sample elements here
+  SetValid(kFALSE);
+  fTapConfig=0;
+  fDelayConfig=0;
+  fLmdFileName="nofile";
+  for(int i=0; i<Get4pp_CHANNELS; ++i)
+    for(int j=0; j<Get4pp_FINERANGE; ++j)
+      fFineTimeBinLeading[i][j]=-1;
+
+
 #endif
 
 
