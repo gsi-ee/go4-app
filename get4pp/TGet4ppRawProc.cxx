@@ -699,9 +699,19 @@ Bool_t TGet4ppRawProc::UpdateDisplays()
               Get4ppRawEvent->fDelayConfig);
         }
         else
-        {
-          printf("Error %d when scanning filename: %s", rev, filename);
-        }
+	  {
+	    rev = sscanf( filename, "DelayScan_%d", &(Get4ppRawEvent->fDelayConfig) );
+	    if (rev > 0)
+	      {
+		printf("Got From filename: %s the delayconf:0x%x \n", filename, Get4ppRawEvent->fDelayConfig);
+		Get4ppRawEvent->fTapConfig = 0;
+	      }
+	    else
+	      {
+		printf("Error %d when scanning filename: %s", rev, filename);
+	      }
+	  }
+      
 
       }
       //Get4ppWarn
@@ -713,7 +723,7 @@ Bool_t TGet4ppRawProc::UpdateDisplays()
         for (Int_t edgeindex = 0; edgeindex < 2; ++edgeindex)
         {
           TH1 *his = boardDisplay->hFineTime[chan][edgeindex];
-          for (Int_t bin = 0; bin < Get4pp_FINERANGE; ++bin)
+          for (Int_t bin = 0; bin < Get4pp_FINERANGE+1; ++bin)
           {
             Double_t val = his->GetBinContent(bin+1);
             if (edgeindex)

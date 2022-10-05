@@ -524,9 +524,9 @@ public:
   UInt_t fDelayConfig;
 
   /** contents of (normalized?) fine time bins at end of measurments, leading edge*/
-  Double_t fFineTimeBinLeading[Get4pp_CHANNELS][Get4pp_FINERANGE];
+  Double_t fFineTimeBinLeading[Get4pp_CHANNELS][Get4pp_FINERANGE+1];
   /** contents of (normalized?) fine time bins at end of measurments, trailing edge*/
-  Double_t fFineTimeBinTrailing[Get4pp_CHANNELS][Get4pp_FINERANGE];
+  Double_t fFineTimeBinTrailing[Get4pp_CHANNELS][Get4pp_FINERANGE+1];
 
 
 #endif
