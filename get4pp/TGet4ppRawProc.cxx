@@ -52,8 +52,8 @@ if((pdata - psubevt->GetDataField()) >= lwords ) \
 #define  Get4ppRAW_CHECK_PDATA                                    \
 if((pdata - pdatastart) > Get4ppRawEvent->fDataCount ) \
 { \
-  Get4ppWarn("############ unexpected end of payload for datacount:0x%x after 0x%x words, get next vulom header \n", Get4ppRawEvent->fDataCount, (unsigned int) (pdata - pdatastart));\
-  goto next_vulom_header; \
+  Get4ppWarn("############ unexpected end of payload for datacount:0x%x after 0x%x words, end of event (#oversized=%ld) \n", Get4ppRawEvent->fDataCount, (unsigned int) (pdata - pdatastart), skipped_events++);\
+  goto end_of_event; \
 }
 
 //GO4_SKIP_EVENT
@@ -222,7 +222,6 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 		while (pdata - psubevt->GetDataField() < lwords)
 		{
 
-next_vulom_header:
 			// vulom status word:
 			Get4ppRawEvent->fVULOMStatus = *pdata++;
 			// JAM2020: need to check if status word has valid format here:
@@ -236,7 +235,7 @@ next_vulom_header:
 			//event trigger counter:
 			Get4ppRawEvent->fSequenceNumber = *pdata++;
 			// data length
-			Get4ppRawEvent->fDataCount = *pdata++;
+			Get4ppRawEvent->fDataCount = 1 + *pdata++ ; // payload is one more according to f_user_readout JAM 10-22
 
 			Get4ppDump("VULOM: status: 0x%x counter: 0x%x length: 0x%x \n",
 					Get4ppRawEvent->fVULOMStatus,
@@ -247,16 +246,14 @@ next_vulom_header:
 //            "**** TGet4ppRawProc: Mismatch with subevent len %d and data count 0x%8x - vulom status:0x%x seqnum:0x%x \n", lwords, Get4ppRawEvent->fDataCount,
 //            Get4ppRawEvent->fVULOMStatus, Get4ppRawEvent->fSequenceNumber);
 				// JAM2020: avoid flooding message queue to GUI! better only to terminal:
-			  Get4ppWarn(
+			 printf(
 						"**** TGet4ppRawProc: Mismatch with subevent len 0x%x and data count 0x%8x - vulom status:0x%x seqnum:0x%x \n",
 						lwords, Get4ppRawEvent->fDataCount,
 						Get4ppRawEvent->fVULOMStatus,
 						Get4ppRawEvent->fSequenceNumber);
 #ifdef Get4pp_DOFINETIMSAMPLES
-				continue;
-				// try next word to be correct vulom status?
 				// for scanning mode, just ignore such buggy subevent
-				//GO4_SKIP_EVENT
+				GO4_SKIP_EVENT
 #else
 				GO4_STOP_ANALYSIS_MESSAGE(
 						"Severe data error! mismatch in payload header, check terminal! Stopping.");
@@ -271,10 +268,6 @@ next_vulom_header:
 			pdata++;    // skip first  word?
 			pdata++; // another one?
 
-			// pdatastart was here JAM
-
-			//Int_t* pdatastart = pdata; // remember begin of asic payload data section
-			//Get4ppDump("PPP pdatastart content: 0x%x \n", *pdatastart);
 
 			// now fetch boardwise subcomponents for output data and histograming:
 			Int_t slix = 0; // JAM here we later could evaluate a board identifier mapped to a slot/sfp number contained in subevent
