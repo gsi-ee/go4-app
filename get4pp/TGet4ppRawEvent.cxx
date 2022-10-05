@@ -121,7 +121,7 @@ void TGet4ppRawEvent::Clear(Option_t *t)
   SetValid(kFALSE);
   fTapConfig=0;
   fDelayConfig=0;
-  fLmdFileName="nofile";
+  //fLmdFileName="nofile";
   for(int i=0; i<Get4pp_CHANNELS; ++i)
     for(int j=0; j<Get4pp_FINERANGE; ++j)
       fFineTimeBinLeading[i][j]=-1;

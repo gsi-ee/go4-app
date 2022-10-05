@@ -34,7 +34,7 @@ if (fPar->fVerbosity>1) printf( args);
 #define Get4ppWarn( args... ) \
 if(fPar->fVerbosity>0) printf( args);
 
-//static unsigned long skipped_events = 0;
+static unsigned long skipped_events = 0;
 
 static unsigned long skipped_msgs = 0;
 
@@ -52,9 +52,8 @@ if((pdata - psubevt->GetDataField()) >= lwords ) \
 #define  Get4ppRAW_CHECK_PDATA                                    \
 if((pdata - pdatastart) > Get4ppRawEvent->fDataCount ) \
 { \
-  Get4ppWarn("############ unexpected end of payload for datacount:0x%x after 0x%x words, end of event.\n", Get4ppRawEvent->fDataCount, (unsigned int) (pdata - pdatastart));\
-  skipmessage=kTRUE; \
-  break; \
+  Get4ppWarn("############ unexpected end of payload for datacount:0x%x after 0x%x words, get next vulom header \n", Get4ppRawEvent->fDataCount, (unsigned int) (pdata - pdatastart));\
+  goto next_vulom_header; \
 }
 
 //GO4_SKIP_EVENT
@@ -70,14 +69,23 @@ if((pdata - pdatastartMsg) > msize ) \
 //  continue;
 
 // this one is to discard last message that may be cut off by vulom daq:
-#define  Get4ppEVENTLASTMSG_CHECK_PDATA                                    \
+#define  Get4ppEVENTLASTMSG_CHECK_PDATA \
 if((pdata - psubevt->GetDataField()) >= lwords ) \
  { \
-    Get4ppWarn("############ pdata offset 0x%x exceeds  subevent size :0x%x, skip message %ld\n", (unsigned int) (pdata - psubevt->GetDataField()), lwords, skipped_msgs++)\
-	skipmessage=kTRUE; \
-  break; \
+    Get4ppWarn("############ pdata offset 0x%x exceeds  subevent size :0x%x, end of event (#oversized=%ld)\n", (unsigned int) (pdata - psubevt->GetDataField()), lwords, skipped_events++); \
+    goto end_of_event; \
 }
 
+// JAM10-22: do not skip, but finish BuildEvent normally with UpdateDisplay
+// TODO: put unpacker and update displays into separate functions within BuildEvent to avoid goto...
+/*
+//if((pdata - psubevt->GetDataField()) >= lwords ) \
+// { \
+//    Get4ppWarn("############ pdata offset 0x%x exceeds  subevent size :0x%x, skip message %ld\n", (unsigned int) (pdata - psubevt->GetDataField()), lwords, skipped_msgs++)\
+//	skipmessage=kTRUE; \
+//  break; \
+//}
+*/
 /*printf("############ pdata offset 0x%x exceeds  subevent size :0x%x, skip message %ld\n", (unsigned int) (pdata - psubevt->GetDataField()), lwords, skipped_msgs++);\*/
 
 //***********************************************************
@@ -214,6 +222,7 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 		while (pdata - psubevt->GetDataField() < lwords)
 		{
 
+next_vulom_header:
 			// vulom status word:
 			Get4ppRawEvent->fVULOMStatus = *pdata++;
 			// JAM2020: need to check if status word has valid format here:
@@ -238,14 +247,16 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 //            "**** TGet4ppRawProc: Mismatch with subevent len %d and data count 0x%8x - vulom status:0x%x seqnum:0x%x \n", lwords, Get4ppRawEvent->fDataCount,
 //            Get4ppRawEvent->fVULOMStatus, Get4ppRawEvent->fSequenceNumber);
 				// JAM2020: avoid flooding message queue to GUI! better only to terminal:
-				printf(
+			  Get4ppWarn(
 						"**** TGet4ppRawProc: Mismatch with subevent len 0x%x and data count 0x%8x - vulom status:0x%x seqnum:0x%x \n",
 						lwords, Get4ppRawEvent->fDataCount,
 						Get4ppRawEvent->fVULOMStatus,
 						Get4ppRawEvent->fSequenceNumber);
 #ifdef Get4pp_DOFINETIMSAMPLES
+				continue;
+				// try next word to be correct vulom status?
 				// for scanning mode, just ignore such buggy subevent
-				GO4_SKIP_EVENT
+				//GO4_SKIP_EVENT
 #else
 				GO4_STOP_ANALYSIS_MESSAGE(
 						"Severe data error! mismatch in payload header, check terminal! Stopping.");
@@ -258,7 +269,13 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 			Get4ppDump("PPP pdatastart content: 0x%x \n", *pdatastart);
 
 			pdata++;    // skip first  word?
+			pdata++; // another one?
+
 			// pdatastart was here JAM
+
+			//Int_t* pdatastart = pdata; // remember begin of asic payload data section
+			//Get4ppDump("PPP pdatastart content: 0x%x \n", *pdatastart);
+
 			// now fetch boardwise subcomponents for output data and histograming:
 			Int_t slix = 0; // JAM here we later could evaluate a board identifier mapped to a slot/sfp number contained in subevent
 			UInt_t brdid = fPar->fBoardID[slix]; // get hardware identifier from "DAQ link index" number
@@ -285,7 +302,8 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 
 			// evaluate Get4ppection ASIC messages in the payload:
 
-			while ((pdata - pdatastart) <= Get4ppRawEvent->fDataCount)
+			//while ((pdata - pdatastart) <= Get4ppRawEvent->fDataCount)
+			while ((pdata - pdatastart) < Get4ppRawEvent->fDataCount)
 			{
 
 				// first vulom wrapper containing total message length:
@@ -650,6 +668,7 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 
 //
 
+end_of_event:
 	UpdateDisplays(); // we fill the raw displays immediately, but may do additional histogramming later
 
 	if (fPar->fSlowMotion)
@@ -689,7 +708,8 @@ Bool_t TGet4ppRawProc::UpdateDisplays()
       if (head)
       {
         char* filename = head->filhe_file;
-        Get4ppRawEvent->fLmdFileName = TString(filename, head->filhe_file_l);
+        Get4ppRawEvent->fLmdFileName = filename;//
+        TString(filename, head->filhe_file_l);
         //We expect files of form ConfigScan_<TapConfig>_<DelayConfig>.lmd
         Int_t rev = sscanf(filename, "ConfigScan_%d_%x", &(Get4ppRawEvent->fTapConfig),
             &(Get4ppRawEvent->fDelayConfig));
