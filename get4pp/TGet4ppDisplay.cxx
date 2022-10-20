@@ -291,72 +291,49 @@ void TGet4ppBoardDisplay::InitDisplay(Bool_t replace)
 	obtitle.Form("Get4ppection Board %d Wishbone source id", brd);
 	hWishboneSource = MakeTH1('I', obname.Data(), obtitle.Data(), 16, 0, 16);
 
+
+
+	// below new histograms for delta t between channels JAM 20-oct-2022
+  for (Int_t cref = 0; cref < Get4pp_CHANNELS; ++cref)
+  {
+
+    for (Int_t cwork = cref + 1; cwork < Get4pp_CHANNELS; ++cwork)
+    {
+      // standard:
+      Double_t deltarange_raw = ((Double_t)(Get4pp_FINERANGE + 1)) * 10;    //  10  coarseranges= 20 ns
+      Double_t deltabins_raw = ((Double_t)(Get4pp_FINERANGE + 1)) * 10;    // fine time bin granularity here
+
+      obname.Form("Board%d/DeltaTime/raw/dTime_raw_%d_%d-%d", brd, brd, cwork, cref);
+      obtitle.Form("Get4pp Board %d Leading edge #delta t raw (%d-%d)", brd, cwork, cref);
+      hDeltaTime[cref][cwork] = MakeTH1('I', obname.Data(), obtitle.Data(), deltabins_raw, -deltarange_raw / 2,
+          deltarange_raw / 2, "fine time units", "counts");
+
+
+//
+ // TESTJAM
+//      Double_t deltarange_secs = Get4pp_COARSETIMEUNIT * 50000;    //  +/- 50 us
+//      Double_t deltabins_secs = ((Double_t)(Get4pp_FINERANGE + 1)) * 10000 ; // 10 ns bins
+// end testjam
+
+      Double_t deltarange_secs = Get4pp_COARSETIMEUNIT * 10;    //  10  coarseranges= 20 ns
+      Double_t deltabins_secs = ((Double_t)(Get4pp_FINERANGE + 1)) * 10 * 2;    // fine time bin granularity here
+      obname.Form("Board%d/DeltaTime/seconds/dTime_s_%d_%d-%d", brd, brd, cwork, cref);
+      obtitle.Form("Get4pp Board %d Leading edge #delta t seconds (%d-%d)", brd, cwork, cref);
+      hDeltaTimeInSeconds[cref][cwork] = MakeTH1('I', obname.Data(), obtitle.Data(), deltabins_secs,
+          -deltarange_secs / 2, deltarange_secs / 2, "seconds", "counts");
+
+    }    // cwork
+  }    // cref
+
 	SetMakeWithAutosave(kTRUE);
 
-//    obname.Form("ADC_direct_Brd%d_Tr", brd);
-//  TGo4Picture* pic = GetPicture(obname.Data());
-//  if (pic == 0)
-//  {
-//    obtitle.Form("ADC direct trace Board%d", brd);
-//    pic = new TGo4Picture(obname.Data(), obtitle.Data());
-//
-//    pic->SetDivision(2, 2);
-//    pic->Pic(0, 0)->AddObject(hTraceLongPrev);
-//    pic->Pic(0, 0)->SetLineAtt(3, 1, 1);    // solid line
-//    pic->Pic(0, 0)->AddObject(cWindowFFT);
-//
-//    pic->Pic(0, 1)->AddObject(hTracePartFFT);
-//    pic->Pic(0, 1)->SetLogScale(1);
-//    pic->Pic(0, 1)->SetLineAtt(4, 1, 1);
-//    pic->Pic(0, 1)->SetFillAtt(4, 3001);
-//
-//    pic->Pic(1, 0)->AddObject(hTraceLong);
-//    pic->Pic(1, 0)->SetLineAtt(3, 1, 1);
-//    pic->Pic(1, 0)->SetFillAtt(3, 3001);
-//
-//    pic->Pic(1, 1)->AddObject(hTraceLongFFT);
-//    pic->Pic(1, 1)->SetLogScale(1);
-//    pic->Pic(1, 1)->SetLineAtt(4, 1, 1);
-//    pic->Pic(1, 1)->SetFillAtt(4, 3001);
-//    AddPicture(pic, Form("Board%d", brd));
-//  }
-//
-//  obname.Form("ADC_direct_Brd%d_Corrected", brd);
-// pic = GetPicture(obname.Data());
-// if (pic == 0)
-// {
-//   obtitle.Form("ADC direct corrected trace Board%d", brd);
-//   pic = new TGo4Picture(obname.Data(), obtitle.Data());
-//
-//   pic->SetDivision(2, 1);
-//   pic->Pic(0, 0)->AddObject(hTraceLongPrevCorrected);
-//   pic->Pic(0, 0)->SetLineAtt(5, 1, 1);    // solid line
-//   pic->Pic(0, 0)->AddObject(cWindowFFT);
-//
-//   pic->Pic(1, 0)->AddObject(hTracePartCorrectedFFT);
-//   pic->Pic(1, 0)->SetLogScale(1);
-//   pic->Pic(1, 0)->SetLineAtt(4, 1, 1);
-//   pic->Pic(1, 0)->SetFillAtt(4, 3001);
-//   AddPicture(pic, Form("Board%d", brd));
-// }
-//
+
 
 }
 
 void TGet4ppBoardDisplay::ResetDisplay()
 {
-//  for(Int_t ch=0; ch<Get4pp_CHANNELS; ++ch)
-//      {
-//        hTrace[ch]->Reset();
-//        for(Int_t i=0; i<Get4pp_MAXSNAPSHOTS; ++i)
-//        {
-//            if(hTraceSnapshots[ch][i]) hTraceSnapshots[ch][i]->Reset("");
-//
-//       } //for i
-//        hTraceSnapshot2d[ch]->Reset("");
-//      }// for ch
-//  if(cleartracelong)
-//    hTraceLong->Reset(""); // TODO: probably we want to have long traces over more than one mbs event?
+
 
 }
 

@@ -33,6 +33,25 @@ void TGet4ppBoard::AddMessage(TGet4ppMsg* msg, UChar_t channel)
   }
 }
 
+
+UInt_t TGet4ppBoard::NumMessages(UChar_t channel)
+{
+  if (channel >= Get4pp_CHANNELS)
+    return 0;
+  return fMessages[channel].size();
+}
+
+TGet4ppMsg* TGet4ppBoard::GetMessage(UChar_t channel, UInt_t i)
+{
+  if (channel >= Get4pp_CHANNELS)
+    return 0;
+  if (i >= fMessages[channel].size())
+    return 0;
+  return fMessages[channel].at(i);
+}
+
+
+
 void TGet4ppBoard::Clear(Option_t *t)
 {
   //printf("TGet4ppBoard::Clear");
@@ -53,25 +72,21 @@ void TGet4ppBoard::Clear(Option_t *t)
 std::vector<UInt_t> TGet4ppRawEvent::fgConfigGet4ppBoards;
 
 TGet4ppRawEvent::TGet4ppRawEvent() :
-#ifdef Get4pp_DOFINETIMSAMPLES
-    TGo4EventElement(),
-#else
     TGo4CompositeEvent(),
-#endif
-
     fSequenceNumber(-1), fVULOMStatus(0), fDataCount(0)
+#ifdef Get4pp_DOFINETIMSAMPLES
+    ,fTapConfig(0), fDelayConfig(0)
+#endif
 {
 }
 //***********************************************************
 TGet4ppRawEvent::TGet4ppRawEvent(const char* name, Short_t id) :
+    TGo4CompositeEvent(name, name, id), //#
+    fSequenceNumber(-1), fVULOMStatus(0), fDataCount(0)
 #ifdef Get4pp_DOFINETIMSAMPLES
-    TGo4EventElement(name, name, id), fSequenceNumber(-1), fVULOMStatus(0), fDataCount(0)
-#else
-    TGo4CompositeEvent(name, name, id), fSequenceNumber(-1), fVULOMStatus(0), fDataCount(0)
+    , fTapConfig(0), fDelayConfig(0)
 #endif
-
 {
-#ifndef Get4pp_DOFINETIMSAMPLES
   TGo4Log::Info("TGet4ppRawEvent: Create instance %s with composite id %d", name, id);
   TString modname;
   UInt_t uniqueid;
@@ -81,10 +96,6 @@ TGet4ppRawEvent::TGet4ppRawEvent(const char* name, Short_t id) :
     modname.Form("Get4pp_Board_%02d", uniqueid);
     addEventElement(new TGet4ppBoard(modname.Data(), uniqueid, i));
   }
-#endif
-
-
-
 }
 //***********************************************************
 TGet4ppRawEvent::~TGet4ppRawEvent()
@@ -93,7 +104,6 @@ TGet4ppRawEvent::~TGet4ppRawEvent()
 
 TGet4ppBoard* TGet4ppRawEvent::GetBoard(UInt_t id)
 {
-#ifndef Get4pp_DOFINETIMSAMPLES
   TGet4ppBoard* theBoard = 0;
   Short_t numBoards = getNElements();
   for (int i = 0; i < numBoards; ++i)
@@ -103,16 +113,15 @@ TGet4ppBoard* TGet4ppRawEvent::GetBoard(UInt_t id)
       return theBoard;
 
   }
-#endif
   return 0;
 }
 
 void TGet4ppRawEvent::Clear(Option_t *t)
 {
   //TGo4Log::Info("TGet4ppRawEvent: Clear ");
-#ifndef Get4pp_DOFINETIMSAMPLES
+//#ifndef Get4pp_DOFINETIMSAMPLES
   TGo4CompositeEvent::Clear();
-#endif
+//#endif
   fSequenceNumber = -1;
   fVULOMStatus = 0;
   fDataCount = 0;

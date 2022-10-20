@@ -272,7 +272,7 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 			// now fetch boardwise subcomponents for output data and histograming:
 			Int_t slix = 0; // JAM here we later could evaluate a board identifier mapped to a slot/sfp number contained in subevent
 			UInt_t brdid = fPar->fBoardID[slix]; // get hardware identifier from "DAQ link index" number
-#ifndef Get4pp_DOFINETIMSAMPLES
+//#ifndef Get4pp_DOFINETIMSAMPLES
 			TGet4ppBoard* theBoard = Get4ppRawEvent->GetBoard(brdid);
 			if (theBoard == 0)
 			{
@@ -282,7 +282,7 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 
 				return kFALSE;
 			}
-#endif
+//#endif
 			TGet4ppBoardDisplay* boardDisplay = GetBoardDisplay(brdid);
 			if (boardDisplay == 0)
 			{
@@ -439,9 +439,9 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 									}
 									theMsg->SetEpoch(theEpoch);
 									theMsg->SetLeadingEdge(leadingedge);
-#ifndef Get4pp_DOFINETIMSAMPLES
+//#ifndef Get4pp_DOFINETIMSAMPLES
 									theBoard->AddMessage(theMsg, chan);
-#endif
+//#endif
 
 
 ///////// end of unpacking: the rest is histogram fill stuff
@@ -574,9 +574,9 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 												(int) kind);
 										continue;
 									}
-#ifdef Get4pp_DOFINETIMSAMPLES
-                                     delete theMsg; // have to remove it here, since it is not part of output event and cleared after each event anymore!
-#endif
+//#ifdef Get4pp_DOFINETIMSAMPLES
+//                                     delete theMsg; // have to remove it here, since it is not part of output event and cleared after each event anymore!
+//#endif
 								} // for e
 
 							} // skipmessage
@@ -615,11 +615,11 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 								theMsg->GetSource());
 						boardDisplay->lWishboneText->SetText(0.1, 0.9,
 								theMsg->DumpMsg());
-#ifndef Get4pp_DOFINETIMSAMPLES
+//#ifndef Get4pp_DOFINETIMSAMPLES
 						theBoard->AddMessage(theMsg, 0); // wishbone messages accounted for channel 0
-#else
-						 delete theMsg; // remove it here, since it is not part of output event and cleared after each event anymore!
-#endif
+//#else
+//						 delete theMsg; // remove it here, since it is not part of output event and cleared after each event anymore!
+//#endif
 //                if(theMsg->GetDataSize()>0)
 //                {
 //                  printf("Wishbone text: %s",theMsg->DumpMsg().Data());
@@ -691,6 +691,11 @@ Bool_t TGet4ppRawProc::UpdateDisplays()
           "Configuration error in UpdateDisplays: Board id %d does not exist as histogram display set!", brdid);
       return kFALSE;
     }
+
+
+
+
+
 
     if (fEventCounter == fPar->fFineTimeStatsLimit)
     {
@@ -768,7 +773,7 @@ Bool_t TGet4ppRawProc::UpdateDisplays()
     }
   }    // boardid
 
-#else
+#endif
 // maybe later some advanced analysis from full output event data here
 
   for (unsigned i = 0; i < TGet4ppRawEvent::fgConfigGet4ppBoards.size(); ++i)
@@ -791,10 +796,43 @@ Bool_t TGet4ppRawProc::UpdateDisplays()
       //return kFALSE;
     }
 
-    // TODO JAM 2020 TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTOOOOOOOOOOOOOOOTTTTTTTTTOOOOOOOOOOOOO
 
+    // JAM 19-oct-2022: fill histograms for pairwise deltat between all 4 channels:
+       // for this we need again output event with full message store...
+
+    for (Int_t cref = 0; cref < Get4pp_CHANNELS; ++cref)
+     {
+        UInt_t maxrefs = theBoard->NumMessages(cref);
+       for (Int_t cwork = cref + 1; cwork < Get4pp_CHANNELS; ++cwork)
+       {
+           UInt_t maxworks = theBoard->NumMessages(cwork);
+           UInt_t lastj=0;
+           for (UInt_t i = 0; i < maxrefs; ++i)
+           {
+             TGet4ppMsg* refmsg = theBoard->GetMessage(cref, i);
+             TGet4ppMsgTDCEvent* reftdc=dynamic_cast<TGet4ppMsgTDCEvent*>(refmsg);
+             if(reftdc==0) continue;
+             if (!reftdc->IsLeadingEdge()) continue;
+             for (UInt_t j = lastj+1; j < maxworks; ++j)
+                 {
+                   TGet4ppMsg* workmsg = theBoard->GetMessage(cwork, j);
+                   TGet4ppMsgTDCEvent* worktdc=dynamic_cast<TGet4ppMsgTDCEvent*>(workmsg);
+                   if(worktdc==0) continue;
+                   if (!worktdc->IsLeadingEdge()) continue;
+                   // at this point we have corresponding leading edge messages of reference and "work" channels
+                   // problem: if there is other message types in between, or if messages for same puls is missing at beginning of array
+
+                   Double_t deltaraw=worktdc->GetFullTime() - reftdc->GetFullTime();
+                   Double_t deltasecs=worktdc->GetTimeInSeconds() - reftdc->GetTimeInSeconds();
+                   boardDisplay-> hDeltaTime[cref][cwork]->Fill(deltaraw);
+                   boardDisplay-> hDeltaTimeInSeconds[cref][cwork]->Fill(deltasecs);
+                   lastj=j;
+                   break;
+                 } // j
+           } // i
+       } // cwork
+     } //cref
   }    // i board
-#endif
   return kTRUE;
 }
 

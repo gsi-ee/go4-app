@@ -97,6 +97,16 @@ public:
    TLatex* lWishboneText;
 
 
+   ////JAM 20-10-2022 new histograms for delta t below:
+
+   /** leading edge delta time between channels, fine time units. Note that not all indices for pointers are used */
+    TH1 *hDeltaTime[Get4pp_CHANNELS][Get4pp_CHANNELS];
+
+    /** leading edge delta time between channels,unit seconds. Note that not all indices for pointers are used */
+    TH1 *hDeltaTimeInSeconds[Get4pp_CHANNELS][Get4pp_CHANNELS];
+
+
+  
    //
  Int_t GetDevId()
      {
@@ -131,6 +141,8 @@ public:
 		 fHasLeadingEdge[channel]=on;
 		 return kTRUE;
 	}
+
+
 
 protected:
 

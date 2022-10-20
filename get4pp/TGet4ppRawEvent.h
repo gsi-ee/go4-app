@@ -17,6 +17,11 @@
 #include "TString.h"
 
 
+// test if we can fix wrong coarscounter with this?
+#define Get4pp_REPAIRCOARSETIME 1
+
+
+
 // if this is set, do not store complete events, but evaluate channel fine times for tree JAM 21.09.22
 #define Get4pp_DOFINETIMSAMPLES 1
 
@@ -174,7 +179,11 @@ public:
     /** evaluate full timestamp in fine time granularity counts units*/
     Double_t GetFullTime()
     {
-    	Double_t ts =((Double_t) fEpoch * (Double_t) (Get4pp_COARSERANGE +1) * (Double_t)(Get4pp_FINERANGE+1) + (Double_t) fCoarseTime * (Double_t)(Get4pp_FINERANGE+1) + (Double_t) fFineTime);
+      Double_t correctedcoarse=fCoarseTime;
+#ifdef      Get4pp_REPAIRCOARSETIME
+      if(((fFineTime >> 6) & 0x1) == 0x1) correctedcoarse--;
+#endif
+      Double_t ts =((Double_t) fEpoch * (Double_t) (Get4pp_COARSERANGE +1) * (Double_t)(Get4pp_FINERANGE+1) + (Double_t) correctedcoarse * (Double_t)(Get4pp_FINERANGE+1) + (Double_t) fFineTime);
     	return ts;
     }
 
@@ -463,10 +472,11 @@ public:
 
   void AddMessage(TGet4ppMsg* msg, UChar_t channel);
 
-  /* vectors of TDC messages within the mbs event, sorted for the event readout channels
-   * note that direct readout and wishbone messages are put into first channel 0
-   * */
-  std::vector<TGet4ppMsg*> fMessages[Get4pp_CHANNELS];
+  UInt_t NumMessages(UChar_t channel);
+
+  TGet4ppMsg* GetMessage(UChar_t channel, UInt_t i);
+
+
 
   /** Method called by the framework to clear the event element. */
   void Clear(Option_t *t = "");
@@ -481,6 +491,17 @@ private:
   /* unique hardware id of the board. THis should be independent of position in readout chain*/
   UInt_t fUniqueId;
 
+  /* vectors of TDC messages within the mbs event, sorted for the event readout channels
+   * note that direct readout and wishbone messages are put into first channel 0
+   * */
+#ifdef Get4pp_DOFINETIMSAMPLES
+  std::vector<TGet4ppMsg*> fMessages[Get4pp_CHANNELS]; //! for finetime sample mode, do not store this into tree
+#else
+  std::vector<TGet4ppMsg*> fMessages[Get4pp_CHANNELS];
+#endif
+
+
+
 ClassDef(TGet4ppBoard,1)
 };
 
@@ -490,11 +511,11 @@ ClassDef(TGet4ppBoard,1)
  * with all board components in the readout chain
  *
  * */
-#ifdef Get4pp_DOFINETIMSAMPLES
-class TGet4ppRawEvent: public TGo4EventElement
-#else
+//#ifdef Get4pp_DOFINETIMSAMPLES
+//class TGet4ppRawEvent: public TGo4EventElement
+//#else
 class TGet4ppRawEvent: public TGo4CompositeEvent
-#endif
+//#endif
 {
 public:
   TGet4ppRawEvent();
