@@ -543,11 +543,18 @@ public:
   TString fLmdFileName;
   Int_t fTapConfig;
   UInt_t fDelayConfig;
-
+  Int_t fShiftChannel;
+  Int_t fShiftDelay;
   /** contents of (normalized?) fine time bins at end of measurments, leading edge*/
   Double_t fFineTimeBinLeading[Get4pp_CHANNELS][Get4pp_FINERANGE+1];
   /** contents of (normalized?) fine time bins at end of measurments, trailing edge*/
   Double_t fFineTimeBinTrailing[Get4pp_CHANNELS][Get4pp_FINERANGE+1];
+
+  /**Difference of leading edge times between channels, mean value [unit: seconds]. Note that not all indices are used*/
+  Double_t fDeltaTimeLeadingMean[Get4pp_CHANNELS][Get4pp_CHANNELS];
+
+  /**Difference of leading edge times between channels, sigma value [unit: seconds]. Note that not all indices are used*/
+  Double_t fDeltaTimeLeadingSigma[Get4pp_CHANNELS][Get4pp_CHANNELS];
 
 
 #endif

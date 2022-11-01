@@ -21,8 +21,8 @@
 //***********************************************************
 
 TGet4ppBoardDisplay::TGet4ppBoardDisplay(Int_t boardid) :
-		hChipId(0), hMsgTypes(0), hChannels(0), hWishboneAck(0), hWishboneSource(
-				0), lWishboneText(0), fDisplayId(boardid)
+		hChipId(0), hMsgTypes(0), hChannels(0), hSyncFlags(0), hWishboneAck(0),
+		hWishboneSource(0), lWishboneText(0), fDisplayId(boardid)
 {
 
 	printf("TGet4ppBoardDisplay ctor of id %d\n", fDisplayId);
@@ -46,6 +46,12 @@ TGet4ppBoardDisplay::TGet4ppBoardDisplay(Int_t boardid) :
 			hTimeInSeconds[ch][l] = 0;
 
 		}
+		for (Int_t cwork = 0; cwork < Get4pp_CHANNELS; ++cwork)
+		  {
+		      hDeltaTime[ch][cwork]=0;
+		      hDeltaTimeInSeconds[ch][cwork]=0;
+		  }
+
 	}
 
 	SetMakeWithAutosave(kTRUE);

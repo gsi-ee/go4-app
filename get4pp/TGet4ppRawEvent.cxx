@@ -75,7 +75,7 @@ TGet4ppRawEvent::TGet4ppRawEvent() :
     TGo4CompositeEvent(),
     fSequenceNumber(-1), fVULOMStatus(0), fDataCount(0)
 #ifdef Get4pp_DOFINETIMSAMPLES
-    ,fTapConfig(0), fDelayConfig(0)
+    ,fTapConfig(0), fDelayConfig(0), fShiftChannel(0), fShiftDelay(0)
 #endif
 {
 }
@@ -84,7 +84,7 @@ TGet4ppRawEvent::TGet4ppRawEvent(const char* name, Short_t id) :
     TGo4CompositeEvent(name, name, id), //#
     fSequenceNumber(-1), fVULOMStatus(0), fDataCount(0)
 #ifdef Get4pp_DOFINETIMSAMPLES
-    , fTapConfig(0), fDelayConfig(0)
+    , fTapConfig(0), fDelayConfig(0), fShiftChannel(0), fShiftDelay(0)
 #endif
 {
   TGo4Log::Info("TGet4ppRawEvent: Create instance %s with composite id %d", name, id);
@@ -119,23 +119,31 @@ TGet4ppBoard* TGet4ppRawEvent::GetBoard(UInt_t id)
 void TGet4ppRawEvent::Clear(Option_t *t)
 {
   //TGo4Log::Info("TGet4ppRawEvent: Clear ");
-//#ifndef Get4pp_DOFINETIMSAMPLES
   TGo4CompositeEvent::Clear();
-//#endif
   fSequenceNumber = -1;
   fVULOMStatus = 0;
   fDataCount = 0;
 #ifdef Get4pp_DOFINETIMSAMPLES
-  // TODO: clear fine time sample elements here
+  // clear fine time sample elements here
   SetValid(kFALSE);
   fTapConfig=0;
   fDelayConfig=0;
-  //fLmdFileName="nofile";
+  fShiftChannel=0;
+  fShiftDelay=0;
+  //fLmdFileName="nofile"; // we keep most recent filename
   for(int i=0; i<Get4pp_CHANNELS; ++i)
+  {
     for(int j=0; j<Get4pp_FINERANGE; ++j)
+    {
       fFineTimeBinLeading[i][j]=-1;
-
-
+      fFineTimeBinTrailing[i][j]=-1;
+    }
+    for(int k=0; k<Get4pp_CHANNELS; ++k)
+    {
+      fDeltaTimeLeadingMean[i][k]=0;
+      fDeltaTimeLeadingSigma[i][k]=0;
+    }
+  }
 #endif
 
 

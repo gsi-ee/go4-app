@@ -678,6 +678,71 @@ end_of_event:
 
 Bool_t TGet4ppRawProc::UpdateDisplays()
 {
+
+  // first fill histograms that require comparison of different channels:
+
+    for (unsigned i = 0; i < TGet4ppRawEvent::fgConfigGet4ppBoards.size(); ++i)
+    {
+      UInt_t brdid = TGet4ppRawEvent::fgConfigGet4ppBoards[i];
+      TGet4ppBoard* theBoard = Get4ppRawEvent->GetBoard(brdid);
+      if (theBoard == 0)
+      {
+        GO4_SKIP_EVENT_MESSAGE(
+            "FillDisplays Configuration error: Board id %d does not exist!",
+            brdid);
+        //return kFALSE;
+      }
+      TGet4ppBoardDisplay* boardDisplay = GetBoardDisplay(brdid);
+      if (boardDisplay == 0)
+      {
+        GO4_SKIP_EVENT_MESSAGE(
+            "FillDisplays Configuration error: Board id %d does not exist as histogram display set!",
+            brdid);
+        //return kFALSE;
+      }
+
+
+      // JAM 19-oct-2022: fill histograms for pairwise deltat between all 4 channels:
+         // for this we need again output event with full message store...
+
+      for (Int_t cref = 0; cref < Get4pp_CHANNELS; ++cref)
+       {
+          UInt_t maxrefs = theBoard->NumMessages(cref);
+         for (Int_t cwork = cref + 1; cwork < Get4pp_CHANNELS; ++cwork)
+         {
+             UInt_t maxworks = theBoard->NumMessages(cwork);
+             UInt_t lastj=0;
+             for (UInt_t i = 0; i < maxrefs; ++i)
+             {
+               TGet4ppMsg* refmsg = theBoard->GetMessage(cref, i);
+               TGet4ppMsgTDCEvent* reftdc=dynamic_cast<TGet4ppMsgTDCEvent*>(refmsg);
+               if(reftdc==0) continue;
+               if (!reftdc->IsLeadingEdge()) continue;
+               for (UInt_t j = lastj+1; j < maxworks; ++j)
+                   {
+                     TGet4ppMsg* workmsg = theBoard->GetMessage(cwork, j);
+                     TGet4ppMsgTDCEvent* worktdc=dynamic_cast<TGet4ppMsgTDCEvent*>(workmsg);
+                     if(worktdc==0) continue;
+                     if (!worktdc->IsLeadingEdge()) continue;
+                     // at this point we have corresponding leading edge messages of reference and "work" channels
+                     // problem: if there is other message types in between, or if messages for same puls is missing at beginning of array
+
+                     Double_t deltaraw=worktdc->GetFullTime() - reftdc->GetFullTime();
+                     Double_t deltasecs=worktdc->GetTimeInSeconds() - reftdc->GetTimeInSeconds();
+                     boardDisplay-> hDeltaTime[cref][cwork]->Fill(deltaraw);
+                     boardDisplay-> hDeltaTimeInSeconds[cref][cwork]->Fill(deltasecs);
+                     lastj=j;
+                     break;
+                   } // j
+             } // i
+         } // cwork
+       } //cref
+    }    // i board
+
+
+
+  // below special samples for trees:
+
 #ifdef Get4pp_DOFINETIMSAMPLES
   // for labtest: write fine time histogram bins to tree when we have enough statistics
   Get4ppRawEvent->SetValid(kFALSE);    // do not store by default
@@ -705,8 +770,8 @@ Bool_t TGet4ppRawProc::UpdateDisplays()
       s_filhe* head = source->GetMbsSourceHeader();
       if (head)
       {
-        char* filename = head->filhe_file;
-        Get4ppRawEvent->fLmdFileName = filename;//
+        char *filename = head->filhe_file;
+        Get4ppRawEvent->fLmdFileName = filename;    //
         TString(filename, head->filhe_file_l);
         //We expect files of form ConfigScan_<TapConfig>_<DelayConfig>.lmd
         Int_t rev = sscanf(filename, "ConfigScan_%d_%x", &(Get4ppRawEvent->fTapConfig),
@@ -715,23 +780,35 @@ Bool_t TGet4ppRawProc::UpdateDisplays()
         {
           printf("Got From filename: %s the tapconfig:%d and delayconf:0x%x \n", filename, Get4ppRawEvent->fTapConfig,
               Get4ppRawEvent->fDelayConfig);
+          Get4ppRawEvent->fShiftChannel=0;
+          Get4ppRawEvent->fShiftDelay=0;
         }
         else
-	  {
-	    rev = sscanf( filename, "DelayScan_%d", &(Get4ppRawEvent->fDelayConfig) );
-	    if (rev > 0)
-	      {
-		printf("Got From filename: %s the delayconf:0x%x \n", filename, Get4ppRawEvent->fDelayConfig);
-		Get4ppRawEvent->fTapConfig = 0;
-	      }
-	    else
-	      {
-		printf("Error %d when scanning filename: %s", rev, filename);
-	      }
-	  }
-      
-
-      }
+        {
+          rev = sscanf(filename, "DelayScan_%d", &(Get4ppRawEvent->fDelayConfig));
+          if (rev > 0)
+          {
+            printf("Got From filename: %s the delayconf:0x%x \n", filename, Get4ppRawEvent->fDelayConfig);
+            Get4ppRawEvent->fTapConfig = 0;
+            Get4ppRawEvent->fShiftChannel=0;
+            Get4ppRawEvent->fShiftDelay=0;
+          }
+          else
+          {
+            rev = sscanf(filename, "PrecScan_%d_%d", &(Get4ppRawEvent->fShiftChannel), &(Get4ppRawEvent->fShiftDelay));
+            if (rev > 0)
+            {
+              printf("Got From filename: %s the shifted channel:%d, delay=%d ps \n", filename, Get4ppRawEvent->fShiftChannel, Get4ppRawEvent->fShiftDelay);
+              Get4ppRawEvent->fTapConfig = 0;
+              Get4ppRawEvent->fDelayConfig=0;
+            }
+            else
+            {
+              printf("Error %d when scanning filename: %s", rev, filename);
+            } //PrecScan
+          } //DelayScan
+        } //ConfigScan
+      } // head
       //Get4ppWarn
       printf("UpDateDisplays: writing channel infos to output event after %d events, filename:%s\n", fEventCounter,
           Get4ppRawEvent->fLmdFileName.Data());
@@ -750,6 +827,21 @@ Bool_t TGet4ppRawProc::UpdateDisplays()
               Get4ppRawEvent->fFineTimeBinLeading[chan][bin] = val;
           }    //bin
         }    //edgeindex
+
+         // here evaluation of delta time mean and sigma:
+        Double_t mu=0, sigma=0;
+        for (Int_t wchan = 0; wchan < Get4pp_CHANNELS; ++wchan)
+              {
+                  TH1* his=boardDisplay->hDeltaTimeInSeconds[chan][wchan];
+                  if(his==0) continue; // skip not  used
+                  mu=his->GetMean();
+                  sigma=his->GetStdDev(); // TODO: maybe define range with go4 condition here?
+                Get4ppRawEvent->fDeltaTimeLeadingMean[chan][wchan]=mu;
+                Get4ppRawEvent->fDeltaTimeLeadingSigma[chan][wchan]=sigma;
+                // JAM for convenience, fill also symmetric indices here: - need this redundant information?
+                Get4ppRawEvent->fDeltaTimeLeadingMean[wchan][chan]= -1* mu;
+                Get4ppRawEvent->fDeltaTimeLeadingSigma[wchan][chan]=sigma;
+              } // wchan
       }    //chan
 
       // set output event valid for tree storage
@@ -774,65 +866,7 @@ Bool_t TGet4ppRawProc::UpdateDisplays()
   }    // boardid
 
 #endif
-// maybe later some advanced analysis from full output event data here
 
-  for (unsigned i = 0; i < TGet4ppRawEvent::fgConfigGet4ppBoards.size(); ++i)
-  {
-    UInt_t brdid = TGet4ppRawEvent::fgConfigGet4ppBoards[i];
-    TGet4ppBoard* theBoard = Get4ppRawEvent->GetBoard(brdid);
-    if (theBoard == 0)
-    {
-      GO4_SKIP_EVENT_MESSAGE(
-          "FillDisplays Configuration error: Board id %d does not exist!",
-          brdid);
-      //return kFALSE;
-    }
-    TGet4ppBoardDisplay* boardDisplay = GetBoardDisplay(brdid);
-    if (boardDisplay == 0)
-    {
-      GO4_SKIP_EVENT_MESSAGE(
-          "FillDisplays Configuration error: Board id %d does not exist as histogram display set!",
-          brdid);
-      //return kFALSE;
-    }
-
-
-    // JAM 19-oct-2022: fill histograms for pairwise deltat between all 4 channels:
-       // for this we need again output event with full message store...
-
-    for (Int_t cref = 0; cref < Get4pp_CHANNELS; ++cref)
-     {
-        UInt_t maxrefs = theBoard->NumMessages(cref);
-       for (Int_t cwork = cref + 1; cwork < Get4pp_CHANNELS; ++cwork)
-       {
-           UInt_t maxworks = theBoard->NumMessages(cwork);
-           UInt_t lastj=0;
-           for (UInt_t i = 0; i < maxrefs; ++i)
-           {
-             TGet4ppMsg* refmsg = theBoard->GetMessage(cref, i);
-             TGet4ppMsgTDCEvent* reftdc=dynamic_cast<TGet4ppMsgTDCEvent*>(refmsg);
-             if(reftdc==0) continue;
-             if (!reftdc->IsLeadingEdge()) continue;
-             for (UInt_t j = lastj+1; j < maxworks; ++j)
-                 {
-                   TGet4ppMsg* workmsg = theBoard->GetMessage(cwork, j);
-                   TGet4ppMsgTDCEvent* worktdc=dynamic_cast<TGet4ppMsgTDCEvent*>(workmsg);
-                   if(worktdc==0) continue;
-                   if (!worktdc->IsLeadingEdge()) continue;
-                   // at this point we have corresponding leading edge messages of reference and "work" channels
-                   // problem: if there is other message types in between, or if messages for same puls is missing at beginning of array
-
-                   Double_t deltaraw=worktdc->GetFullTime() - reftdc->GetFullTime();
-                   Double_t deltasecs=worktdc->GetTimeInSeconds() - reftdc->GetTimeInSeconds();
-                   boardDisplay-> hDeltaTime[cref][cwork]->Fill(deltaraw);
-                   boardDisplay-> hDeltaTimeInSeconds[cref][cwork]->Fill(deltasecs);
-                   lastj=j;
-                   break;
-                 } // j
-           } // i
-       } // cwork
-     } //cref
-  }    // i board
   return kTRUE;
 }
 
