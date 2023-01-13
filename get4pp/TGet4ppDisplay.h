@@ -26,7 +26,7 @@ class TGet4ppBoardDisplay: public  TGo4EventProcessor
 
 public:
   TGet4ppBoardDisplay() : TGo4EventProcessor(),
-  hChipId(0), hMsgTypes(0), hChannels(0), hWishboneAck(0), hWishboneSource(0), lWishboneText(0), fDisplayId(0)
+  hChipId(0), hMsgTypes(0), hChannels(0), hSyncFlags(0), hWishboneAck(0), hWishboneSource(0), lWishboneText(0), fDisplayId(0)
   {
     ;
   }
@@ -40,9 +40,16 @@ public:
    * long direct ADC trace is only cleared if argument is true*/
   void ResetDisplay();
 
-// JAM put histograms etc here
+  /** reset all tdc calibration histograms*/
+  void ResetCalibration();
 
-  /** check chipid for debug*/
+  /** Test for existing calibration: returns true if all channels/edges has already calibration from ASF */
+  Bool_t CheckCalibration();
+
+  /** evaluate tdc calibration histograms from recent statistics*/
+   Bool_t DoCalibration();
+
+   /** check chipid for debug*/
    TH1* hChipId;
 
   /** statistics of message types*/
@@ -104,6 +111,22 @@ public:
 
     /** leading edge delta time between channels,unit seconds. Note that not all indices for pointers are used */
     TH1 *hDeltaTimeInSeconds[Get4pp_CHANNELS][Get4pp_CHANNELS];
+
+
+    // JAM 11-01-2023: now add software calibration for fine time
+
+    /** histogram for accumulated fine time sum, used software calibration per TDC channel, for leading/trailing edges*/
+     TH1 *hFineTimeSum[Get4pp_CHANNELS][2];
+
+    /** histogram for fine time software calibration per TDC channel, for leading/trailing edges*/
+    TH1 *hFineCalibration[Get4pp_CHANNELS][2];
+
+
+    /** leading edge calibrated delta time between channels, fine time units. Note that not all indices for pointers are used */
+    TH1 *hDeltaTimeCalibrated[Get4pp_CHANNELS][Get4pp_CHANNELS];
+
+        /** leading edge calibrated delta time between channels,unit seconds. Note that not all indices for pointers are used */
+    TH1 *hDeltaTimeCalibratedInSeconds[Get4pp_CHANNELS][Get4pp_CHANNELS];
 
 
   

@@ -42,6 +42,12 @@ protected:
   /** recreate histograms using the given number of time slice*/
   void InitDisplay(Bool_t replace = kFALSE);
 
+  /** Evaluate histograms for fine time software calibration*/
+  Bool_t DoCalibrations();
+
+  /** Clear fine time calibration histograms for all known board displays*/
+  void ResetCalibrations();
+
   /** subdisplays for each frotend board */
   std::vector<TGet4ppBoardDisplay*> fBoards;
 
@@ -55,6 +61,15 @@ protected:
 /* local event counter for writing out fine time binds decision (simple approach)*/
   Int_t fEventCounter;
 #endif
+
+  /** flag to indicate that we have a valid fine time software calibration available*/
+  Bool_t fCalibrationReady;
+
+  /** flag to check old tdc calibration from ASF file and use this by default*/
+  Bool_t fUseOldCalibration;
+
+  /** channel statistics counter for calibration procedure*/
+  Int_t fCalibrationCounter;
 
   ClassDef(TGet4ppRawProc,1)
 };

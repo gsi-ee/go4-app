@@ -6,6 +6,7 @@
  * Joern Adamczewski-Musch, GSI-CSEE
  *
  * v0.1 14 Apr 2020
+ * v0.2 13-Jan-2022 - add optional fine time calibration evaluation
  *
  */
 
@@ -15,6 +16,7 @@
 
 #include <vector>
 #include "TString.h"
+#include "TH1.h"
 
 
 // test if we can fix wrong coarscounter with this?
@@ -49,6 +51,9 @@
 
 // Time in seconds of one coarse counter bin
 #define Get4pp_COARSETIMEUNIT 2.0e-9
+
+// minimum fine time histogram counts for each channel/edge to complete calibration
+#define Get4pp_DEFAULT_CALIBCOUNT 200000
 
 /**
  * Base class for single "message" inside data stream */
@@ -176,23 +181,33 @@ public:
     	return fFineTime;
     }
 
-    /** evaluate full timestamp in fine time granularity counts units*/
-    Double_t GetFullTime()
+    /** evaluate full timestamp in fine time granularity counts units.
+     * If fine time calibration histogram is passed as argument, it is used for fine time correction*/
+    Double_t GetFullTime(TH1* finecalibration=0)
     {
+      Double_t finetime=0;
       Double_t correctedcoarse=fCoarseTime;
 #ifdef      Get4pp_REPAIRCOARSETIME
       if(((fFineTime >> 6) & 0x1) == 0x1) correctedcoarse--;
 #endif
-      Double_t ts =((Double_t) fEpoch * (Double_t) (Get4pp_COARSERANGE +1) * (Double_t)(Get4pp_FINERANGE+1) + (Double_t) correctedcoarse * (Double_t)(Get4pp_FINERANGE+1) + (Double_t) fFineTime);
-    	return ts;
+      if(finecalibration)
+      {
+        finetime=finecalibration->GetBinContent(fFineTime);
+      }
+      else
+      {
+        finetime=(Double_t) fFineTime;
+      }
+
+      Double_t ts =((Double_t) fEpoch * (Double_t) (Get4pp_COARSERANGE +1) * (Double_t)(Get4pp_FINERANGE+1) + (Double_t) correctedcoarse * (Double_t)(Get4pp_FINERANGE+1) + finetime);
+      return ts;
     }
 
 
     /** evaluate full timestamp in seconds unit*/
-    Double_t GetTimeInSeconds()
+    Double_t GetTimeInSeconds(TH1* finecalibration=0)
     {
-    	//Double_t ts =( fEpoch * (Double_t)(Get4pp_COARSERANGE +1) + fCoarseTime + fFineTime/ (Double_t) (Get4pp_FINERANGE+1) )* Get4pp_COARSETIMEUNIT;
-    	Double_t ts = GetFullTime() * Get4pp_COARSETIMEUNIT / Double_t (Get4pp_FINERANGE+1);
+    	Double_t ts = GetFullTime(finecalibration) * Get4pp_COARSETIMEUNIT / Double_t (Get4pp_FINERANGE+1);
     	return ts;
     }
 

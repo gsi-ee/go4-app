@@ -90,14 +90,22 @@ if((pdata - psubevt->GetDataField()) >= lwords ) \
 
 //***********************************************************
 TGet4ppRawProc::TGet4ppRawProc() :
-		TGo4EventProcessor(), fPar(0), Get4ppRawEvent(0)
+		TGo4EventProcessor(), fPar(0), Get4ppRawEvent(0),
+#ifdef Get4pp_DOFINETIMSAMPLES
+        fEventCounter(0),
+#endif
+        fCalibrationReady(kFALSE), fUseOldCalibration(kTRUE), fCalibrationCounter(0)
 {
 }
 
 //***********************************************************
 // this one is used in standard factory
 TGet4ppRawProc::TGet4ppRawProc(const char* name) :
-		TGo4EventProcessor(name), Get4ppRawEvent(0),fEventCounter(0)
+		TGo4EventProcessor(name), Get4ppRawEvent(0),
+#ifdef Get4pp_DOFINETIMSAMPLES
+		fEventCounter(0),
+#endif
+		fCalibrationReady(kFALSE),  fUseOldCalibration(kTRUE), fCalibrationCounter(0)
 {
 	TGo4Log::Info("TGet4ppRawProc: Create instance %s", name);
 	fBoards.clear();
@@ -197,6 +205,14 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 
 
 
+
+	if(fPar->fResetCalibration)
+	    {
+	      fPar->fResetCalibration=kFALSE;
+	      fCalibrationReady=kFALSE;
+	      ResetCalibrations();
+	      fCalibrationCounter=0;
+	    }
 
 
 
@@ -662,7 +678,11 @@ Bool_t TGet4ppRawProc::BuildEvent(TGo4EventElement* target)
 //
 
 end_of_event:
-	UpdateDisplays(); // we fill the raw displays immediately, but may do additional histogramming later
+  if(fPar->fUseSoftwareCalibration)
+    {
+      DoCalibrations(); // optional TDC software calibration here
+    }
+    UpdateDisplays(); // we fill the raw displays immediately, but may do additional histogramming later
 
 	if (fPar->fSlowMotion)
 	{
@@ -678,6 +698,9 @@ end_of_event:
 
 Bool_t TGet4ppRawProc::UpdateDisplays()
 {
+
+
+
 
   // first fill histograms that require comparison of different channels:
 
@@ -731,6 +754,18 @@ Bool_t TGet4ppRawProc::UpdateDisplays()
                      Double_t deltasecs=worktdc->GetTimeInSeconds() - reftdc->GetTimeInSeconds();
                      boardDisplay-> hDeltaTime[cref][cwork]->Fill(deltaraw);
                      boardDisplay-> hDeltaTimeInSeconds[cref][cwork]->Fill(deltasecs);
+
+                     // JAM2023: here evaluate optionally also fine time calibrated deltas:
+                     if(fPar->fUseSoftwareCalibration && fCalibrationReady)
+                     {
+                       TH1* workcal=boardDisplay->hFineCalibration[cwork][0]; // only leading edge here!
+                       TH1* refcal=boardDisplay->hFineCalibration[cref][0]; // only leading edge here!
+                       Double_t caldeltaraw=worktdc->GetFullTime(workcal) - reftdc->GetFullTime(refcal);
+                       Double_t caldeltasecs=worktdc->GetTimeInSeconds(workcal) - reftdc->GetTimeInSeconds(refcal);
+                       boardDisplay-> hDeltaTimeCalibrated[cref][cwork]->Fill(caldeltaraw);
+                       boardDisplay-> hDeltaTimeCalibratedInSeconds[cref][cwork]->Fill(caldeltasecs);
+                     }
+
                      lastj=j;
                      break;
                    } // j
@@ -832,7 +867,11 @@ Bool_t TGet4ppRawProc::UpdateDisplays()
         Double_t mu=0, sigma=0;
         for (Int_t wchan = 0; wchan < Get4pp_CHANNELS; ++wchan)
               {
-                  TH1* his=boardDisplay->hDeltaTimeInSeconds[chan][wchan];
+                  TH1* his;
+                  if(fPar->fUseSoftwareCalibration)
+                    his=boardDisplay->hDeltaTimeCalibratedInSeconds[chan][wchan];
+                  else
+                    his=boardDisplay->hDeltaTimeInSeconds[chan][wchan];
                   if(his==0) continue; // skip not  used
                   mu=his->GetMean();
                   sigma=his->GetStdDev(); // TODO: maybe define range with go4 condition here?
@@ -868,6 +907,43 @@ Bool_t TGet4ppRawProc::UpdateDisplays()
 #endif
 
   return kTRUE;
+}
+
+void  TGet4ppRawProc::ResetCalibrations()
+{
+
+  for (unsigned i = 0; i < fBoards.size(); ++i)
+      {
+          fBoards[i]->ResetCalibration();
+      }
+}
+
+Bool_t TGet4ppRawProc::DoCalibrations()
+{
+  // JAM 12-01-23: here optionally fill calibrations:
+  // check first if we have calibration histograms from ASF that contain reasonable (any..) statistics
+  if(fUseOldCalibration)
+  {
+    Bool_t test=kTRUE;
+    for (unsigned i = 0; i < fBoards.size(); ++i)
+          {
+              test &= fBoards[i]->CheckCalibration();
+          }
+    fCalibrationReady=test;
+    fUseOldCalibration=kFALSE;
+    printf("CCC DoCalibrations has tested old calibration: ready= %s \n", (fCalibrationReady ? "true" : "false"));
+  }
+
+  if(fCalibrationReady) return kFALSE;
+  fCalibrationCounter++;
+  if(fCalibrationCounter<=fPar->fCalibrationCounts) return kFALSE;
+  printf("CCC DoCalibrations() is  starting new calibration at %d calibration counts...\n", fCalibrationCounter);
+  for (unsigned i = 0; i < fBoards.size(); ++i)
+        {
+            fBoards[i]->DoCalibration();
+        }
+  fCalibrationReady=kTRUE;
+return kTRUE;
 }
 
 

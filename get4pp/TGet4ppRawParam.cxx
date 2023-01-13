@@ -39,6 +39,11 @@ void TGet4ppRawParam::InitBoardMapping()
   fFineTimeSampleBoard=42; // the only one we have...
   fFineTimeStatsLimit=10; // software test only
 #endif
+
+  fUseSoftwareCalibration=kTRUE; // if true, evaluate delta times with software calibration of fine time bins
+  fResetCalibration=kFALSE; // set true to begin new software calibration procedure
+  fCalibrationCounts=Get4pp_DEFAULT_CALIBCOUNT; // minimum required statistics for each channel (leading/trailing) to complete calibration
+
 }
 
 Bool_t TGet4ppRawParam::SetConfigBoards()

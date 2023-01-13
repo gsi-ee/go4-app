@@ -35,6 +35,10 @@ class TGet4ppRawParam : public TGo4Parameter {
       Int_t fVerbosity; // degree of debug printouts. 0 - mostly silent, 1- show data problems, 2 - dump all data words
       Bool_t fSlowMotion; // if true than only process one MBS event and stop.
 
+      Bool_t fUseSoftwareCalibration; // if true, evaluate delta times with software calibration of fine time bins
+      Bool_t fResetCalibration; // set true to begin new software calibration procedure
+      Int_t  fCalibrationCounts; // minimum required statistics for each channel (leading/trailing) to complete calibration
+
 #ifdef Get4pp_DOFINETIMSAMPLES
       Int_t fFineTimeSampleBoard; // id of board for fine time evaluation
       Int_t fFineTimeStatsLimit; // number of event threshold for writing fine times

@@ -50,6 +50,8 @@ TGet4ppBoardDisplay::TGet4ppBoardDisplay(Int_t boardid) :
 		  {
 		      hDeltaTime[ch][cwork]=0;
 		      hDeltaTimeInSeconds[ch][cwork]=0;
+		      hDeltaTimeCalibrated[ch][cwork]=0;
+              hDeltaTimeCalibratedInSeconds[ch][cwork]=0;
 		  }
 
 	}
@@ -215,6 +217,26 @@ void TGet4ppBoardDisplay::InitDisplay(Bool_t replace)
 					fullbins_seconds, 0, fullrange_seconds, "seconds)",
 					"counts");
 
+
+			/* below for additional software calibration of fine times JAM 12-jan-2023*/
+			obname.Form("Board%d/Channel%d/Calibration/Time_fine_sum_%s_%d_%d", brd, ch,
+			                    (l == 0 ? "leading" : "trailing"), brd, ch);
+			obtitle.Form("Get4pp Board %d Channel %d Fine time bins integral %s edge",
+			                    brd, ch, (l == 0 ? "leading" : "trailing"));
+			hFineTimeSum[ch][l] = MakeTH1('I', obname.Data(), obtitle.Data(),
+			                    (Get4pp_FINERANGE + 1), 0, (Get4pp_FINERANGE + 1),
+			                    "fine time (units)", "counts");
+			TGo4Analysis::Instance()->ProtectObjects(obname.Data(),"+C");
+
+			obname.Form("Board%d/Channel%d/Calibration/Time_fine_calibration_%s_%d_%d", brd, ch,
+			                                (l == 0 ? "leading" : "trailing"), brd, ch);
+			obtitle.Form("Get4pp Board %d Channel %d Fine time bins calibration %s edge",
+			                                brd, ch, (l == 0 ? "leading" : "trailing"));
+			hFineCalibration[ch][l] = MakeTH1('D', obname.Data(), obtitle.Data(),
+			                                (Get4pp_FINERANGE + 1), 0, (Get4pp_FINERANGE + 1),
+			                                "fine time (units)", "counts");
+			TGo4Analysis::Instance()->ProtectObjects(obname.Data(),"+C");//prevent reset of calibration by GUI clear
+
 		}
 
 		Double_t fullbins_tot = 1.0e6;
@@ -314,6 +336,13 @@ void TGet4ppBoardDisplay::InitDisplay(Bool_t replace)
       hDeltaTime[cref][cwork] = MakeTH1('I', obname.Data(), obtitle.Data(), deltabins_raw, -deltarange_raw / 2,
           deltarange_raw / 2, "fine time units", "counts");
 
+      obname.Form("Board%d/DeltaTime/raw_calib/dTime_raw_calib_%d_%d-%d", brd, brd, cwork, cref);
+      obtitle.Form("Get4pp Board %d Leading edge #delta t raw calibrated(%d-%d)", brd, cwork, cref);
+      hDeltaTimeCalibrated[cref][cwork]= MakeTH1('I', obname.Data(), obtitle.Data(), deltabins_raw, -deltarange_raw / 2,
+            deltarange_raw / 2, "fine time units", "counts");;
+
+
+
 
 //
  // TESTJAM
@@ -327,6 +356,13 @@ void TGet4ppBoardDisplay::InitDisplay(Bool_t replace)
       obtitle.Form("Get4pp Board %d Leading edge #delta t seconds (%d-%d)", brd, cwork, cref);
       hDeltaTimeInSeconds[cref][cwork] = MakeTH1('I', obname.Data(), obtitle.Data(), deltabins_secs,
           -deltarange_secs / 2, deltarange_secs / 2, "seconds", "counts");
+
+      obname.Form("Board%d/DeltaTime/seconds_calib/dTime_s_calib_%d_%d-%d", brd, brd, cwork, cref);
+      obtitle.Form("Get4pp Board %d Leading edge #delta t seconds calibrated(%d-%d)", brd, cwork, cref);
+      hDeltaTimeCalibratedInSeconds[cref][cwork] = MakeTH1('I', obname.Data(), obtitle.Data(), deltabins_secs,
+          -deltarange_secs / 2, deltarange_secs / 2, "seconds", "counts");;
+
+
 
     }    // cwork
   }    // cref
@@ -343,3 +379,58 @@ void TGet4ppBoardDisplay::ResetDisplay()
 
 }
 
+Bool_t TGet4ppBoardDisplay::DoCalibration()
+{
+  TGo4Log::Info("TGet4ppBoardDisplay: Evaluating TDC calibration histograms for Board %d", GetDevId());
+  for (Int_t ch = 0; ch < Get4pp_CHANNELS; ++ch)
+  {
+      for (Int_t l = 0; l < 2; ++l)
+      {
+        Int_t integral=0;
+        Double_t total= hFineTime[ch][l]->GetEntries();
+        Double_t calfine=0;
+        for (Int_t tb=1; tb<=Get4pp_FINERANGE + 1; ++tb)
+        {
+          integral += hFineTime[ch][l]->GetBinContent(tb);
+          hFineTimeSum[ch][l]->SetBinContent(tb, integral); // do we need this histogram ? JAM
+          calfine=(total!=0 ? integral/total * (Get4pp_FINERANGE +1) : 0);
+          hFineCalibration[ch][l]->SetBinContent(tb,calfine);
+        }
+      }
+    }
+
+
+  return kTRUE;
+}
+
+Bool_t TGet4ppBoardDisplay::CheckCalibration()
+{
+  Bool_t rev=kTRUE;
+  for (Int_t ch = 0; ch < Get4pp_CHANNELS; ++ch)
+   {
+       for (Int_t l = 0; l < 2; ++l)
+       {
+         if(hFineCalibration[ch][l]->GetEntries()==0)
+           {
+             // maybe later also check if curve is reasonable
+             rev=kFALSE;
+             break;
+           }
+         }
+       }
+return rev;
+}
+
+
+void TGet4ppBoardDisplay::ResetCalibration()
+{
+  TGo4Log::Info("TGet4ppBoardDisplay: Resetting TDC calibration histograms for Board %d", GetDevId());
+  for (Int_t ch = 0; ch < Get4pp_CHANNELS; ++ch)
+  {
+    for (Int_t l = 0; l < 2; ++l)
+    {
+      hFineTimeSum[ch][l]->Reset("");
+      hFineCalibration[ch][l]->Reset("");
+    }
+  }
+}
