@@ -56,6 +56,6 @@ clean-bin::
 
 clean:: clean-bin
 	@$(CleanLib) $(Ctr16_OPTIC_LIBNAME) $(Ctr16_OPTIC_DIR)
-	@echo "Clean Ctr16ection ASIC monitoring project"
+	@echo "Clean Ctr16 ASIC monitoring project"
 
 include $(GO4SYS)/Makefile.rules

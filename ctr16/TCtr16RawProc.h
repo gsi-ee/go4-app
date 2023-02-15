@@ -44,14 +44,18 @@ protected:
 
 
   /** get next data word from subevent payload.
-   * Optionally align it to word boundaries*/
-  void NextDataWord();
+   * Optionally align it to word boundaries.
+   * Return values: 1: message exceeded, 2: subevent exceeded, 0:OK
+   * */
+   Int_t NextDataWord();
 
   /** Change alignment of subevent payload words*/
   void SwitchDataAlignment();
 
-  /* Get trace data from transient event message.*/
-  void ExtractTrace(TCtr16Board* board, TCtr16BoardDisplay* disp);
+  /* Get trace data from transient event message.*
+   * Return values: 1: message exceeded, 2: subevent exceeded, 0:OK
+   * */
+  Int_t ExtractTrace(TCtr16Board* board, TCtr16BoardDisplay* disp);
 
   /* Scan through most recent trace data of board and build event message.
    * Also fill trace histograms and snapshots*/
@@ -71,6 +75,9 @@ protected:
 
   /** parameter for runtime settings*/
   TCtr16RawParam* fPar;
+
+  /** the current input subevent */
+  TGo4MbsSubEvent *fPsubevt;
 
   /** reference to output data*/
   TCtr16RawEvent* Ctr16RawEvent;  //!

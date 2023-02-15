@@ -378,7 +378,7 @@ public:
 
   enum ControlType
    {
-    Ctrl_None = 0x49, Ctrl_Init = 0x50, Ctrl_Start = 0x51
+    Ctrl_None = 0x49, Ctrl_Init = 0x50, Ctrl_Start = 0x54, Ctrl_Threshold = 0x51
      // JAM23: note that Threshold control messages are kept in a separate class independent of wishbone message
    };
 
@@ -453,17 +453,18 @@ public:
   TString DumpMsg()
   {
     TString head, add, data;
-    head.Form("Wishbone message ack:0x%x src 0x%x\n", GetAckCode(), GetSource());
+    head.Form("WW Wishbone message ack:0x%x src 0x%x\n", GetAckCode(), GetSource());
     if (GetAddress())
-      add.Form(" - address: 0x%x\n", GetAddress());
-    data.Form(" - data size 0x%x, data:\n", (int) GetDataSize());
+     add.Form("WW - address: 0x%x\n", GetAddress());
+   data.Form("WW - data size 0x%x, data:\nWW -", (int) GetDataSize());
     // TODO: evaluate here different control messages and put their payload right?
 
     for (size_t i = 0; i < GetDataSize(); ++i)
     {
       char key=GetData(i);
-      data.Append((const char*) &key, 1);
+      data.Append(key, 1);
     }
+    data.Append('\n',1);
     return (head + add + data);
   }
 
