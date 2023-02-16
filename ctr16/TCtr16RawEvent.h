@@ -91,7 +91,7 @@ public:
    {
      fChannel = ch;
    }
-   UShort_t GetChannel()
+   UChar_t GetChannel()
    {
      return fChannel;
    }
@@ -133,12 +133,32 @@ protected:
 
 /** Message class for control threshold message data.
  * Generated after completion of automatic threshold scan  */
+
+
+
+//                    Byte Bit 7  6  5  4  3  2  1  0
+//                           | 0  1  0  1  0  0 | Blk|    Header mit Block Nummer
+//                           |11    ..              4|    Mean value
+//                           | 3        0|11        8|    Mean value |  FWHM
+//                           | 7                    0|    FWHM
+//                           |11                    4|    Threshold DAC
+//                           | 3        0|11        8|    Threshold DAC  | Tracking DAC
+//                           | 7                    0|    Tracking DAC
+//                           |11                    4|    Baseline DAC Ch 0
+//                           | 3        0|11        8|    Baseline DAC Ch 0  | Baseline DAC Ch 1
+//                           | 7                    0|    Baseline DAC Ch 1
+//                           |11                    4|    Baseline DAC Ch 2
+//                           | 3        0|11        8|    Baseline DAC Ch 2  | Baseline DAC Ch 3
+//                           | 7                    0|    Baseline DAC Ch 3
+//
+
+
 class TCtr16MsgThreshold: public TCtr16MsgData
 {
 
   public:
 
-  TCtr16MsgThreshold(UChar_t ch=0):  TCtr16MsgData(ch),fMeanBaseline(0), fNoiseWidth(0),fThreshold(0)
+  TCtr16MsgThreshold(UChar_t ch=0):  TCtr16MsgData(ch),fMean(0), fNoiseWidth(0),fThreshold(0), fTracking(0),fBaseline(0)
    {
      ;
    }
@@ -146,14 +166,18 @@ class TCtr16MsgThreshold: public TCtr16MsgData
    {
      ;
    }
+   void SetMean (UShort_t b)
+     {
+       fMean = (b & 0xFFF);
+     }
 
 
    void SetBaseline (UShort_t b)
    {
-     fMeanBaseline = (b & 0xFFF);
+     fBaseline = (b & 0xFFF);
    }
 
-   void SetNoiseWidth (UShort_t n)
+   void SetFWHM (UShort_t n)
      {
        fNoiseWidth = (n & 0xFFF);
      }
@@ -163,12 +187,22 @@ class TCtr16MsgThreshold: public TCtr16MsgData
          fThreshold = (t & 0xFFF);
    }
 
-   UShort_t GetBaseLine()
+   void SetTracking (UShort_t t)
    {
-     return fMeanBaseline;
+         fThreshold = (t & 0xFFF);
    }
 
-   UShort_t GetNoiseWidth()
+   UShort_t GetMean()
+    {
+      return fMean;
+    }
+
+   UShort_t GetBaseLine()
+   {
+     return fBaseline;
+   }
+
+   UShort_t GetFWHM()
       {
         return fNoiseWidth;
       }
@@ -178,17 +212,29 @@ class TCtr16MsgThreshold: public TCtr16MsgData
      return fThreshold;
    }
 
+   UShort_t GetTracking()
+     {
+       return fTracking;
+     }
 
   protected:
 
+
+
   /** mean baseline value determined by threshold scan*/
-  UShort_t fMeanBaseline;
+  UShort_t fMean;
 
   /** FWHM of noise width*/
    UShort_t fNoiseWidth;
 
-   /** Threshold finally set*/
+   /** DAC Threshold finally set*/
    UShort_t fThreshold;
+
+   /** DAC Threshold Tracking value*/
+   UShort_t fTracking;
+
+   /** baseline set by threshold scan*/
+    UShort_t fBaseline;
 
 
 
@@ -378,7 +424,7 @@ public:
 
   enum ControlType
    {
-    Ctrl_None = 0x49, Ctrl_Init = 0x50, Ctrl_Start = 0x54, Ctrl_Threshold = 0x51
+    Ctrl_None = 0x49, Ctrl_Init = 0x50, Ctrl_Start = 0x54, Ctrl_Threshold = 0x53
      // JAM23: note that Threshold control messages are kept in a separate class independent of wishbone message
    };
 

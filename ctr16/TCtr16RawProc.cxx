@@ -193,7 +193,7 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
     }
     Bool_t skipmessage = kFALSE;
     Int_t status=0;
-    // loop over single subevent data:
+    // loop over single subevent data:ThresholdSetting5
     while (fPdata - fPsubevt->GetDataField() < fLwords)
     {
       // vulom status word:
@@ -265,7 +265,7 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
 
           fPdatastartMsg = fPdata;    // remember start of message for checking
           fMsize = (vulombytecount & 0xFF) / sizeof(Int_t);    // message size in 32bit words (was & 0x3F)
-          if(((vulombytecount & 0x3F) % sizeof(Int_t)) !=0)
+          if(((vulombytecount & 0xFF) % sizeof(Int_t)) !=0)
             fMsize++; // ?test this!
           Ctr16Dump("VVVV Vulom container, header 0x%x with message size: %d \n",vulombytecount,fMsize);
           fWorkData = *fPdata;    //init work buffer as aligned
@@ -289,6 +289,9 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                   UInt_t epoch = header & 0xFFFFFF;
                   Ctr16_NEXT_DATAWORD;    //fPdata++;
                   // scan payload for events:
+                  while (fPdata - fPdatastartMsg < fMsize)
+                  {
+
                   TCtr16Msg::DataType evtype = (TCtr16Msg::DataType) ((fWorkData >> 30) & 0x3);
                   UChar_t fullchannel = ((fWorkData >> 26) & 0xF);
                   UChar_t row = ((fWorkData >> 24) & 0x3);
@@ -298,6 +301,8 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                   {
                     case TCtr16Msg::Data_Transient:
                       {
+
+
                         if (theBoard->fCurrentTraceEvent == 0)
                           theBoard->fCurrentTraceEvent = new TCtr16MsgTransient(fullchannel);
                         TCtr16MsgTransient *tmsg = theBoard->fCurrentTraceEvent;
@@ -305,7 +310,7 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                         tmsg->SetRow(row);
                         UShort_t ts = fWorkData & 0xFFF;
                         tmsg->SetTimeStamp(ts);
-                        theBoard->fTracesize12bit = ((fWorkData >> 16) & 0xF);
+                        theBoard->fTracesize12bit = ((fWorkData >> 16) & 0xFF);
                         theBoard->fTracesize32bit = ((1 + theBoard->fTracesize12bit) * 3) / 8;    // account header word again in evdata
 
                         // account partially filled last data word here: ? taken from hitdetection code of 2017  JAM23
@@ -331,6 +336,9 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                           {
                             goto end_of_event;
                           }
+
+                        // TODO: data alignment for next transient event?
+                        // depends on ratio of 12 bit to 32 bit message length
                       }
                       break;
 
@@ -365,11 +373,12 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                       fPdata = fPdatastartMsg + fMsize;    // do not skip complete event, but just the current message:
 
                       break;
-                  }
+                  } // switch eventtype
+                } // while  while (fPdata - fPdatastartMsg < fMsize)
 
                   // repeat loop over next event from here
 
-                }
+            }
                 break;
 
               case TCtr16Msg::Frame_Continuation:
@@ -449,20 +458,10 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                     ctype = (TCtr16MsgWishbone::ControlType) ctrlhead;
                     if (ctype == TCtr16MsgWishbone::Ctrl_Start)
                     {
-                      // here check for lenght if we maybe have a threshold message
-//                      if (fMsize <= 3)
-//                      {
-//                        isThresholdMessage = kTRUE;
-//                        boardDisplay->hMsgTypes->Fill(TCtr16Msg::Message_Threshold);
-//                      }
-//                      else
-//                      {
                         boardDisplay->hMsgTypes->Fill(TCtr16Msg::Message_Start);
-                      //}
                     }
-                    else if (ctype == TCtr16MsgWishbone::Ctrl_Threshold)
+                    else if ((ctype & TCtr16MsgWishbone::Ctrl_Threshold & 0x3) != 0) // since low 2 bit contain block number, just test for possible mask
                     {
-                      // JAM 14-02-2023: this type was found in test data, but not in documentation. give it a try!
                       isThresholdMessage = kTRUE;
                       boardDisplay->hMsgTypes->Fill(TCtr16Msg::Message_Threshold);
                     }
@@ -487,34 +486,93 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                   if (isThresholdMessage)
                   {
                     // use threshold messages instead of wishbone container:
+//
+//                    Byte Bit 7  6  5  4  3  2  1  0
+//                           | 0  1  0  1  0  0 | Blk|    Header mit Block Nummer
+//                           |11    ..              4|    Mean value
+//                           | 3        0|11        8|    Mean value |  FWHM
+//                           | 7                    0|    FWHM
+//                           |11                    4|    Threshold DAC
+//                           | 3        0|11        8|    Threshold DAC  | Tracking DAC
+//                           | 7                    0|    Tracking DAC
+//                           |11                    4|    Baseline DAC Ch 0
+//                           | 3        0|11        8|    Baseline DAC Ch 0  | Baseline DAC Ch 1
+//                           | 7                    0|    Baseline DAC Ch 1
+//                           |11                    4|    Baseline DAC Ch 2
+//                           | 3        0|11        8|    Baseline DAC Ch 2  | Baseline DAC Ch 3
+//                           | 7                    0|    Baseline DAC Ch 3
+//
+
+
+
                     delete theMsg;
-                    Int_t bi=0;
+      //              Int_t bi=0;
                     while (fPdata - fPdatastartMsg < fMsize)
                     {
-                      // JAM14-02-23: here we assume that frame contains more than one threshold message
-                      UChar_t chan = (fWorkData >> 8) & 0xF;    // fWorkData is still at begin of message header
-                      TCtr16MsgThreshold *msg = new TCtr16MsgThreshold(chan);
-                      UShort_t meanbase = ((fWorkData & 0xF) << 8);
-                      Ctr16_NEXT_DATAWORD
-                      ;    //fPdata++;
-                      meanbase |= (fWorkData >> 24) & 0xFF;
-                      UShort_t noisewidth = (fWorkData >> 8) & 0xFFF;
-                      UShort_t thresh = ((fWorkData & 0xF) << 8);
-                      Ctr16_NEXT_DATAWORD
-                      ;    //fPdata++;
-                      thresh |= (fWorkData >> 24) & 0xFF;
-                      msg->SetBaseline(meanbase);
-                      msg->SetNoiseWidth(noisewidth);
-                      msg->SetThreshold(thresh);
-                      // histograms of threshold values for each channel
-                      boardDisplay->hThresholdBaseline[chan]->Fill(meanbase);
-                      boardDisplay->hThresholdNoise[chan]->Fill(noisewidth);
-                      boardDisplay->hThresholdSetting[chan]->Fill(thresh);
-                      theBoard->AddMessage(msg, chan);
-                      fWorkShift=24 + 8*bi++;
+
+                      UChar_t block = (fWorkData >> 10) & 0x3;  // fWorkData is still at begin of message header
+                      UShort_t mean = (fWorkData >>12) & 0xFFF;
+                      UShort_t fwhm = fWorkData & 0xFFF;
+                      Ctr16_NEXT_DATAWORD;
+                      UShort_t thres = (fWorkData >> 20) & 0xFFF;
+                      UShort_t track = (fWorkData >> 8) & 0xFFF;
+                      fWorkShift+=8;
                       if(fWorkShift==32) fWorkShift=0;
-                      Ctr16_NEXT_DATAWORD
-                      ;
+                      Ctr16_NEXT_DATAWORD;
+                      TCtr16MsgThreshold* msg[4]; // one frame contains info for 4 channels in block
+                      UShort_t baseline[4];
+                      baseline[0] = (fWorkData >> 20) & 0xFFF;
+                      baseline[1] = (fWorkData >> 8) & 0xFFF;
+                      baseline[2] = (fWorkData & 0xFF);
+                      Ctr16_NEXT_DATAWORD;
+                      baseline[2] |= (fWorkData >> 24) & 0xF;
+                      baseline[3] |= (fWorkData) & 0xFFF;
+
+                      for(Int_t c=0; c<4;++c){
+                        msg[c]= new TCtr16MsgThreshold(0);
+                        msg[c]->SetBlock(block);
+                        msg[c]->SetBlockChannel(c);
+                        msg[c]->SetMean(mean);
+                        msg[c]->SetFWHM(fwhm);
+                        msg[c]->SetTracking(track);
+                        msg[c]->SetThreshold(thres);
+                        msg[c]->SetBaseline(baseline[c]);
+                        Int_t fullchan= msg[c]->GetChannel();
+                        theBoard->AddMessage(msg[c], fullchan);
+
+                        // histograms of threshold values for each channel
+                        boardDisplay->hThresholdBaseline[fullchan]->Fill(mean);
+                        boardDisplay->hThresholdNoise[fullchan]->Fill(fwhm);
+                        boardDisplay->hThresholdSetting[fullchan]->Fill(thres);
+                      }
+
+///////////////////////////////////////////
+                      // This is composed from old documentation
+//                      // JAM14-02-23: here we assume that frame contains more than one threshold message
+//                      UChar_t chan = (fWorkData >> 8) & 0xF;    // fWorkData is still at begin of message header
+//                      TCtr16MsgThreshold *msg = new TCtr16MsgThreshold(chan);
+//                      UShort_t meanbase = ((fWorkData & 0xF)
+//                      Ctr16_NEXT_DATAWORD
+//                      ;    //fPdata++;
+//                      meanbase |= (fWorkData >> 24) & 0xFF;
+//                      UShort_t noisewidth = (fWorkData >> 8) & 0xFFF;
+//                      UShort_t thresh = ((fWorkData & 0xF) << 8);
+//                      Ctr16_NEXT_DATAWORD
+//                      ;    //fPdata++;
+//                      thresh |= (fWorkData >> 24) & 0xFF;
+//                      msg->SetBaseline(meanbase);
+//                      msg->SetNoiseWidth(noisewidth);
+//                      msg->SetThreshold(thresh);
+//                      // histograms of threshold values for each channel
+//                      boardDisplay->hThresholdBaseline[chan]->Fill(meanbase);
+//                      boardDisplay->hThresholdNoise[chan]->Fill(noisewidth);
+//                      boardDisplay->hThresholdSetting[chan]->Fill(thresh);
+//                      theBoard->AddMessage(msg, chan);
+//                      fWorkShift=24 + 8*bi++;
+//                      if(fWorkShift==32) fWorkShift=0;
+////////////////////////////// End first imp
+                      // pretend that we could have another message in this frame:
+                      Ctr16_NEXT_DATAWORD;
                     }
                   }
                   else
@@ -840,7 +898,8 @@ void TCtr16RawProc::FinalizeTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
 
     }
     Ctr16Dump("Transient_Event set bin:%d to val:%d\n", bin, val);
-    board->fCurrentTraceEvent->SetTraceData(bin, val);
+    //board->fCurrentTraceEvent->SetTraceData(bin, val);
+    board->fCurrentTraceEvent->AddTraceData(val);
     j_start = j_end;    // next 12 bit word
   }    // for bin
 
@@ -870,7 +929,7 @@ void TCtr16RawProc::FinalizeTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
       //std::cout<< " --- Set bin:"<<bin<<" to content:"<<val << std::endl;
     }
     if (trace2d)
-      trace2d->Fill(bin, val, disp->fSnapshotcount[chan]);
+      trace2d->Fill(bin, disp->fSnapshotcount[chan], val);
 
     if (chan >= Ctr16_CHANNELS)
     {
@@ -884,7 +943,7 @@ void TCtr16RawProc::FinalizeTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
         disp->hTraceSum[chan]->AddBinContent(1 + bin, val);
       }
     }
-
+    disp->fSnapshotcount[chan]++;
     // value histograms:
     disp->hADCValues->Fill(val);
     Double_t corrval = CorrectedADCVal(val, disp);
