@@ -22,6 +22,8 @@
 static unsigned long skipped_events = 0;
 static unsigned long skipped_frames = 0;
 
+#define Ctr16Debug( args... ) \
+if (fPar->fVerbosity>2) printf( args);
 
 #define Ctr16Dump( args... ) \
 if (fPar->fVerbosity>1) printf( args);
@@ -264,12 +266,19 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
           boardDisplay->hChipId->Fill(chipid);
 
           fPdatastartMsg = fPdata;    // remember start of message for checking
+
+
           fMsize = (vulombytecount & 0xFF) / sizeof(Int_t);    // message size in 32bit words (was & 0x3F)
           if(((vulombytecount & 0xFF) % sizeof(Int_t)) !=0)
             fMsize++; // ?test this!
-          Ctr16Dump("VVVV Vulom container, header 0x%x with message size: %d \n",vulombytecount,fMsize);
-          fWorkData = *fPdata;    //init work buffer as aligned
+
+          Ctr16Debug("VVVV Vulom container, header 0x%x with message size: %d \n",vulombytecount,fMsize);
+
+          fWorkData = *fPdata++;    //init work buffer as aligned
           fWorkShift = 0;
+
+
+
           while ((fPdata - fPdatastartMsg) < fMsize)
           {
             //inside message loop, we use aligned data words:
@@ -288,10 +297,11 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                   // first get epoch number
                   UInt_t epoch = header & 0xFFFFFF;
                   Ctr16_NEXT_DATAWORD;    //fPdata++;
+                  Ctr16Dump("FFFFFF Data Frame with epoch 0x%x - fPdata:%p, fPdatastartMsg:%p\n", epoch, fPdata, fPdatastartMsg);
                   // scan payload for events:
                   while (fPdata - fPdatastartMsg < fMsize)
                   {
-
+                    Ctr16Dump(" Data Frame loop: fPdata:%p, cursor:%d fMsize:%d\n", fPdata, (Int_t )(fPdata-fPdatastartMsg),fMsize);
                   TCtr16Msg::DataType evtype = (TCtr16Msg::DataType) ((fWorkData >> 30) & 0x3);
                   UChar_t fullchannel = ((fWorkData >> 26) & 0xF);
                   UChar_t row = ((fWorkData >> 24) & 0x3);
@@ -305,27 +315,48 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
 
                         if (theBoard->fCurrentTraceEvent == 0)
                           theBoard->fCurrentTraceEvent = new TCtr16MsgTransient(fullchannel);
+                        else
+                          Ctr16Warn("DDDD Data_Transient has previous message without continuation! never come here \n");
+
+                        // clear some flags, if we come here from not finalized event because of skipped messages:
+                        theBoard->fTracedataIndex = 0;
+                        theBoard->fToBeContinued = kFALSE;
+
                         TCtr16MsgTransient *tmsg = theBoard->fCurrentTraceEvent;
                         tmsg->SetEpoch(epoch);
                         tmsg->SetRow(row);
                         UShort_t ts = fWorkData & 0xFFF;
                         tmsg->SetTimeStamp(ts);
                         theBoard->fTracesize12bit = ((fWorkData >> 16) & 0xFF);
-                        theBoard->fTracesize32bit = ((1 + theBoard->fTracesize12bit) * 3) / 8;    // account header word again in evdata
+                        theBoard->fTracesize32bit = theBoard->fTracesize12bit * 3 / 8;
+                        // account partially filled last data word here:
+                         if ((Float_t) (theBoard->fTracesize12bit) * 3.0 / 8.0 > (Float_t) theBoard->fTracesize32bit)
+                                                 theBoard->fTracesize32bit++;
 
-                        // account partially filled last data word here: ? taken from hitdetection code of 2017  JAM23
-                        if ((Float_t) (1 + theBoard->fTracesize12bit) * 3.0 / 8.0 > (Float_t) theBoard->fTracesize32bit)
-                          theBoard->fTracesize32bit++;
+                         Ctr16Debug("DDDD Data_Transient with 12bit trace size: %d, expect %d data words. pdata=0x%x , fWorkData=0x%x\n",
+                             theBoard->fTracesize12bit, theBoard->fTracesize32bit, *fPdata, fWorkData);
+
+
+
+/// old hitdetection format:
+//                        theBoard->fTracesize32bit = ((1 + theBoard->fTracesize12bit) * 3) / 8;    // account header word again in evdata
+//                        // account partially filled last data word here: ? taken from hitdetection code of 2017  JAM23
+//                        if ((Float_t) (1 + theBoard->fTracesize12bit) * 3.0 / 8.0 > (Float_t) theBoard->fTracesize32bit)
+//                          theBoard->fTracesize32bit++;
+//////////////////
 
                         Ctr16Dump("Data_Transient - channel:%d size12:%d size32:%d\n", fullchannel,
                             theBoard->fTracesize12bit, theBoard->fTracesize32bit);
                         if ((fPdata - fPdatastart) + theBoard->fTracesize32bit > fLwords)
-                          GO4_SKIP_EVENT_MESSAGE(
+                        {
+                         Ctr16Warn(
                               "Transient Event header error: 12 bit size %d does not fit into mbs subevent buffer of restlen %ld words",
                               theBoard->fTracesize32bit, fLwords - (fPdata - fPdatastart));
-
+                        GO4_SKIP_EVENT
+                        }
                         boardDisplay->hDatawords->Fill(theBoard->fTracesize12bit);
                         boardDisplay->hChannels->Fill(fullchannel);
+                        Ctr16_NEXT_DATAWORD;   // trace begins after event header
                         status=ExtractTrace(theBoard, boardDisplay);
                         if(status==1){
                           skipmessage=kTRUE;
@@ -336,14 +367,23 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                           {
                             goto end_of_event;
                           }
+                        // check here if a minimal trace would fit into rest of vulom container. if not, we discard the rest:
+                        if(fMsize -(fPdata - fPdatastartMsg) < 6 )
+                        {
+                          skipmessage=kTRUE;
+                          fPdata = fPdatastartMsg + fMsize;    // do not skip complete event, but just the current message:
+                        break;
+                        }
 
-                        // TODO: data alignment for next transient event?
-                        // depends on ratio of 12 bit to 32 bit message length
                       }
                       break;
 
                     case TCtr16Msg::Data_Feature:
                       {
+                        // find the feature JAM DEBUG
+//                        fPar->fVerbosity=1;
+//                        fPar->fSlowMotion=1;
+
                         TCtr16MsgFeature *fmsg = new TCtr16MsgFeature(fullchannel);
                         fmsg->SetEpoch(epoch);
                         fmsg->SetRow(row);
@@ -354,6 +394,10 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                         Ctr16_NEXT_DATAWORD;
                         UShort_t ampl = (fWorkData >> 16) & 0xFFFF;
                         fmsg->SetAmplitude(ampl);
+
+                        Ctr16Warn("DFDFDF Data_Feature channel:%d ampl:%d ts:%d ftime:%d - pdata=0x%x , fWorkData=0x%x\n",
+                                                                            fullchannel,ampl, ts, finetime, *fPdata, fWorkData);
+
                         // feature histograms here:
                         boardDisplay->hFeatureAmplitude[fullchannel]->Fill(ampl);
                         boardDisplay->hFeatureFineTime[fullchannel]->Fill(finetime);
@@ -362,19 +406,19 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                         SwitchDataAlignment();// next message will begin in lower 16 bit part of this data word
                         Ctr16_NEXT_DATAWORD;
                         // TODO: check if another feature event would fit into rest of vulom container
-
+                        Ctr16Debug("DFDFDF restlen= %ld u32words \n",fMsize -(fPdata - fPdatastartMsg));
 
                       }
                       break;
 
                     default:
-                      printf("############ found unknown data type 0x%x, skip data frame %ld\n", evtype,
+                      Ctr16Warn("############ found unknown data type 0x%x, skip data frame %ld\n", evtype,
                           skipped_frames++);
                       fPdata = fPdatastartMsg + fMsize;    // do not skip complete event, but just the current message:
 
                       break;
                   } // switch eventtype
-                } // while  while (fPdata - fPdatastartMsg < fMsize)
+                } //  while (fPdata - fPdatastartMsg < fMsize)
 
                   // repeat loop over next event from here
 
@@ -383,6 +427,7 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
 
               case TCtr16Msg::Frame_Continuation:
                 {
+                    // TODO: continuation frames also for feature events?
                   if (!theBoard->fToBeContinued)
                   {
                     Ctr16Warn("!!!! Unexpected continuation frame with header 0x%x! Skip message %ld \n", header, skipped_frames++);
@@ -401,6 +446,7 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
 
                   // check if epochs match with already accounted:
                   UInt_t epoch = header & 0xFFFFFF;
+                  Ctr16Warn("CCCCCC continuation frame for epoch 0x%x \n", epoch);
                   if (epoch != theBoard->fCurrentTraceEvent->GetEpoch())
                   {
                     Ctr16Warn("!!!! Continuation frame with epoch mismatch:  previous 0x%x current 0x%x ! Skip message %ld\n",
@@ -742,7 +788,6 @@ Bool_t TCtr16RawProc::UpdateDisplays()
           brdid);
       //return kFALSE;
     }
-
     // here calculate integral and differential ADC nonlinearities:
     boardDisplay->hADCNonLinInt->Reset("");
     boardDisplay->hADCNonLinDiff->Reset("");
@@ -802,9 +847,9 @@ Int_t TCtr16RawProc::ExtractTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
 {
   Int_t status=0;
   Int_t payloadwords = board->fTracesize32bit - board->fTracedataIndex;
-  if (payloadwords > Ctr16_MAXPAYLOAD / 4)
+  if (payloadwords > Ctr16_TRACEWORDS)
   {
-    payloadwords = Ctr16_MAXPAYLOAD / 4;
+    payloadwords = Ctr16_TRACEWORDS;
     board->fToBeContinued = kTRUE;
   }
   else
@@ -812,15 +857,18 @@ Int_t TCtr16RawProc::ExtractTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
     board->fToBeContinued = kFALSE;
   }
 
+  Bool_t longtrace= (board->fTracesize12bit > 7); // the regular case, but you never know.
   for (Int_t w = board->fTracedataIndex; w < payloadwords; ++w)
   {
     Ctr16EVENTLASTMSG_CHECK_PDATA;
     Ctr16RAW_CHECK_PDATA;
     Ctr16MSG_CHECK_PDATA;    // should not be, but who knowns
     board->fTracedata[board->fTracedataIndex] = fWorkData;    //*fPdata++;
-    status=NextDataWord();
-    if(status!=0) return status; // pass on error states when scanning payload
-    Ctr16Dump("Transient_Event copies 32bit data[%d]=0x%x \n", board->fTracedataIndex,
+    if(longtrace){
+      status=NextDataWord(); // check for initial message of size 1 ?
+      if(status!=0) return status; // pass on error states when scanning payload
+    }
+    Ctr16Debug("Transient_Event copies 32bit data[%d]=0x%x \n", board->fTracedataIndex,
         board->fTracedata[board->fTracedataIndex]);
     board->fTracedataIndex++;
     if (board->fTracedataIndex > Ctr16_TRACEWORDS)
@@ -831,11 +879,28 @@ Int_t TCtr16RawProc::ExtractTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
 
     }
   }
+  // here align again for next trace:
+      Ctr16Debug("ExtractTrace has copied %d payloadwords, fTracedataIndex=%d, pdata=%p, *pData=0x%x, fWorkData=0x%x , fWorkShift=%d, fToBeContinued=%d\n",
+      payloadwords,board->fTracedataIndex,fPdata,*fPdata, fWorkData, fWorkShift, board->fToBeContinued);
+
+      Int_t usedwords=board->fTracesize32bit-1;
+      if(usedwords==0) usedwords=1;
+      fWorkShift= (32 -(board->fTracesize12bit * 12)  % (usedwords * 32));
+      if(!longtrace)
+      {
+        status=NextDataWord(); // check for initial message of size 1 ?
+        if(status!=0) return status; // pass on error states when scanning payload
+      }
+      Ctr16Debug("ExtractTrace after shift alignment, pdata=%p, *pData=0x%x, fWorkData=0x%x , fWorkShift=%d\n",
+            fPdata,*fPdata, fWorkData, fWorkShift);
+
+
+
 
   if (board->fToBeContinued)
   {
     // we expect further data in the continuation frame...
-    Ctr16Dump("Transient_Event expects continuation frame after %d words... \n", board->fTracedataIndex);
+    Ctr16Dump("Transient_Event expects continuation frame after %d words... \n", board->fTracedataIndex); //Ctr1Dump
   }
   else
   {
@@ -852,6 +917,9 @@ void TCtr16RawProc::FinalizeTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
   // then add it to output event
   Int_t tracelength = fPar->fTraceLength;    // for display only
   Int_t binlen = board->fTracesize12bit;    // number of sample bins (should be 16, 32, or 64) ??? -3
+
+
+
   if (binlen > 64)
     GO4_SKIP_EVENT_MESSAGE("Transient_Event header error: bin length %d exceeds maximum 64", binlen);
 //
@@ -869,13 +937,13 @@ void TCtr16RawProc::FinalizeTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
     Int_t dix_end = (Int_t) (j_end - 1) / 32;    // data index containing last bit of sample
     UChar_t k_start = 32 - (j_start - 32 * dix_start);    //  start bit number in evdata word
     UChar_t k_end = 32 - (j_end - 32 * dix_end);    // end bit number in evdata word
-    Ctr16Dump("Transient_Event jstart:%d jend:%d dix_start:%d dix_end:%d k_start:%d k_end:%d \n", (int ) j_start,
+    Ctr16Debug("Transient_Event jstart:%d jend:%d dix_start:%d dix_end:%d k_start:%d k_end:%d \n", (int ) j_start,
         (int ) j_end, dix_start, dix_end, (int ) k_start, (int ) k_end);
     if (dix_start == dix_end)
     {
       // easy case, sample is inside one evdata word:
       val = (board->fTracedata[dixoffset + dix_start] >> k_end) & 0xFFF;
-      Ctr16Dump("Transient_Event sees NON spanning value\n");
+      Ctr16Debug("Transient_Event sees NON spanning value\n");
     }
     else if (dix_end == dix_start + 1)
     {
@@ -888,7 +956,7 @@ void TCtr16RawProc::FinalizeTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
         mask_end |= (1 << b);
       val = ((board->fTracedata[dixoffset + dix_start] & mask_start) << (12 - k_start));
       val |= (board->fTracedata[dixoffset + dix_end] >> k_end) & mask_end;
-      Ctr16Dump("Transient_Event sees SPANNING value\n");
+      Ctr16Debug("Transient_Event sees SPANNING value\n");
     }
     else
     {
@@ -897,7 +965,7 @@ void TCtr16RawProc::FinalizeTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
           dix_start)
 
     }
-    Ctr16Dump("Transient_Event set bin:%d to val:%d\n", bin, val);
+    Ctr16Debug("Transient_Event set bin:%d to val:%d\n", bin, val);
     //board->fCurrentTraceEvent->SetTraceData(bin, val);
     board->fCurrentTraceEvent->AddTraceData(val);
     j_start = j_end;    // next 12 bit word
@@ -905,6 +973,8 @@ void TCtr16RawProc::FinalizeTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
 
   UChar_t chan = board->fCurrentTraceEvent->GetChannel();
   board->AddMessage(board->fCurrentTraceEvent, chan);
+
+  Ctr16Dump("FinalizeTrace for binlen=%d - channel=%d, snapshotcount=%d\n", binlen, chan, disp->fSnapshotcount[chan]);
 
   // now display complete trace:
 
@@ -919,10 +989,12 @@ void TCtr16RawProc::FinalizeTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
   for (Int_t bin = 0; bin < binlen; ++bin)
   {
     Short_t val = board->fCurrentTraceEvent->GetTraceData(bin);
+
+#ifdef    Ctr16_BOTHPOLARITY
     // convert raw data to signed 8bit (2 complement) representation:
     if (val > 0x7FF)
       val = val - 0x1000;
-
+#endif
     if (tracesnapshot && bin < tracelength)
     {
       tracesnapshot->SetBinContent(bin + 1, val);
@@ -937,19 +1009,20 @@ void TCtr16RawProc::FinalizeTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
     }
     else
     {
+      disp->hTrace[chan]->Reset(""); //avoid mixing of traces in same mbs event, only keep latest
       if (bin < tracelength)
       {
         disp->hTrace[chan]->SetBinContent(1 + bin, val);
         disp->hTraceSum[chan]->AddBinContent(1 + bin, val);
       }
     }
-    disp->fSnapshotcount[chan]++;
+
     // value histograms:
     disp->hADCValues->Fill(val);
     Double_t corrval = CorrectedADCVal(val, disp);
     disp->hADCCValuesCorrected->Fill(corrval);
-  }
-
+  } // for bin
+  disp->fSnapshotcount[chan]++;
   UpdateDeltaTimes(board, disp, board->fCurrentTraceEvent, chan); // delta t histograms are common with feature events
 
   // reset aux data members:

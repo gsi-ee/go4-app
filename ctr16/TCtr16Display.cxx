@@ -162,31 +162,37 @@ void TCtr16BoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Bool
 
     }// for ch
 
-
+    Int_t adcmin=0;
+    Int_t adcmax=4096;
+#ifdef    Ctr16_BOTHPOLARITY
+    adcmin=-2048;
+    adcmax=2048
+#endif
     obname.Form("Board%d/ADC/ADC_Values_%d", brd, brd);
     obtitle.Form("Ctr16 Board %d Accumulated ADC values", brd);
-    hADCValues=MakeTH1('I', obname.Data(), obtitle.Data(), 4096, -2048, 2048, "ADC value", "counts");
+
+    hADCValues=MakeTH1('I', obname.Data(), obtitle.Data(), 4096, adcmin, adcmax, "ADC value", "counts");
 
     obname.Form("Board%d/ADC/ADC_Values_Corrected%d", brd, brd);
     obtitle.Form("Ctr16 Board %d Accumulated Corrected ADC values", brd);
-    hADCCValuesCorrected=MakeTH1('I', obname.Data(), obtitle.Data(), 4096, -2048, 2048, "ADC value", "counts");
+    hADCCValuesCorrected=MakeTH1('I', obname.Data(), obtitle.Data(), 4096, adcmin, adcmax, "ADC value", "counts");
 
 
     obname.Form("Board%d/ADC/ADC_DeltaValues_%d", brd, brd);
     obtitle.Form("Ctr16 Board %d Accumulated ADC mean deviation", brd);
-    hADCDeltaMeanValues=MakeTH1('D', obname.Data(), obtitle.Data(), 4096, -2048, 2048, "ADC value", "#delta Mean");
+    hADCDeltaMeanValues=MakeTH1('D', obname.Data(), obtitle.Data(), 4096, adcmin, adcmax, "ADC value", "#delta Mean");
 
     obname.Form("Board%d/ADC/ADC_DiffNL_%d", brd, brd);
     obtitle.Form("Ctr16 Board %d Differential nonlinearity", brd);
-    hADCNonLinDiff=MakeTH1('D', obname.Data(), obtitle.Data(), 4096, -2048, 2048, "ADC value", "DNL");
+    hADCNonLinDiff=MakeTH1('D', obname.Data(), obtitle.Data(), 4096, adcmin, adcmax, "ADC value", "DNL");
 
     obname.Form("Board%d/ADC/ADC_IntNL_%d", brd, brd);
     obtitle.Form("Ctr16 Board %d Integral nonlinearity", brd);
-    hADCNonLinInt=MakeTH1('D', obname.Data(), obtitle.Data(), 4096, -2048, 2048, "ADC value", "INL");
+    hADCNonLinInt=MakeTH1('D', obname.Data(), obtitle.Data(), 4096, adcmin, adcmax, "ADC value", "INL");
 
     obname.Form("Board%d/Calibration/ADC_Correction_%d", brd, brd);
     obtitle.Form("Ctr16 Board %d Correction vector", brd);
-    hADCCorrection=MakeTH1('D', obname.Data(), obtitle.Data(), 4096, -2048, 2048, "ADC value", "Calibrated correction");
+    hADCCorrection=MakeTH1('D', obname.Data(), obtitle.Data(), 4096, adcmin, adcmax, "ADC value", "Calibrated correction");
 
     TGo4Analysis::Instance()->ProtectObjects("Calibration","+C"); // protect calibration histograms against clear from GUI
 
@@ -270,10 +276,9 @@ void TCtr16BoardDisplay::ResetDisplay()
         for(Int_t i=0; i<Ctr16_MAXSNAPSHOTS; ++i)
         {
             if(hTraceSnapshots[ch][i]) hTraceSnapshots[ch][i]->Reset("");
-            fSnapshotcount[ch]=0;
-
        } //for i
         hTraceSnapshot2d[ch]->Reset("");
+         fSnapshotcount[ch]=0;
       }// for ch
 
 }
