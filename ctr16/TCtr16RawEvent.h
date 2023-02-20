@@ -16,7 +16,7 @@
 #include "TString.h"
 
 // switches between interpretation of ADC values as signed if defined
-//#define Ctr16_BOTHPOLARITY 1
+#define Ctr16_BOTHPOLARITY 1
 
 // maximum number of boards to investigate at once
 #define Ctr16_MAXBOARDS 4

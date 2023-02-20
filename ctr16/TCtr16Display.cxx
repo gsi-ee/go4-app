@@ -166,7 +166,7 @@ void TCtr16BoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Bool
     Int_t adcmax=4096;
 #ifdef    Ctr16_BOTHPOLARITY
     adcmin=-2048;
-    adcmax=2048
+    adcmax=2048;
 #endif
     obname.Form("Board%d/ADC/ADC_Values_%d", brd, brd);
     obtitle.Form("Ctr16 Board %d Accumulated ADC values", brd);
