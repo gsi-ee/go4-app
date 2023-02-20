@@ -17,7 +17,8 @@
 #include "TCtr16RawParam.h"
 #include "TCtr16Display.h"
 
-
+/** aktivate this to skip all continuation frames. for debugging */
+//#define Ctr16_IGNORE_CONTINUATION 1
 
 static unsigned long skipped_events = 0;
 static unsigned long skipped_frames = 0;
@@ -367,6 +368,8 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                           {
                             goto end_of_event;
                           }
+
+#ifdef Ctr16_IGNORE_CONTINUATION
                         // check here if a minimal trace would fit into rest of vulom container. if not, we discard the rest:
                         if(fMsize -(fPdata - fPdatastartMsg) < 6 )
                         {
@@ -374,7 +377,7 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                           fPdata = fPdatastartMsg + fMsize;    // do not skip complete event, but just the current message:
                         break;
                         }
-
+#endif
                       }
                       break;
 
@@ -431,6 +434,18 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                   if (!theBoard->fToBeContinued)
                   {
                     Ctr16Warn("!!!! Unexpected continuation frame with header 0x%x! Skip message %ld \n", header, skipped_frames++);
+                    //closer debugging from here JAM DEBUG
+//                        fPar->fVerbosity=3;
+//                        fPar->fSlowMotion=1;
+//                        Ctr16Warn("CCCCCC Dumping continuation frame:\n")
+//                        Int_t* cursor= fPdata;
+//                     while (cursor - fPdatastartMsg < fMsize)
+//                     {
+//                         Ctr16Warn("%p: 0x%x\t", cursor, *cursor);
+//                         cursor++;
+//                     }
+//                     Ctr16Warn("\n");
+                     ///////////////////
                     skipmessage=kTRUE;
                     fPdata = fPdatastartMsg + fMsize;    // do not skip complete event, but just the current message:
                     break;
@@ -467,6 +482,13 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                   {
                     goto end_of_event;
                   }
+
+                  // TODO: continuation frames that contain additional data events.
+                  // for the moment, we just skip rest of this frame JAM 20-02-2023
+//                  skipmessage=kTRUE;
+//                  fPdata = fPdatastartMsg + fMsize;    // do not skip complete event, but just the current message:
+
+
                 }
                 break;
 
@@ -531,6 +553,12 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
 
                   if (isThresholdMessage)
                   {
+
+                    // find the feature JAM DEBUG
+                                            fPar->fVerbosity=3;
+                                            fPar->fSlowMotion=1;
+
+
                     // use threshold messages instead of wishbone container:
 //
 //                    Byte Bit 7  6  5  4  3  2  1  0
@@ -659,7 +687,7 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                       // slow control message types do not have address fields.
                       // we embed the containing text and dump it for fun;
                       UChar_t letter;
-                      for (Int_t shift = 8; shift >= 0; shift -= 8)
+                      for (Int_t shift = 16; shift >= 0; shift -= 8)
                       {
                         letter = (fWorkData >> shift) & 0xFF;
                         theMsg->AddData(letter);
@@ -697,7 +725,7 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
             if (!skipmessage && (fPdata - fPdatastartMsg) < fMsize)
             {
               // never come here if messages are treated correctly!
-              printf("############  fPdata offset 0x%x has not yet reached message length 0x%x, correcting ,\n",
+              Ctr16Warn("############  fPdata offset 0x%x has not yet reached message length 0x%x, correcting ,\n",
                   (unsigned int) (fPdata - fPdatastartMsg), fMsize);
               fPdata = fPdatastartMsg + fMsize;
             }
@@ -847,9 +875,12 @@ Int_t TCtr16RawProc::ExtractTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
 {
   Int_t status=0;
   Int_t payloadwords = board->fTracesize32bit - board->fTracedataIndex;
-  if (payloadwords > Ctr16_TRACEWORDS)
+  //if (payloadwords > Ctr16_TRACEWORDS) // wrong check: instead check for rest of buffer lenght
+
+  if(fMsize -(fPdata - fPdatastartMsg) < payloadwords)
   {
-    payloadwords = Ctr16_TRACEWORDS;
+    Ctr16Debug("ExtractTrace sees rest of buffer %ld too short for desired payload %d, expect continuation! \n", fMsize -(fPdata - fPdatastartMsg), payloadwords);
+    payloadwords = fMsize -(fPdata - fPdatastartMsg);
     board->fToBeContinued = kTRUE;
   }
   else
@@ -857,17 +888,17 @@ Int_t TCtr16RawProc::ExtractTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
     board->fToBeContinued = kFALSE;
   }
 
-  Bool_t longtrace= (board->fTracesize12bit > 7); // the regular case, but you never know.
+  //Bool_t longtrace= (board->fTracesize12bit > 7); // the regular case, but you never know.
   for (Int_t w = board->fTracedataIndex; w < payloadwords; ++w)
   {
     Ctr16EVENTLASTMSG_CHECK_PDATA;
     Ctr16RAW_CHECK_PDATA;
     Ctr16MSG_CHECK_PDATA;    // should not be, but who knowns
     board->fTracedata[board->fTracedataIndex] = fWorkData;    //*fPdata++;
-    if(longtrace){
+    //if(longtrace){
       status=NextDataWord(); // check for initial message of size 1 ?
       if(status!=0) return status; // pass on error states when scanning payload
-    }
+    //}
     Ctr16Debug("Transient_Event copies 32bit data[%d]=0x%x \n", board->fTracedataIndex,
         board->fTracedata[board->fTracedataIndex]);
     board->fTracedataIndex++;
@@ -886,11 +917,14 @@ Int_t TCtr16RawProc::ExtractTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
       Int_t usedwords=board->fTracesize32bit-1;
       if(usedwords==0) usedwords=1;
       fWorkShift= (32 -(board->fTracesize12bit * 12)  % (usedwords * 32));
-      if(!longtrace)
-      {
-        status=NextDataWord(); // check for initial message of size 1 ?
-        if(status!=0) return status; // pass on error states when scanning payload
-      }
+
+
+
+//      if(!longtrace)
+//      {
+//        status=NextDataWord(); // check for initial message of size 1 ?
+//        if(status!=0) return status; // pass on error states when scanning payload
+//      }
       Ctr16Debug("ExtractTrace after shift alignment, pdata=%p, *pData=0x%x, fWorkData=0x%x , fWorkShift=%d\n",
             fPdata,*fPdata, fWorkData, fWorkShift);
 
