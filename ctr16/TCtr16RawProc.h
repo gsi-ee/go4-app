@@ -52,6 +52,12 @@ protected:
   /** Change alignment of subevent payload words*/
   void SwitchDataAlignment();
 
+
+
+  /** unpacker for transient data events which is used both in data frame and continuation frame*/
+  Int_t UnpackTrace(TCtr16Board *board, TCtr16BoardDisplay *disp, UInt_t epoch);
+
+
   /* Get trace data from transient event message.*
    * Return values: 1: message exceeded, 2: subevent exceeded, 0:OK
    * */
