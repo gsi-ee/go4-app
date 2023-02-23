@@ -37,6 +37,7 @@ void TCtr16RawParam::InitBoardMapping()
   fTraceLength = 8; //Ctr16_TRACEBINS;
   fDoCalibrate=kFALSE;
   fSlowMotion=kFALSE;
+  fStopAtEvent=0;
   fVerbosity=0;
 }
 
@@ -66,10 +67,12 @@ Bool_t TCtr16RawParam::UpdateFrom(TGo4Parameter *pp)
     return kFALSE;    // will automatically copy 2d arrays
   std::cout << "**** TCtr16RawParam::UpdateFrom ... " << std::endl;
 
-  fNumSnapshots = from->fNumSnapshots;
-  fTraceLength = from->fTraceLength;
-  fDoCalibrate=from->fDoCalibrate;
-  fSlowMotion=from->fSlowMotion;
+//  fNumSnapshots = from->fNumSnapshots;
+//  fTraceLength = from->fTraceLength;
+//  fDoCalibrate=from->fDoCalibrate;
+//  fSlowMotion=from->fSlowMotion;
+//  fStopAtEvent=from->fStopAtEvent;
+//  fVerbosity=from->fVerbosity;
 
   SetConfigBoards();
   std::cout<< std::endl; // flush Qt text stream by this

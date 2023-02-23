@@ -381,11 +381,22 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                       break;
 
                     default:
-                      Ctr16Warn("############ found unknown data type 0x%x, *pdata=0x%x, fWorkdata=0x%x skip data frame %ld\n", evtype,*fPdata,fWorkData,
-                          skipped_frames++);
-                      fPdata = fPdatastartMsg + fMsize;    // do not skip complete event, but just the current message:
+                        Ctr16Warn(
+                            "############ found unknown data type 0x%x, *pdata=0x%x, fWorkdata=0x%x skip data frame %ld\n",
+                            evtype, *fPdata, fWorkData, skipped_frames++)
+                        ;
+                        // JAMDEBUG
+                        Int_t *cursor = fPdata;
+                        while (cursor - fPdatastartMsg < fMsize)
+                        {
+                          Ctr16Warn("%p: 0x%x\t", cursor, *cursor);
+                          cursor++;
+                        }
+                        Ctr16Warn("\n");
+                        ////// ENDDEBUG
+                        fPdata = fPdatastartMsg + fMsize;    // do not skip complete event, but just the current message:
 
-                      break;
+                        break;
                   } // switch eventtype
                 } //  while (fPdata - fPdatastartMsg < fMsize)
 
@@ -559,8 +570,8 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                   {
 
                     // find the feature JAM DEBUG
-                                            fPar->fVerbosity=3;
-                                            fPar->fSlowMotion=1;
+ //                                           fPar->fVerbosity=3;
+ //                                           fPar->fSlowMotion=1;
 
 
                     // use threshold messages instead of wishbone container:
@@ -720,6 +731,11 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
         else
         {
           Ctr16Warn("!!!!!!!!! Vulom container wrong bytecount header 0x%x - skipped!\n",vulombytecount);
+
+          // JAM23-02-23 hunt for the bug
+          //fPar->fVerbosity=3;
+          //fPar->fSlowMotion=1;
+
         }
       }    // while ((fPdata - fPdatastart) < Ctr16RawEvent->fDataCount)
     }    // while fPdata - fPsubevt->GetDataField() <fLwords
@@ -730,11 +746,13 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
 
 end_of_event:
 
-  if (fPar->fSlowMotion)
+  if (fPar->fSlowMotion || (source->GetCount() == fPar->fStopAtEvent))
   {
     Int_t evnum = source->GetCount();
+     fPar->fSlowMotion=kTRUE;
     GO4_STOP_ANALYSIS_MESSAGE(
         "Stopped for slow motion mode after MBS event count %d. Click green arrow for next event. please.", evnum);
+
   }
 
   return kTRUE;
