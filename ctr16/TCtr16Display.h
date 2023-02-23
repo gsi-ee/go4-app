@@ -139,6 +139,14 @@ public:
    TH1 *hFeatureFineTime[Ctr16_CHANNELS];
 
 
+
+   /** statistics  of errorframe codes*/
+     TH1* hErrorcodes;
+
+     /** error frame timestamps*/
+     TH1* hErrorTimestamp;
+
+
      /////////////////////////////
 
      Int_t GetDevId()

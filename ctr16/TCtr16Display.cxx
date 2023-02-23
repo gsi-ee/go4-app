@@ -262,6 +262,13 @@ void TCtr16BoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Bool
     hWishboneSource=MakeTH1('I', obname.Data(), obtitle.Data(), 16, 0, 16);
 
 
+    obname.Form("Board%d/ErrorCodes_%d", brd, brd);
+    obtitle.Form("Ctr16 Board %d  Error code number", brd);
+    hErrorcodes=MakeTH1('I', obname.Data(), obtitle.Data(), 256, 0, 256);
+
+    obname.Form("Board%d/ErrorTime_%d", brd, brd);
+    obtitle.Form("Ctr16 Board %d  Error frame timstamps", brd);
+    hErrorTimestamp=MakeTH1('I', obname.Data(), obtitle.Data(), 0xFFF, 0, 0xFFF);
 
     SetMakeWithAutosave(kTRUE);
 

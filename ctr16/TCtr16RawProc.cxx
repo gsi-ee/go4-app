@@ -335,7 +335,7 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                         }
 #endif
 
-                        if(fPdata - fPdatastartMsg > fMsize )
+                        if(fPdata - fPdatastartMsg >= fMsize )
                         {
                           fPdata = fPdatastartMsg + fMsize;
                           // align to header of next frame, since we are already further
@@ -347,8 +347,8 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                     case TCtr16Msg::Data_Feature:
                       {
                         // find the feature JAM DEBUG
-//                        fPar->fVerbosity=1;
-//                        fPar->fSlowMotion=1;
+                        //fPar->fVerbosity=3;
+                        //fPar->fSlowMotion=1;
 
                         UChar_t fullchannel = ((fWorkData >> 26) & 0xF);
                         UChar_t row = ((fWorkData >> 24) & 0x3);
@@ -381,7 +381,7 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                       break;
 
                     default:
-                      Ctr16Warn("############ found unknown data type 0x%x, skip data frame %ld\n", evtype,
+                      Ctr16Warn("############ found unknown data type 0x%x, *pdata=0x%x, fWorkdata=0x%x skip data frame %ld\n", evtype,*fPdata,fWorkData,
                           skipped_frames++);
                       fPdata = fPdatastartMsg + fMsize;    // do not skip complete event, but just the current message:
 
@@ -466,7 +466,6 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                   // here try regular evaluation of addtional traces:
                   while (fPdata - fPdatastartMsg < fMsize)
                   {
-                    //Ctr16_NEXT_DATAWORD; // to begin of next transient event if any
                     status = UnpackTrace(theBoard, boardDisplay, epoch);
                     if (status == 1)
                     {
@@ -479,7 +478,7 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                       goto end_of_event;
                     };
 
-                    if(fPdata - fPdatastartMsg > fMsize )
+                    if(fPdata - fPdatastartMsg >= fMsize )
                       {
                         fPdata = fPdatastartMsg + fMsize;
                           // align to header of next frame, since after last UnpackTrace we are already further
@@ -495,18 +494,21 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
               case TCtr16Msg::Frame_Error:
                 {
                   UInt_t epoch = header & 0xFFFFFF;
-                  Ctr16_NEXT_DATAWORD;
                   while(fPdata-fPdatastartMsg < fMsize)
                     {
+                      Ctr16_NEXT_DATAWORD;
                       UChar_t code =(fWorkData>>24) & 0xFF;
                       UShort_t ts = (fWorkData>>8) & 0xFFF;
-                      Ctr16Dump("ERROR FRAME: code:0x%x epoch 0x%x timestamp:0x%x \n", code, epoch, ts);
+                      Ctr16Dump("ERROR FRAME: code:0x%x epoch 0x%x timestamp:0x%x fWorkData:0x%x fWorkShift:%d *pdata:0x%x\n", code, epoch, ts, fWorkData, fWorkShift, *fPdata);
                       // TODO: create message for output event?
                       boardDisplay->hErrorcodes->Fill(code);
                       boardDisplay->hErrorTimestamp->Fill(ts);
                       fWorkShift+=8;
-                      if(fWorkShift==32) fWorkShift=0;
-                      Ctr16_NEXT_DATAWORD;
+                      if(fWorkShift==32)
+                        {
+                          fWorkShift=0;
+                          fPdata-=1; // rewind one word instead of shifting beyond word boundaries
+                        }
                     }
                 }
                 break;
@@ -593,8 +595,12 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                       UShort_t thres = (fWorkData >> 20) & 0xFFF;
                       UShort_t track = (fWorkData >> 8) & 0xFFF;
                       fWorkShift+=8;
-                      if(fWorkShift==32) fWorkShift=0;
-                      Ctr16_NEXT_DATAWORD;
+                      if(fWorkShift==32)
+                      {
+                        fWorkShift=0;
+                        fPdata--;
+                      }
+                        Ctr16_NEXT_DATAWORD;
                       TCtr16MsgThreshold* msg[4]; // one frame contains info for 4 channels in block
                       UShort_t baseline[4];
                       baseline[0] = (fWorkData >> 20) & 0xFFF;
@@ -621,32 +627,6 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                         boardDisplay->hThresholdNoise[fullchan]->Fill(fwhm);
                         boardDisplay->hThresholdSetting[fullchan]->Fill(thres);
                       }
-
-///////////////////////////////////////////
-                      // This is composed from old documentation
-//                      // JAM14-02-23: here we assume that frame contains more than one threshold message
-//                      UChar_t chan = (fWorkData >> 8) & 0xF;    // fWorkData is still at begin of message header
-//                      TCtr16MsgThreshold *msg = new TCtr16MsgThreshold(chan);
-//                      UShort_t meanbase = ((fWorkData & 0xF)
-//                      Ctr16_NEXT_DATAWORD
-//                      ;    //fPdata++;
-//                      meanbase |= (fWorkData >> 24) & 0xFF;
-//                      UShort_t noisewidth = (fWorkData >> 8) & 0xFFF;
-//                      UShort_t thresh = ((fWorkData & 0xF) << 8);
-//                      Ctr16_NEXT_DATAWORD
-//                      ;    //fPdata++;
-//                      thresh |= (fWorkData >> 24) & 0xFF;
-//                      msg->SetBaseline(meanbase);
-//                      msg->SetNoiseWidth(noisewidth);
-//                      msg->SetThreshold(thresh);
-//                      // histograms of threshold values for each channel
-//                      boardDisplay->hThresholdBaseline[chan]->Fill(meanbase);
-//                      boardDisplay->hThresholdNoise[chan]->Fill(noisewidth);
-//                      boardDisplay->hThresholdSetting[chan]->Fill(thresh);
-//                      theBoard->AddMessage(msg, chan);
-//                      fWorkShift=24 + 8*bi++;
-//                      if(fWorkShift==32) fWorkShift=0;
-////////////////////////////// End first imp
                       // pretend that we could have another message in this frame:
                       Ctr16_NEXT_DATAWORD;
                     }
@@ -771,16 +751,15 @@ Int_t TCtr16RawProc::NextDataWord()
   }
   else
   {
-    fWorkData = 0;
     UInt_t mask = 0;
     for (UChar_t b = 0; b < (32-fWorkShift); ++b)
       mask |= (1 << b);
-    fWorkData = (*fPdata << (32-fWorkShift));
+    fWorkData = (*(fPdata-1) << (32-fWorkShift));
+    fWorkData |= (*fPdata >> fWorkShift) & mask;
     fPdata++;
     Ctr16EVENTLASTMSG_CHECK_PDATA;
     Ctr16RAW_CHECK_PDATA;
     Ctr16MSG_CHECK_PDATA;
-    fWorkData |= (*fPdata >> fWorkShift) & mask;
   }
 
   // fWorkShift defines the n lower bits of the current subevent word that are used for next data word d
@@ -793,7 +772,15 @@ Int_t TCtr16RawProc::NextDataWord()
 
 void TCtr16RawProc::SwitchDataAlignment()
 {
-  (fWorkShift == 0) ? fWorkShift = 16 : fWorkShift = 0;
+  if(fWorkShift == 0)
+   {
+    fWorkShift = 16;
+   }
+   else
+   {
+     fWorkShift = 0;
+     fPdata--;
+   }
 }
 
 Bool_t TCtr16RawProc::UpdateDisplays()
@@ -904,6 +891,16 @@ Int_t TCtr16RawProc::UnpackTrace(TCtr16Board *board, TCtr16BoardDisplay *disp, U
      UShort_t ts = fWorkData & 0xFFF;
      tmsg->SetTimeStamp(ts);
      board->fTracesize12bit = ((fWorkData >> 16) & 0xFF);
+     // here check if we have a valid tracelenght:
+     if( (board->fTracesize12bit != 16) && (board->fTracesize12bit != 32) && (board->fTracesize12bit != 64))
+     {
+       Ctr16Warn("Data_Transient with illegal 12bit trace size: %d,  pdata=0x%x , fWorkData=0x%x -  skip rest of message\n",
+                board->fTracesize12bit, *fPdata, fWorkData);
+       return 1;
+     }
+
+
+
      board->fTracesize32bit = board->fTracesize12bit * 3 / 8;
      // account partially filled last data word here:
       if ((Float_t) (board->fTracesize12bit) * 3.0 / 8.0 > (Float_t) board->fTracesize32bit)
@@ -1073,6 +1070,9 @@ void TCtr16RawProc::FinalizeTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
     //std::cout<< "getting histogram for  channel "<< (int) chan<<" snapshot:"<<disp->fSnapshotcount[chan]]<<", binlen="<<binlen<<", tracelen="<< tracelength<< std::endl;
     trace2d = disp->hTraceSnapshot2d[chan];
   }
+  if (chan < Ctr16_CHANNELS)
+    disp->hTrace[chan]->Reset(""); //avoid mixing of traces in same mbs event, only keep latest
+
   for (Int_t bin = 0; bin < binlen; ++bin)
   {
     Short_t val = board->fCurrentTraceEvent->GetTraceData(bin);
@@ -1096,7 +1096,6 @@ void TCtr16RawProc::FinalizeTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
     }
     else
     {
-      disp->hTrace[chan]->Reset(""); //avoid mixing of traces in same mbs event, only keep latest
       if (bin < tracelength)
       {
         disp->hTrace[chan]->SetBinContent(1 + bin, val);
