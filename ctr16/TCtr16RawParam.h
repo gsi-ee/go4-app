@@ -21,6 +21,7 @@ class TCtr16RawParam : public TGo4Parameter {
       Int_t fTraceLength; // length of trace to visualize (16, 32, 64)
       Bool_t fDoCalibrate; // switch on calibrate mode for adc correction
       Bool_t fSlowMotion; // if true than only process one MBS event and stop.
+      Int_t fStopAtEvent; // mbs event sequence number to stop at.
       Int_t fVerbosity; // degree of debug printouts. 0 - mostly silent, 1- show data problems, 2 - dump all data words
       /* initial mapping of board id to sfp/ gosip device cabling*/
       void InitBoardMapping();
