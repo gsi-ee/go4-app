@@ -17,11 +17,6 @@
 #include "TCtr16RawParam.h"
 #include "TCtr16Display.h"
 
-/** aktivate this to skip all continuation frames. for debugging */
-//#define Ctr16_IGNORE_CONTINUATION 1
-
-/** if enabled, use only first partial event in each continuation frame*/
-//#define Ctr16_SKIP_CONTINUATION_REST 1
 
 static unsigned long skipped_events = 0;
 static unsigned long skipped_frames = 0;
@@ -325,16 +320,6 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                             goto end_of_event;
                           }
 
-#ifdef Ctr16_IGNORE_CONTINUATION
-                        // check here if a minimal trace would fit into rest of vulom container. if not, we discard the rest:
-                        if(fMsize -(fPdata - fPdatastartMsg) < 6 )
-                        {
-                          skipmessage=kTRUE;
-                          fPdata = fPdatastartMsg + fMsize;    // do not skip complete event, but just the current message:
-                        break;
-                        }
-#endif
-
                         if(fPdata - fPdatastartMsg >= fMsize )
                         {
                           fPdata = fPdatastartMsg + fMsize;
@@ -461,19 +446,7 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                     goto end_of_event;
                   }
 
-#ifdef Ctr16_SKIP_CONTINUATION_REST
-                  // for the moment, we just skip rest of this frame JAM 20-02-2023
-                   Ctr16Warn("continuation frame skips rest of payload %ld words\n", fMsize - (fPdata - fPdatastartMsg));
-                  skipmessage=kTRUE;
-                  //fPdata = fPdatastartMsg + fMsize;    // do not skip complete event, but just the current message:
-                  Ctr16Warn("SSSS: ");
-                  while(fPdata-fPdatastartMsg < fMsize)
-                  {
-                    Ctr16Warn("%x\t",*fPdata++);
-                  }
-                  Ctr16Warn("\nCCCCCC\n");
-                  /////// end skip debug
-#else
+
                   // here try regular evaluation of addtional traces:
                   while (fPdata - fPdatastartMsg < fMsize)
                   {
@@ -496,8 +469,6 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                       }
 
                   }
-
-#endif
 
                 }
                 break;
@@ -634,9 +605,12 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
                         theBoard->AddMessage(msg[c], fullchan);
 
                         // histograms of threshold values for each channel
-                        boardDisplay->hThresholdBaseline[fullchan]->Fill(mean);
+                        boardDisplay->hThresholdMean[fullchan]->Fill(mean);
+                        boardDisplay->hThresholdTracking[fullchan]->Fill(track);
                         boardDisplay->hThresholdNoise[fullchan]->Fill(fwhm);
                         boardDisplay->hThresholdSetting[fullchan]->Fill(thres);
+                        boardDisplay->hThresholdBaseline[fullchan]->Fill(baseline[c]);
+
                       }
                       // pretend that we could have another message in this frame:
                       Ctr16_NEXT_DATAWORD;
@@ -733,8 +707,8 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
           Ctr16Warn("!!!!!!!!! Vulom container wrong bytecount header 0x%x - skipped!\n",vulombytecount);
 
           // JAM23-02-23 hunt for the bug
-          //fPar->fVerbosity=3;
-          //fPar->fSlowMotion=1;
+         // fPar->fVerbosity=3;
+         // fPar->fSlowMotion=1;
 
         }
       }    // while ((fPdata - fPdatastart) < Ctr16RawEvent->fDataCount)
@@ -938,7 +912,6 @@ Int_t TCtr16RawProc::UnpackTrace(TCtr16Board *board, TCtr16BoardDisplay *disp, U
      }
      disp->hDatawords->Fill(board->fTracesize12bit);
      disp->hChannels->Fill(fullchannel);
-     //Ctr16_NEXT_DATAWORD;   // trace begins after event header
      status=NextDataWord(); // trace begins after event header
      if(status!=0) return status;
      status=ExtractTrace(board, disp);

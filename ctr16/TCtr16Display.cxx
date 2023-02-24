@@ -123,21 +123,47 @@ void TCtr16BoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Bool
 
 
       obname.Form("Board%d/Threshold/Baseline/ThreshBaseline_%d_%d", brd, brd, ch);
-      obtitle.Form("Ctr16 Board %d Channel %d Threshold scan baseline", brd, ch);
+      obtitle.Form("Ctr16 Board %d Channel %d Threshold scan DAC baseline", brd, ch);
       hThresholdBaseline[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), Ctr16_THRESHOLD_RANGE/10, 0,Ctr16_THRESHOLD_RANGE,
-                    "mean baseline (bins)", "counts");
+                    "DAC baseline (bins)", "counts");
 
-      obname.Form("Board%d/Threshold/Noise/ThreshNoise_%d_%d", brd, brd, ch);
+      obname.Form("Board%d/Threshold/Mean/ThreshMean_%d_%d", brd, brd, ch);
+      obtitle.Form("Ctr16 Board %d Channel %d Threshold scan mean value", brd, ch);
+      hThresholdMean[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), Ctr16_THRESHOLD_RANGE/10, 0,Ctr16_THRESHOLD_RANGE,
+                          "scanned mean baseline (bins)", "counts");
+
+      obname.Form("Board%d/Threshold/Noise/ThreshFWHM_%d_%d", brd, brd, ch);
       obtitle.Form("Ctr16 Board %d Channel %d Threshold scan noise (FWHM)", brd, ch);
       hThresholdNoise[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), Ctr16_THRESHOLD_RANGE/10, 0,Ctr16_THRESHOLD_RANGE,
-          "noise width FWHM (bins)", "counts");
+          "scanne noise width FWHM (bins)", "counts");
 
-      obname.Form("Board%d/Threshold/Threshold/ThreshSet_%d_%d", brd, brd, ch);
-            obtitle.Form("Ctr16 Board %d Channel %d Threshold scan set", brd, ch);
-            hThresholdSetting[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), Ctr16_THRESHOLD_RANGE/10, 0,Ctr16_THRESHOLD_RANGE,
-                "threshold set (bins)", "counts");
+      obname.Form("Board%d/Threshold/Threshold/ThreshDAC_%d_%d", brd, brd, ch);
+      obtitle.Form("Ctr16 Board %d Channel %d Threshold DAC value", brd, ch);
+      hThresholdSetting[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), Ctr16_THRESHOLD_RANGE/10, 0,Ctr16_THRESHOLD_RANGE,
+                "threshold DAC set (bins)", "counts");
+
+      obname.Form("Board%d/Threshold/Tracking/TrackingDAC_%d_%d", brd, brd, ch);
+      obtitle.Form("Ctr16 Board %d Channel %d Tracking DAC value", brd, ch);
+      hThresholdTracking[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), Ctr16_THRESHOLD_RANGE/10, 0,Ctr16_THRESHOLD_RANGE,
+                           "tracking DAC set (bins)", "counts");
 
 
+            //
+            //                    Byte Bit 7  6  5  4  3  2  1  0
+            //                           | 0  1  0  1  0  0 | Blk|    Header mit Block Nummer
+            //                           |11    ..              4|    Mean value
+            //                           | 3        0|11        8|    Mean value |  FWHM
+            //                           | 7                    0|    FWHM
+            //                           |11                    4|    Threshold DAC
+            //                           | 3        0|11        8|    Threshold DAC  | Tracking DAC
+            //                           | 7                    0|    Tracking DAC
+            //                           |11                    4|    Baseline DAC Ch 0
+            //                           | 3        0|11        8|    Baseline DAC Ch 0  | Baseline DAC Ch 1
+            //                           | 7                    0|    Baseline DAC Ch 1
+            //                           |11                    4|    Baseline DAC Ch 2
+            //                           | 3        0|11        8|    Baseline DAC Ch 2  | Baseline DAC Ch 3
+            //                           | 7                    0|    Baseline DAC Ch 3
+            //
 
 
 

@@ -123,14 +123,22 @@ public:
    /** text dump of last wishbone message*/
    TLatex* lWishboneText;
 
-   /** Mean baseline from threshold scans for each channel*/
+   /** ADC baseline from threshold scans for each channel*/
    TH1 *hThresholdBaseline[Ctr16_CHANNELS];
 
    /** Noise width from threshold scans for each channel*/
    TH1 *hThresholdNoise[Ctr16_CHANNELS];
 
-   /** Set threshold value from threshold scans for each channel*/
+   /** Set ADC threshold value from threshold scans for each channel*/
    TH1 *hThresholdSetting[Ctr16_CHANNELS];
+
+   /** Mean value from threshold scans for each channel*/
+   TH1 * hThresholdMean[Ctr16_CHANNELS];
+
+   /** Set ADC trackkingvalue from threshold scans for each channel*/
+   TH1 * hThresholdTracking[Ctr16_CHANNELS];
+
+
 
    /** Feature extracted amplitudes for each channel*/
    TH1 *hFeatureAmplitude[Ctr16_CHANNELS];
