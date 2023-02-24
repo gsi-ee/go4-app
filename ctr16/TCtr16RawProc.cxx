@@ -224,6 +224,10 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
         printf(
             "**** TCtr16RawProc: Mismatch with subevent len %d and data count 0x%8x - vulom status:0x%x seqnum:0x%x \n",
             fLwords, Ctr16RawEvent->fDataCount, Ctr16RawEvent->fVULOMStatus, Ctr16RawEvent->fSequenceNumber);
+
+
+
+
         GO4_SKIP_EVENT
         ;
         // avoid that we run optional second step on invalid raw event!
@@ -331,8 +335,8 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
           Ctr16Warn("!!!!!!!!! Vulom container wrong bytecount header 0x%x - skipped!\n", vulombytecount);
 
           // JAM23-02-23 hunt for the bug
-          // fPar->fVerbosity=3;
-          // fPar->fSlowMotion=1;
+//           fPar->fVerbosity=3;
+//           fPar->fSlowMotion=1;
 
         }
       }    // while ((fPdata - fPdatastart) < Ctr16RawEvent->fDataCount)
@@ -1116,5 +1120,10 @@ Int_t TCtr16RawProc::UnpackFeature(TCtr16Board *board, TCtr16BoardDisplay *disp,
   ;
   // TODO: check if another feature event would fit into rest of vulom container
   Ctr16Debug("DFDFDF restlen= %ld u32words \n", fMsize - (fPdata - fPdatastartMsg));
+  if (fPdata - fPdatastartMsg >= fMsize)
+   {
+     fPdata = fPdatastartMsg + fMsize;
+     // align to header of next frame, since after last next dataworde we might be already further
+   }
   return status;
 }
