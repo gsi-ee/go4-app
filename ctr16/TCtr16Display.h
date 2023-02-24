@@ -33,7 +33,8 @@ public:
   TCtr16BoardDisplay() : TGo4EventProcessor(),
  hADCValues(0), hADCDeltaMeanValues (0), hADCNonLinDiff(0), hADCNonLinInt(0), hADCCorrection(0), hADCCValuesCorrected(0),
  hFrameTypes(0), hMsgTypes(0), hDataTypes(0), hChannels(0), hDatawords(0), hMemoryRow(0),
- hChipId(0), hWishboneAck(0), hWishboneSource(0), lWishboneText(0), fDisplayId(0)
+ hChipId(0), hWishboneAck(0), hWishboneSource(0), lWishboneText(0),
+ hErrorcodes(0), hErrorTimestamp(0), fDisplayId(0)
   {
     ;
   }

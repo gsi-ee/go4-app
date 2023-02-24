@@ -17,7 +17,6 @@
 #include "TCtr16RawParam.h"
 #include "TCtr16Display.h"
 
-
 static unsigned long skipped_events = 0;
 static unsigned long skipped_frames = 0;
 
@@ -30,7 +29,6 @@ if (fPar->fVerbosity>1) printf( args);
 #define Ctr16Warn( args... ) \
 if(fPar->fVerbosity>0) printf( args);
 
-
 /* helper macros for BuildEvent to check if payload pointer is still inside delivered region:*/
 
 #define  Ctr16EVENT_CHECK_PDATA                                    \
@@ -38,7 +36,6 @@ if((fPdata - fPsubevt->GetDataField()) > fLwords ) \
     Ctr16Warn("############ unexpected end of event for subevent size :0x%x, skip event %ld\n", fLwords, skipped_events++);\
      GO4_SKIP_EVENT \
      }
-
 
 #define  Ctr16RAW_CHECK_PDATA                                    \
     if((fPdata - fPdatastart) > Ctr16RawEvent->fDataCount)  \
@@ -63,29 +60,43 @@ if((fPdata - fPsubevt->GetDataField()) >= fLwords ) \
 
 /*printf("############ fPdata offset 0x%x exceeds  subevent size :0x%x, skip message %ld\n", (unsigned int) (fPdata - fPsubevt->GetDataField()), fLwords, skipped_msgs++);\*/
 
-
-
-
+// for top level loop only:
 #define Ctr16_NEXT_DATAWORD \
 status=NextDataWord(); \
 if(status==1) {skipmessage=kTRUE;  fPdata = fPdatastartMsg + fMsize;  break;} \
 if(status>=2) goto end_of_event;
 
+// for subfunctions:
+#define Ctr16_NEXT_DATAWORD_RETURN \
+status=NextDataWord(); \
+if(status!=0) return status;
+
+// for top level loop:
+#define Ctr16_CALL_UNPACKER(X) \
+status=X;\
+if(status==1) {skipmessage=kTRUE;  fPdata = fPdatastartMsg + fMsize;  break;} \
+if(status>=2) goto end_of_event;
+
+// for subfunctions:
+#define Ctr16_CALL_UNPACKER_RETURN(X) \
+status=X; \
+if(status!=0) return status;
+
 //***********************************************************
 TCtr16RawProc::TCtr16RawProc() :
-    TGo4EventProcessor(), fPar(0), fPsubevt(0), Ctr16RawEvent(0), fPdata(0), fPdatastart(0), fLwords(0), fPdatastartMsg(0),
-        fMsize(0), fWorkData(0), fWorkShift(0)
+    TGo4EventProcessor(), fPar(0), fPsubevt(0), Ctr16RawEvent(0), fPdata(0), fPdatastart(0), fLwords(0),
+        fPdatastartMsg(0), fMsize(0), fWorkData(0), fWorkShift(0)
 {
 }
 
 //***********************************************************
 // this one is used in standard factory
 TCtr16RawProc::TCtr16RawProc(const char *name) :
-    TGo4EventProcessor(name), fPar(0), fPsubevt(0), Ctr16RawEvent(0), fPdata(0), fPdatastart(0), fLwords(0), fPdatastartMsg(0),
-        fMsize(0), fWorkData(0), fWorkShift(0)
+    TGo4EventProcessor(name), fPar(0), fPsubevt(0), Ctr16RawEvent(0), fPdata(0), fPdatastart(0), fLwords(0),
+        fPdatastartMsg(0), fMsize(0), fWorkData(0), fWorkShift(0)
 {
-  skipped_events=0;
-  skipped_frames=0;
+  skipped_events = 0;
+  skipped_frames = 0;
   TGo4Log::Info("TCtr16RawProc: Create instance %s", name);
   fBoards.clear();
   SetMakeWithAutosave(kTRUE);
@@ -174,14 +185,6 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
 
   }
 
-// first we fill the TCtr16RawEvent with data from MBS source
-// we have up to two subevents, crate 1 and 2
-// Note that one has to loop over all subevents and select them by
-// crate number:   fPsubevt->GetSubcrate(),
-// procid:         fPsubevt->GetProcid(),
-// and/or control: fPsubevt->GetControl()
-// here we use only crate number
-
   source->ResetIterator();
   while ((fPsubevt = source->NextSubEvent()) != 0)
   {    // loop over subevents
@@ -193,7 +196,7 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
       GO4_SKIP_EVENT_MESSAGE("**** TCtr16RawProc: Found BAD mbs event (marked 0x%x), skip it.", (*fPdata));
     }
     Bool_t skipmessage = kFALSE;
-    Int_t status=0;
+    Int_t status = 0;
     // loop over single subevent data:ThresholdSetting5
     while (fPdata - fPsubevt->GetDataField() < fLwords)
     {
@@ -202,22 +205,18 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
       // from get4++ JAM2020: need to check if status word has valid format here:
       if (((Ctr16RawEvent->fVULOMStatus >> 12) & 0x3) != 0x3)
       {
-          Ctr16Dump("VULOM: wrong vulom status word: 0x%x skip it.. \n",
-              Ctr16RawEvent->fVULOMStatus);
+        Ctr16Dump("VULOM: wrong vulom status word: 0x%x skip it.. \n", Ctr16RawEvent->fVULOMStatus);
 
-          continue;
+        continue;
       }
-
 
       //event trigger counter:
       Ctr16RawEvent->fSequenceNumber = *fPdata++;
       // data length
       Ctr16RawEvent->fDataCount = *fPdata++;
-          //1 + *fPdata++; // from get4++ unpacker: payload is one more according to f_user_readout JAM 10-22
-      Ctr16Dump("VULOM: status: 0x%x counter: 0x%x length: 0x%x \n",
-                          Ctr16RawEvent->fVULOMStatus,
-                          Ctr16RawEvent->fSequenceNumber, Ctr16RawEvent->fDataCount);
-
+      //1 + *fPdata++; // from get4++ unpacker: payload is one more according to f_user_readout JAM 10-22
+      Ctr16Dump("VULOM: status: 0x%x counter: 0x%x length: 0x%x \n", Ctr16RawEvent->fVULOMStatus,
+          Ctr16RawEvent->fSequenceNumber, Ctr16RawEvent->fDataCount);
 
       if (Ctr16RawEvent->fDataCount > (fLwords - 3))
       {
@@ -225,13 +224,14 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
         printf(
             "**** TCtr16RawProc: Mismatch with subevent len %d and data count 0x%8x - vulom status:0x%x seqnum:0x%x \n",
             fLwords, Ctr16RawEvent->fDataCount, Ctr16RawEvent->fVULOMStatus, Ctr16RawEvent->fSequenceNumber);
-        GO4_SKIP_EVENT;
+        GO4_SKIP_EVENT
+        ;
         // avoid that we run optional second step on invalid raw event!
       }
 
       fPdatastart = fPdata;    // remember begin of asic payload data section
       fPdata++;    // skip first  word?
-      fPdata++; // skip another word with 0 bytecount flag?
+      fPdata++;    // skip another word with 0 bytecount flag?
       // now fetch boardwise subcomponents for output data and histograming:
       Int_t slix = 0;    // JAM here we later could evaluate a board identifier mapped to a slot/sfp number contained in subevent
       UInt_t brdid = fPar->fBoardID[slix];    // get hardware identifier from "DAQ link index" number
@@ -263,21 +263,13 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
         {
           Int_t chipid = (vulombytecount >> 16) & 0xFF;
           boardDisplay->hChipId->Fill(chipid);
-
           fPdatastartMsg = fPdata;    // remember start of message for checking
-
-
           fMsize = (vulombytecount & 0xFF) / sizeof(Int_t);    // message size in 32bit words (was & 0x3F)
-          if(((vulombytecount & 0xFF) % sizeof(Int_t)) !=0)
-            fMsize++; // ?test this!
-
-          Ctr16Debug("VVVV Vulom container, header 0x%x with message size: %d \n",vulombytecount,fMsize);
-
+          if (((vulombytecount & 0xFF) % sizeof(Int_t)) != 0)
+            fMsize++;    // ?test this!
+          Ctr16Debug("VVVV Vulom container, header 0x%x with message size: %d \n", vulombytecount, fMsize);
           fWorkData = *fPdata++;    //init work buffer as aligned
           fWorkShift = 0;
-
-
-
           while ((fPdata - fPdatastartMsg) < fMsize)
           {
             //inside message loop, we use aligned data words:
@@ -289,396 +281,28 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
             //printf("MMMMMMMM message type %d \n",mtype);
             switch (frametype)
             {
-
               case TCtr16Msg::Frame_Data:
-
                 {
-                  // first get epoch number
-                  UInt_t epoch = header & 0xFFFFFF;
-                  Ctr16_NEXT_DATAWORD;    //fPdata++;
-                  Ctr16Dump("FFFFFF Data Frame with epoch 0x%x - fPdata:%p, fPdatastartMsg:%p\n", epoch, fPdata, fPdatastartMsg);
-                  // scan payload for events:
-                  while (fPdata - fPdatastartMsg < fMsize)
-                  {
-                    Ctr16Dump(" Data Frame loop: fPdata:%p, cursor:%d fMsize:%d\n", fPdata, (Int_t )(fPdata-fPdatastartMsg),fMsize);
-                  TCtr16Msg::DataType evtype = (TCtr16Msg::DataType) ((fWorkData >> 30) & 0x3);
-
-                  boardDisplay->hDataTypes->Fill(evtype);
-
-                  switch (evtype)
-                  {
-                    case TCtr16Msg::Data_Transient:
-                      {
-                        status=UnpackTrace(theBoard, boardDisplay, epoch);
-                        if(status==1){
-                          skipmessage=kTRUE;
-                          fPdata = fPdatastartMsg + fMsize;    // do not skip complete event, but just the current message:
-                          break;
-                        }
-                        else if(status>=2)
-                          {
-                            goto end_of_event;
-                          }
-
-                        if(fPdata - fPdatastartMsg >= fMsize )
-                        {
-                          fPdata = fPdatastartMsg + fMsize;
-                          // align to header of next frame, since we are already further
-                        }
-
-                      }
-                      break;
-
-                    case TCtr16Msg::Data_Feature:
-                      {
-                        // find the feature JAM DEBUG
-                        //fPar->fVerbosity=3;
-                        //fPar->fSlowMotion=1;
-
-                        UChar_t fullchannel = ((fWorkData >> 26) & 0xF);
-                        UChar_t row = ((fWorkData >> 24) & 0x3);
-                        boardDisplay->hMemoryRow->Fill(row);
-                        TCtr16MsgFeature *fmsg = new TCtr16MsgFeature(fullchannel);
-                        fmsg->SetEpoch(epoch);
-                        fmsg->SetRow(row);
-                        UShort_t ts = (fWorkData >> 5) & 0xFFF;
-                        fmsg->SetTimeStamp(ts);
-                        UChar_t finetime = (fWorkData & 0x3F);
-                        fmsg->SetFineTime(finetime);
-                        Ctr16_NEXT_DATAWORD;
-                        UShort_t ampl = (fWorkData >> 16) & 0xFFFF;
-                        fmsg->SetAmplitude(ampl);
-
-                        Ctr16Warn("DFDFDF Data_Feature channel:%d ampl:%d ts:%d ftime:%d - pdata=0x%x , fWorkData=0x%x\n",
-                                                                            fullchannel,ampl, ts, finetime, *fPdata, fWorkData);
-
-                        // feature histograms here:
-                        boardDisplay->hFeatureAmplitude[fullchannel]->Fill(ampl);
-                        boardDisplay->hFeatureFineTime[fullchannel]->Fill(finetime);
-                        UpdateDeltaTimes(theBoard, boardDisplay, fmsg, fullchannel); // evaluate delta T between messages also here
-                        theBoard->AddMessage(fmsg, fullchannel);
-                        SwitchDataAlignment();// next message will begin in lower 16 bit part of this data word
-                        Ctr16_NEXT_DATAWORD;
-                        // TODO: check if another feature event would fit into rest of vulom container
-                        Ctr16Debug("DFDFDF restlen= %ld u32words \n",fMsize -(fPdata - fPdatastartMsg));
-
-                      }
-                      break;
-
-                    default:
-                        Ctr16Warn(
-                            "############ found unknown data type 0x%x, *pdata=0x%x, fWorkdata=0x%x skip data frame %ld\n",
-                            evtype, *fPdata, fWorkData, skipped_frames++)
-                        ;
-                        // JAMDEBUG
-                        Int_t *cursor = fPdata;
-                        while (cursor - fPdatastartMsg < fMsize)
-                        {
-                          Ctr16Warn("%p: 0x%x\t", cursor, *cursor);
-                          cursor++;
-                        }
-                        Ctr16Warn("\n");
-                        ////// ENDDEBUG
-                        fPdata = fPdatastartMsg + fMsize;    // do not skip complete event, but just the current message:
-
-                        break;
-                  } // switch eventtype
-                } //  while (fPdata - fPdatastartMsg < fMsize)
-
-                  // repeat loop over next event from here
-
-            }
+                  Ctr16_CALL_UNPACKER(HandleDataFrame(theBoard, boardDisplay));
+                }
                 break;
 
               case TCtr16Msg::Frame_Continuation:
                 {
-                    // TODO: continuation frames also for feature events?
-                  if (!theBoard->fToBeContinued)
-                  {
-                    Ctr16Warn("!!!! Unexpected continuation frame with header 0x%x! Skip message %ld \n", header, skipped_frames++);
-                    //closer debugging from here JAM DEBUG
-//                        fPar->fVerbosity=3;
-//                        fPar->fSlowMotion=1;
-//                        Ctr16Warn("CCCCCC Dumping continuation frame:\n")
-//                        Int_t* cursor= fPdata;
-//                     while (cursor - fPdatastartMsg < fMsize)
-//                     {
-//                         Ctr16Warn("%p: 0x%x\t", cursor, *cursor);
-//                         cursor++;
-//                     }
-//                     Ctr16Warn("\n");
-                     ///////////////////
-                    skipmessage=kTRUE;
-                    fPdata = fPdatastartMsg + fMsize;    // do not skip complete event, but just the current message:
-                    break;
-                  }
-                  if (theBoard->fCurrentTraceEvent == 0)
-                  {
-                    // TODO: in this case might expect some feature event?
-                    Ctr16Warn("!!!! Continuation frame without previous transient message! Skip message %ld\n",
-                        skipped_frames++);
-                    skipmessage=kTRUE;
-                    fPdata = fPdatastartMsg + fMsize;    // do not skip complete event, but just the current message:
-                    break;
-                  }
-
-                  // check if epochs match with already accounted:
-                  UInt_t epoch = header & 0xFFFFFF;
-                  Ctr16Dump("CCCCCC continuation frame for epoch 0x%x \n", epoch);
-                  if (epoch != theBoard->fCurrentTraceEvent->GetEpoch())
-                  {
-                    Ctr16Warn("!!!! Continuation frame with epoch mismatch:  previous 0x%x current 0x%x ! Skip message %ld\n",
-                        epoch, theBoard->fCurrentTraceEvent->GetEpoch(), skipped_frames++);
-                    skipmessage=kTRUE;
-                    fPdata = fPdatastartMsg + fMsize;    // do not skip complete event, but just the current message:
-                    break;
-                  }
-                  Ctr16_NEXT_DATAWORD;
-                  status = ExtractTrace(theBoard, boardDisplay);
-                  if (status == 1)
-                  {
-                    skipmessage = kTRUE;
-                    fPdata = fPdatastartMsg + fMsize;    // do not skip complete event, but just the current message:
-                    break;
-                  }
-                  else if (status >= 2)
-                  {
-                    goto end_of_event;
-                  }
-
-
-                  // here try regular evaluation of addtional traces:
-                  while (fPdata - fPdatastartMsg < fMsize)
-                  {
-                    status = UnpackTrace(theBoard, boardDisplay, epoch);
-                    if (status == 1)
-                    {
-                      skipmessage = kTRUE;
-                      fPdata = fPdatastartMsg + fMsize;    // do not skip complete event, but just the current message:
-                      break;
-                    }
-                    else if (status >= 2)
-                    {
-                      goto end_of_event;
-                    };
-
-                    if(fPdata - fPdatastartMsg >= fMsize )
-                      {
-                        fPdata = fPdatastartMsg + fMsize;
-                          // align to header of next frame, since after last UnpackTrace we are already further
-                      }
-
-                  }
-
+                  Ctr16_CALL_UNPACKER(HandleContinuationFrame(theBoard, boardDisplay));
                 }
                 break;
 
               case TCtr16Msg::Frame_Error:
                 {
-                  UInt_t epoch = header & 0xFFFFFF;
-                  while(fPdata-fPdatastartMsg < fMsize)
-                    {
-                      Ctr16_NEXT_DATAWORD;
-                      UChar_t code =(fWorkData>>24) & 0xFF;
-                      UShort_t ts = (fWorkData>>8) & 0xFFF;
-                      Ctr16Dump("ERROR FRAME: code:0x%x epoch 0x%x timestamp:0x%x fWorkData:0x%x fWorkShift:%d *pdata:0x%x\n", code, epoch, ts, fWorkData, fWorkShift, *fPdata);
-                      // TODO: create message for output event?
-                      boardDisplay->hErrorcodes->Fill(code);
-                      boardDisplay->hErrorTimestamp->Fill(ts);
-                      fWorkShift+=8;
-                      if(fWorkShift==32)
-                        {
-                          fWorkShift=0;
-                          fPdata-=1; // rewind one word instead of shifting beyond word boundaries
-                        }
-                    }
+                  Ctr16_CALL_UNPACKER(HandleErrorFrame(theBoard, boardDisplay));
                 }
                 break;
 
               case TCtr16Msg::Frame_Wishbone:
                 // wishbone response (error message)
                 {
-                  UChar_t wishhead = (header >> 24) & 0xFF;
-                  UChar_t ctrlhead = (header >> 16) & 0xFF;
-                  //printf("MSG_WishboneEvent header=0x%x\n",wishhead);
-                  TCtr16MsgWishbone *theMsg = new TCtr16MsgWishbone(wishhead);
-                  boardDisplay->hWishboneAck->Fill(theMsg->GetAckCode());
-                  // first evaluate what kind of data we have:
-                  Bool_t isThresholdMessage = kFALSE;
-                  Bool_t isSlowControlType = kFALSE;
-                  TCtr16MsgWishbone::ControlType ctype = TCtr16MsgWishbone::Ctrl_None;
-                  if (theMsg->GetAckCode() == TCtr16MsgWishbone::ACK_SlowControl)
-                  {
-                    ctype = (TCtr16MsgWishbone::ControlType) ctrlhead;
-                    if (ctype == TCtr16MsgWishbone::Ctrl_Start)
-                    {
-                        boardDisplay->hMsgTypes->Fill(TCtr16Msg::Message_Start);
-                    }
-                    else if ((ctype & TCtr16MsgWishbone::Ctrl_Threshold & 0x3) != 0) // since low 2 bit contain block number, just test for possible mask
-                    {
-                      isThresholdMessage = kTRUE;
-                      boardDisplay->hMsgTypes->Fill(TCtr16Msg::Message_Threshold);
-                    }
-                    else if(ctype == TCtr16MsgWishbone::Ctrl_Init)
-                    {
-                      boardDisplay->hMsgTypes->Fill(TCtr16Msg::Message_Init);
-                    }
-                    else
-                    {
-                      Ctr16Warn("WWW - found unknown wishbone slow control type 0x%x - skip message! \n",ctype);
-                      fPdata = fPdatastartMsg + fMsize;    // do not skip complete event, but just the current message:
-                        break;
-                    }
-                    isSlowControlType = kTRUE;
-                }
-                else
-                  {
-                    boardDisplay->hMsgTypes->Fill(TCtr16Msg::Message_Wishbone);
-                  }
-                  // end data type evaluation
-
-                  if (isThresholdMessage)
-                  {
-
-                    // find the feature JAM DEBUG
- //                                           fPar->fVerbosity=3;
- //                                           fPar->fSlowMotion=1;
-
-
-                    // use threshold messages instead of wishbone container:
-//
-//                    Byte Bit 7  6  5  4  3  2  1  0
-//                           | 0  1  0  1  0  0 | Blk|    Header mit Block Nummer
-//                           |11    ..              4|    Mean value
-//                           | 3        0|11        8|    Mean value |  FWHM
-//                           | 7                    0|    FWHM
-//                           |11                    4|    Threshold DAC
-//                           | 3        0|11        8|    Threshold DAC  | Tracking DAC
-//                           | 7                    0|    Tracking DAC
-//                           |11                    4|    Baseline DAC Ch 0
-//                           | 3        0|11        8|    Baseline DAC Ch 0  | Baseline DAC Ch 1
-//                           | 7                    0|    Baseline DAC Ch 1
-//                           |11                    4|    Baseline DAC Ch 2
-//                           | 3        0|11        8|    Baseline DAC Ch 2  | Baseline DAC Ch 3
-//                           | 7                    0|    Baseline DAC Ch 3
-//
-
-
-
-                    delete theMsg;
-      //              Int_t bi=0;
-                    while (fPdata - fPdatastartMsg < fMsize)
-                    {
-
-                      UChar_t block = (fWorkData >> 10) & 0x3;  // fWorkData is still at begin of message header
-                      UShort_t mean = (fWorkData >>12) & 0xFFF;
-                      UShort_t fwhm = fWorkData & 0xFFF;
-                      Ctr16_NEXT_DATAWORD;
-                      UShort_t thres = (fWorkData >> 20) & 0xFFF;
-                      UShort_t track = (fWorkData >> 8) & 0xFFF;
-                      fWorkShift+=8;
-                      if(fWorkShift==32)
-                      {
-                        fWorkShift=0;
-                        fPdata--;
-                      }
-                        Ctr16_NEXT_DATAWORD;
-                      TCtr16MsgThreshold* msg[4]; // one frame contains info for 4 channels in block
-                      UShort_t baseline[4];
-                      baseline[0] = (fWorkData >> 20) & 0xFFF;
-                      baseline[1] = (fWorkData >> 8) & 0xFFF;
-                      baseline[2] = (fWorkData & 0xFF);
-                      Ctr16_NEXT_DATAWORD;
-                      baseline[2] |= (fWorkData >> 24) & 0xF;
-                      baseline[3] |= (fWorkData) & 0xFFF;
-
-                      for(Int_t c=0; c<4;++c){
-                        msg[c]= new TCtr16MsgThreshold(0);
-                        msg[c]->SetBlock(block);
-                        msg[c]->SetBlockChannel(c);
-                        msg[c]->SetMean(mean);
-                        msg[c]->SetFWHM(fwhm);
-                        msg[c]->SetTracking(track);
-                        msg[c]->SetThreshold(thres);
-                        msg[c]->SetBaseline(baseline[c]);
-                        Int_t fullchan= msg[c]->GetChannel();
-                        theBoard->AddMessage(msg[c], fullchan);
-
-                        // histograms of threshold values for each channel
-                        boardDisplay->hThresholdMean[fullchan]->Fill(mean);
-                        boardDisplay->hThresholdTracking[fullchan]->Fill(track);
-                        boardDisplay->hThresholdNoise[fullchan]->Fill(fwhm);
-                        boardDisplay->hThresholdSetting[fullchan]->Fill(thres);
-                        boardDisplay->hThresholdBaseline[fullchan]->Fill(baseline[c]);
-
-                      }
-                      // pretend that we could have another message in this frame:
-                      Ctr16_NEXT_DATAWORD;
-                    }
-                  }
-                  else
-                  {
-                    // treat data as wishbone message:
-                    theMsg->SetControlMessageType(ctype);
-                    if (!isSlowControlType)
-                    {
-                      // regular wishbone message:
-                      Short_t address = (header >> 8) & 0xFFFF;
-                      theMsg->SetAddress(address);
-                      // here optional rest of data: only if data follows is set!
-                      if (theMsg->GetAckCode() == TCtr16MsgWishbone::ACK_Data)
-                        {
-                        UChar_t val = fWorkData && 0xFF;    // fWorkData is still at begin of message header
-                        theMsg->AddData(val);
-                        Ctr16_NEXT_DATAWORD;
-                        while (fPdata - fPdatastartMsg < fMsize)
-                          {
-                            for (Int_t shift = 24; shift >= 0; shift -= 8)
-                            {
-                              val = (fWorkData >> shift) & 0xFF;
-                              theMsg->AddData(val);
-                            }
-                            Ctr16_NEXT_DATAWORD;
-                          } // while
-                        }
-                      else
-                      {
-                        Ctr16_NEXT_DATAWORD;
-                      }
-                      boardDisplay->hWishboneSource->Fill(theMsg->GetSource());
-                      // TODO: histogram of wishbone addresses and data words?
-
-                    }
-                    else
-                    {
-                      // slow control message types do not have address fields.
-                      // we embed the containing text and dump it for fun;
-                      UChar_t letter;
-                      for (Int_t shift = 16; shift >= 0; shift -= 8)
-                      {
-                        letter = (fWorkData >> shift) & 0xFF;
-                        theMsg->AddData(letter);
-                      }
-
-                      Ctr16_NEXT_DATAWORD;    //fPdata++;
-                      while (fPdata - fPdatastartMsg < fMsize)
-                      {
-
-                        for (Int_t shift =24 ; shift >= 0; shift -= 8)
-                        {
-                          letter = (fWorkData >> shift) & 0xFF;
-                          theMsg->AddData(letter);
-                        }
-                            Ctr16_NEXT_DATAWORD;
-                      }
-                      boardDisplay->lWishboneText->SetText(0.1, 0.9, theMsg->DumpMsg());
-                      //Ctr16Warn("CCC Control message text:\n %s", theMsg->DumpMsg().Data());
-                      printf("CCC See Control message of type:%d\n %s", theMsg->GetControlMessageType(),theMsg->DumpMsg().Data());
-                    }    // whishbone response or slow control
-
-                    theBoard->AddMessage(theMsg, 0);    // wishbone messages accounted for channel 0
-                  }
-
+                  Ctr16_CALL_UNPACKER(HandleWishboneFrame(theBoard, boardDisplay));
                 }
                 break;
 
@@ -693,7 +317,7 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
             {
               // never come here if messages are treated correctly!
               Ctr16Warn("############  fPdata offset 0x%x has not yet reached message length 0x%x, correcting ,\n",
-                  (unsigned int) (fPdata - fPdatastartMsg), fMsize);
+                  (unsigned int ) (fPdata - fPdatastartMsg), fMsize);
               fPdata = fPdatastartMsg + fMsize;
             }
 
@@ -704,11 +328,11 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
         }    //if (((vulombytecount >> 28) & 0xF) == 0x4)
         else
         {
-          Ctr16Warn("!!!!!!!!! Vulom container wrong bytecount header 0x%x - skipped!\n",vulombytecount);
+          Ctr16Warn("!!!!!!!!! Vulom container wrong bytecount header 0x%x - skipped!\n", vulombytecount);
 
           // JAM23-02-23 hunt for the bug
-         // fPar->fVerbosity=3;
-         // fPar->fSlowMotion=1;
+          // fPar->fVerbosity=3;
+          // fPar->fSlowMotion=1;
 
         }
       }    // while ((fPdata - fPdatastart) < Ctr16RawEvent->fDataCount)
@@ -718,12 +342,12 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
   UpdateDisplays();    // we fill the raw displays immediately, but may do additional histogramming later
   Ctr16RawEvent->SetValid(kTRUE);    // to store
 
-end_of_event:
+  end_of_event:
 
   if (fPar->fSlowMotion || (source->GetCount() == fPar->fStopAtEvent))
   {
     Int_t evnum = source->GetCount();
-     fPar->fSlowMotion=kTRUE;
+    fPar->fSlowMotion = kTRUE;
     GO4_STOP_ANALYSIS_MESSAGE(
         "Stopped for slow motion mode after MBS event count %d. Click green arrow for next event. please.", evnum);
 
@@ -744,9 +368,9 @@ Int_t TCtr16RawProc::NextDataWord()
   else
   {
     UInt_t mask = 0;
-    for (UChar_t b = 0; b < (32-fWorkShift); ++b)
+    for (UChar_t b = 0; b < (32 - fWorkShift); ++b)
       mask |= (1 << b);
-    fWorkData = (*(fPdata-1) << (32-fWorkShift));
+    fWorkData = (*(fPdata - 1) << (32 - fWorkShift));
     fWorkData |= (*fPdata >> fWorkShift) & mask;
     fPdata++;
     Ctr16EVENTLASTMSG_CHECK_PDATA;
@@ -759,20 +383,20 @@ Int_t TCtr16RawProc::NextDataWord()
   //|31---------fWorkshift--0|  index
   //|------------- |ddddddddd|  (subevent word 1)
   //|dddddddddddddd|---------|  (subevent word 2)
- return 0;
+  return 0;
 }
 
 void TCtr16RawProc::SwitchDataAlignment()
 {
-  if(fWorkShift == 0)
-   {
+  if (fWorkShift == 0)
+  {
     fWorkShift = 16;
-   }
-   else
-   {
-     fWorkShift = 0;
-     fPdata--;
-   }
+  }
+  else
+  {
+    fWorkShift = 0;
+    fPdata--;
+  }
 }
 
 Bool_t TCtr16RawProc::UpdateDisplays()
@@ -852,84 +476,298 @@ Double_t TCtr16RawProc::CorrectedADCVal(Short_t raw, TCtr16BoardDisplay *boardDi
   return res;
 }
 
-
-
-Int_t TCtr16RawProc::UnpackTrace(TCtr16Board *board, TCtr16BoardDisplay *disp, UInt_t epoch )
+Int_t TCtr16RawProc::HandleDataFrame(TCtr16Board *board, TCtr16BoardDisplay *disp)
 {
-  Int_t status=0;
+  Int_t status = 0;
+  Int_t header = fWorkData;
+  // first get epoch number
+  UInt_t epoch = header & 0xFFFFFF;
+  Ctr16_NEXT_DATAWORD_RETURN
+  ;
+  Ctr16Dump("FFFFFF Data Frame with epoch 0x%x - fPdata:%p, fPdatastartMsg:%p\n", epoch, fPdata, fPdatastartMsg);
+  // scan payload for events:
+  while (fPdata - fPdatastartMsg < fMsize)
+  {
+    Ctr16Dump(" Data Frame loop: fPdata:%p, cursor:%d fMsize:%d\n", fPdata, (Int_t )(fPdata - fPdatastartMsg), fMsize);
+    TCtr16Msg::DataType evtype = (TCtr16Msg::DataType) ((fWorkData >> 30) & 0x3);
+
+    disp->hDataTypes->Fill(evtype);
+
+    switch (evtype)
+    {
+      case TCtr16Msg::Data_Transient:
+        {
+          Ctr16_CALL_UNPACKER_RETURN(UnpackTrace(board, disp, epoch));
+        }
+        break;
+
+      case TCtr16Msg::Data_Feature:
+        {
+          // find the feature JAM DEBUG
+          //fPar->fVerbosity=3;
+          //fPar->fSlowMotion=1;
+          Ctr16_CALL_UNPACKER_RETURN(UnpackFeature(board, disp, epoch));
+        }
+        break;
+
+      default:
+        Ctr16Warn("############ found unknown data type 0x%x, *pdata=0x%x, fWorkdata=0x%x skip data frame %ld\n",
+            evtype, *fPdata, fWorkData, skipped_frames++)
+        ;
+        // JAMDEBUG
+        Int_t *cursor = fPdata;
+        while (cursor - fPdatastartMsg < fMsize)
+        {
+          Ctr16Warn("%p: 0x%x\t", cursor, *cursor);
+          cursor++;
+        }
+        Ctr16Warn("\n")
+        ;
+        ////// ENDDEBUG
+        fPdata = fPdatastartMsg + fMsize;    // do not skip complete event, but just the current message:
+
+        break;
+    }    // switch eventtype
+  }    //  while (fPdata - fPdatastartMsg < fMsize)
+
+  // repeat loop over next event from here
+
+  return status;
+}
+
+Int_t TCtr16RawProc::HandleContinuationFrame(TCtr16Board *board, TCtr16BoardDisplay *disp)
+{
+  Int_t status = 0;
+  Int_t header = fWorkData;
+  // TODO: continuation frames also for feature events?
+  if (!board->fToBeContinued)
+  {
+    Ctr16Warn("!!!! Unexpected continuation frame with header 0x%x! Skip message %ld \n", header, skipped_frames++);
+    //closer debugging from here JAM DEBUG
+//                        fPar->fVerbosity=3;
+//                        fPar->fSlowMotion=1;
+//                        Ctr16Warn("CCCCCC Dumping continuation frame:\n")
+//                        Int_t* cursor= fPdata;
+//                     while (cursor - fPdatastartMsg < fMsize)
+//                     {
+//                         Ctr16Warn("%p: 0x%x\t", cursor, *cursor);
+//                         cursor++;
+//                     }
+//                     Ctr16Warn("\n");
+    ///////////////////
+    return 1;        // do not skip complete event, but just the current message:
+  }
+  if (board->fCurrentTraceEvent == 0)
+  {
+    // TODO: in this case might expect some feature event?
+    Ctr16Warn("!!!! Continuation frame without previous transient message! Skip message %ld\n", skipped_frames++);
+    return 1;    // do not skip complete event, but just the current message:
+  }
+
+  // check if epochs match with already accounted:
+  UInt_t epoch = header & 0xFFFFFF;
+  Ctr16Dump("CCCCCC continuation frame for epoch 0x%x \n", epoch);
+  if (epoch != board->fCurrentTraceEvent->GetEpoch())
+  {
+    Ctr16Warn("!!!! Continuation frame with epoch mismatch:  previous 0x%x current 0x%x ! Skip message %ld\n", epoch,
+        board->fCurrentTraceEvent->GetEpoch(), skipped_frames++);
+    return 1;    // do not skip complete event, but just the current message:
+  }
+  Ctr16_NEXT_DATAWORD_RETURN
+  ;
+  Ctr16_CALL_UNPACKER_RETURN(ExtractTrace(board, disp));
+
+  // here try regular evaluation of addtional traces:
+  while (fPdata - fPdatastartMsg < fMsize)
+  {
+    Ctr16_CALL_UNPACKER_RETURN(UnpackTrace(board, disp, epoch));
+    if (fPdata - fPdatastartMsg >= fMsize)
+    {
+      fPdata = fPdatastartMsg + fMsize;
+      // align to header of next frame, since after last UnpackTrace we are already further
+    }
+  }
+  return status;
+}
+
+Int_t TCtr16RawProc::HandleErrorFrame(TCtr16Board*, TCtr16BoardDisplay *disp)
+{
+  Int_t status = 0;
+  Int_t header = fWorkData;
+  UInt_t epoch = header & 0xFFFFFF;
+  while (fPdata - fPdatastartMsg < fMsize)
+  {
+    Ctr16_NEXT_DATAWORD_RETURN
+    ;
+    UChar_t code = (fWorkData >> 24) & 0xFF;
+    UShort_t ts = (fWorkData >> 8) & 0xFFF;
+    Ctr16Dump("ERROR FRAME: code:0x%x epoch 0x%x timestamp:0x%x fWorkData:0x%x fWorkShift:%d *pdata:0x%x\n", code,
+        epoch, ts, fWorkData, fWorkShift, *fPdata);
+    // TODO: create message for output event?
+    disp->hErrorcodes->Fill(code);
+    disp->hErrorTimestamp->Fill(ts);
+    fWorkShift += 8;
+    if (fWorkShift == 32)
+    {
+      fWorkShift = 0;
+      fPdata -= 1;    // rewind one word instead of shifting beyond word boundaries
+    }
+  }
+  return status;
+}
+
+Int_t TCtr16RawProc::HandleWishboneFrame(TCtr16Board *board, TCtr16BoardDisplay *disp)
+{
+  Int_t status = 0;
+  Int_t header = fWorkData;
+  UChar_t wishhead = (header >> 24) & 0xFF;
+  UChar_t ctrlhead = (header >> 16) & 0xFF;
+  //printf("MSG_WishboneEvent header=0x%x\n",wishhead);
+  TCtr16MsgWishbone *theMsg = new TCtr16MsgWishbone(wishhead);
+  disp->hWishboneAck->Fill(theMsg->GetAckCode());
+  // first evaluate what kind of data we have:
+  Bool_t isThresholdMessage = kFALSE;
+  Bool_t isSlowControlType = kFALSE;
+  TCtr16MsgWishbone::ControlType ctype = TCtr16MsgWishbone::Ctrl_None;
+  if (theMsg->GetAckCode() == TCtr16MsgWishbone::ACK_SlowControl)
+  {
+    ctype = (TCtr16MsgWishbone::ControlType) ctrlhead;
+    if (ctype == TCtr16MsgWishbone::Ctrl_Start)
+    {
+      disp->hMsgTypes->Fill(TCtr16Msg::Message_Start);
+    }
+    else if ((ctype & TCtr16MsgWishbone::Ctrl_Threshold & 0x3) != 0)    // since low 2 bit contain block number, just test for possible mask
+    {
+      isThresholdMessage = kTRUE;
+      disp->hMsgTypes->Fill(TCtr16Msg::Message_Threshold);
+    }
+    else if (ctype == TCtr16MsgWishbone::Ctrl_Init)
+    {
+      disp->hMsgTypes->Fill(TCtr16Msg::Message_Init);
+    }
+    else
+    {
+      Ctr16Warn("WWW - found unknown wishbone slow control type 0x%x - skip message! \n", ctype);
+      return 1;    // do not skip complete event, but just the current message
+    }
+    isSlowControlType = kTRUE;
+  }
+  else
+  {
+    disp->hMsgTypes->Fill(TCtr16Msg::Message_Wishbone);
+  }
+  // end data type evaluation
+
+  if (isThresholdMessage)
+  {
+    // find the feature JAM DEBUG
+//                                           fPar->fVerbosity=3;
+//                                           fPar->fSlowMotion=1;
+    delete theMsg;    // do not use wishbone message, but dedicated threshold messages in unpacker
+    while (fPdata - fPdatastartMsg < fMsize)
+    {
+      Ctr16_CALL_UNPACKER_RETURN(UnpackThresholdMessage(board, disp));
+      // pretend that we could have another message in this frame:
+      Ctr16_NEXT_DATAWORD_RETURN
+      ;
+    }
+  }
+  else
+  {
+    // treat data as wishbone message:
+    theMsg->SetControlMessageType(ctype);
+    if (!isSlowControlType)
+    {
+
+      Ctr16_CALL_UNPACKER_RETURN(UnpackWishboneMessage(board, disp, theMsg));
+    }
+    else
+    {
+
+      Ctr16_CALL_UNPACKER_RETURN(UnpackSlowControlMessage(board, disp, theMsg));
+    }    // whishbone response or slow control
+    board->AddMessage(theMsg, 0);    // wishbone messages accounted for channel 0
+  }    // threshold or other wishbone
+  return status;
+}
+
+Int_t TCtr16RawProc::UnpackTrace(TCtr16Board *board, TCtr16BoardDisplay *disp, UInt_t epoch)
+{
+  Int_t status = 0;
   UChar_t fullchannel = ((fWorkData >> 26) & 0xF);
   UChar_t row = ((fWorkData >> 24) & 0x3);
   disp->hMemoryRow->Fill(row);
 
-
   if (board->fCurrentTraceEvent == 0)
-     {
-       board->fCurrentTraceEvent = new TCtr16MsgTransient(fullchannel);
-     }
-     else
-     {
-       Ctr16Warn("DDDD Data_Transient has previous message without continuation! discard incomplete data \n");
-       delete board->fCurrentTraceEvent;
-       board->fCurrentTraceEvent = new TCtr16MsgTransient(fullchannel);
-     }
+  {
+    board->fCurrentTraceEvent = new TCtr16MsgTransient(fullchannel);
+  }
+  else
+  {
+    Ctr16Warn("DDDD Data_Transient has previous message without continuation! discard incomplete data \n");
+    delete board->fCurrentTraceEvent;
+    board->fCurrentTraceEvent = new TCtr16MsgTransient(fullchannel);
+  }
 
-     // clear some flags, if we come here from not finalized event because of skipped messages:
-     board->fTracedataIndex = 0;
-     board->fToBeContinued = kFALSE;
+  // clear some flags, if we come here from not finalized event because of skipped messages:
+  board->fTracedataIndex = 0;
+  board->fToBeContinued = kFALSE;
 
-     TCtr16MsgTransient *tmsg = board->fCurrentTraceEvent;
-     tmsg->SetEpoch(epoch);
-     tmsg->SetRow(row);
-     UShort_t ts = fWorkData & 0xFFF;
-     tmsg->SetTimeStamp(ts);
-     board->fTracesize12bit = ((fWorkData >> 16) & 0xFF);
-     // here check if we have a valid tracelenght:
-     if( (board->fTracesize12bit != 16) && (board->fTracesize12bit != 32) && (board->fTracesize12bit != 64))
-     {
-       Ctr16Warn("Data_Transient with illegal 12bit trace size: %d,  pdata=0x%x , fWorkData=0x%x -  skip rest of message\n",
-                board->fTracesize12bit, *fPdata, fWorkData);
-       return 1;
-     }
+  TCtr16MsgTransient *tmsg = board->fCurrentTraceEvent;
+  tmsg->SetEpoch(epoch);
+  tmsg->SetRow(row);
+  UShort_t ts = fWorkData & 0xFFF;
+  tmsg->SetTimeStamp(ts);
+  board->fTracesize12bit = ((fWorkData >> 16) & 0xFF);
+  // here check if we have a valid tracelenght:
+  if ((board->fTracesize12bit != 16) && (board->fTracesize12bit != 32) && (board->fTracesize12bit != 64))
+  {
+    Ctr16Warn(
+        "Data_Transient with illegal 12bit trace size: %d,  pdata=0x%x , fWorkData=0x%x -  skip rest of message\n",
+        board->fTracesize12bit, *fPdata, fWorkData);
+    return 1;
+  }
 
+  board->fTracesize32bit = board->fTracesize12bit * 3 / 8;
+  // account partially filled last data word here:
+  if ((Float_t) (board->fTracesize12bit) * 3.0 / 8.0 > (Float_t) board->fTracesize32bit)
+    board->fTracesize32bit++;
 
+  Ctr16Debug("DDDD Data_Transient with 12bit trace size: %d, expect %d data words. pdata=0x%x , fWorkData=0x%x\n",
+      board->fTracesize12bit, board->fTracesize32bit, *fPdata, fWorkData);
 
-     board->fTracesize32bit = board->fTracesize12bit * 3 / 8;
-     // account partially filled last data word here:
-      if ((Float_t) (board->fTracesize12bit) * 3.0 / 8.0 > (Float_t) board->fTracesize32bit)
-                              board->fTracesize32bit++;
-
-      Ctr16Debug("DDDD Data_Transient with 12bit trace size: %d, expect %d data words. pdata=0x%x , fWorkData=0x%x\n",
-          board->fTracesize12bit, board->fTracesize32bit, *fPdata, fWorkData);
-
-     Ctr16Dump("Data_Transient - channel:%d size12:%d size32:%d\n", fullchannel,
-         board->fTracesize12bit, board->fTracesize32bit);
-     if ((fPdata - fPdatastart -3) + board->fTracesize32bit > fLwords)
-     {
-      Ctr16Warn(
-           "Transient Event header error: 12 bit size %d does not fit into mbs subevent buffer of restlen %ld words \n",
-           board->fTracesize32bit, fLwords - (fPdata - fPdatastart -3 ));
-     GO4_SKIP_EVENT
-     }
-     disp->hDatawords->Fill(board->fTracesize12bit);
-     disp->hChannels->Fill(fullchannel);
-     status=NextDataWord(); // trace begins after event header
-     if(status!=0) return status;
-     status=ExtractTrace(board, disp);
+  Ctr16Dump("Data_Transient - channel:%d size12:%d size32:%d\n", fullchannel, board->fTracesize12bit,
+      board->fTracesize32bit);
+  if ((fPdata - fPdatastart - 3) + board->fTracesize32bit > fLwords)
+  {
+    Ctr16Warn(
+        "Transient Event header error: 12 bit size %d does not fit into mbs subevent buffer of restlen %ld words \n",
+        board->fTracesize32bit, fLwords - (fPdata - fPdatastart - 3));
+    GO4_SKIP_EVENT
+  }
+  disp->hDatawords->Fill(board->fTracesize12bit);
+  disp->hChannels->Fill(fullchannel);
+  Ctr16_NEXT_DATAWORD_RETURN
+  ;
+  status = ExtractTrace(board, disp);
+  if (fPdata - fPdatastartMsg >= fMsize)
+  {
+    fPdata = fPdatastartMsg + fMsize;
+    // align to header of next frame, since after last ExtractTrace we might be already further
+  }
   return status;
 
 }
 
-
-
-
 Int_t TCtr16RawProc::ExtractTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
 {
-  Int_t status=0;
+  Int_t status = 0;
   Int_t payloadwords = board->fTracesize32bit - board->fTracedataIndex;
-  if(fMsize -(fPdata - fPdatastartMsg)+1 < payloadwords)
+  if (fMsize - (fPdata - fPdatastartMsg) + 1 < payloadwords)
   {
-    Ctr16Debug("ExtractTrace sees rest of buffer %ld too short for desired payload %d, expect continuation! \n", fMsize -(fPdata - fPdatastartMsg) - 1, payloadwords);
-    payloadwords = fMsize -(fPdata - fPdatastartMsg) +1;
+    Ctr16Debug("ExtractTrace sees rest of buffer %ld too short for desired payload %d, expect continuation! \n",
+        fMsize - (fPdata - fPdatastartMsg) - 1, payloadwords);
+    payloadwords = fMsize - (fPdata - fPdatastartMsg) + 1;
     board->fToBeContinued = kTRUE;
   }
   else
@@ -942,9 +780,9 @@ Int_t TCtr16RawProc::ExtractTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
     Ctr16EVENTLASTMSG_CHECK_PDATA;
     Ctr16RAW_CHECK_PDATA;
     Ctr16MSG_CHECK_PDATA;    // should not be, but who knowns
-    board->fTracedata[board->fTracedataIndex] = fWorkData;    //*fPdata++;
-    status=NextDataWord(); // check for initial message of size 1 ?
-    if(status!=0) return status; // pass on error states when scanning payload
+    board->fTracedata[board->fTracedataIndex] = fWorkData;
+    Ctr16_NEXT_DATAWORD_RETURN
+    ;
     Ctr16Debug("Transient_Event copies 32bit data[%d]=0x%x \n", board->fTracedataIndex,
         board->fTracedata[board->fTracedataIndex]);
     board->fTracedataIndex++;
@@ -955,27 +793,21 @@ Int_t TCtr16RawProc::ExtractTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
       board->fTracedataIndex = Ctr16_TRACEWORDS;
     }
   }
+  Ctr16Debug(
+      "ExtractTrace has copied %d payloadwords, fTracedataIndex=%d, pdata=%p, *pData=0x%x, fWorkData=0x%x , fWorkShift=%d, fToBeContinued=%d\n",
+      payloadwords, board->fTracedataIndex, fPdata, *fPdata, fWorkData, fWorkShift, board->fToBeContinued);
+
   // here align again for next trace:
-
-      Ctr16Debug("ExtractTrace has copied %d payloadwords, fTracedataIndex=%d, pdata=%p, *pData=0x%x, fWorkData=0x%x , fWorkShift=%d, fToBeContinued=%d\n",
-      payloadwords,board->fTracedataIndex,fPdata,*fPdata, fWorkData, fWorkShift, board->fToBeContinued);
-
-      Int_t usedwords=board->fTracesize32bit-1;
-      if(usedwords==0) usedwords=1;
-      fWorkShift= (32 -(board->fTracesize12bit * 12)  % (usedwords * 32));
-
-
-
-      Ctr16Debug("ExtractTrace after shift alignment, pdata=%p, *pData=0x%x, fWorkData=0x%x , fWorkShift=%d\n",
-            fPdata,*fPdata, fWorkData, fWorkShift);
-
-
-
-
+  Int_t usedwords = board->fTracesize32bit - 1;
+  if (usedwords == 0)
+    usedwords = 1;
+  fWorkShift = (32 - (board->fTracesize12bit * 12) % (usedwords * 32));    // JAM 24-03-23: quite redundant, since or 12bit traces always fit into 32 bit words
+  Ctr16Debug("ExtractTrace after shift alignment, pdata=%p, *pData=0x%x, fWorkData=0x%x , fWorkShift=%d\n", fPdata,
+      *fPdata, fWorkData, fWorkShift);
   if (board->fToBeContinued)
   {
     // we expect further data in the continuation frame...
-    Ctr16Dump("Transient_Event expects continuation frame after %d words... \n", board->fTracedataIndex); //Ctr1Dump
+    Ctr16Dump("Transient_Event expects continuation frame after %d words... \n", board->fTracedataIndex);    //Ctr1Dump
   }
   else
   {
@@ -991,14 +823,9 @@ void TCtr16RawProc::FinalizeTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
   // we scan through the buffer and fill the transient message
   // then add it to output event
   Int_t tracelength = fPar->fTraceLength;    // for display only
-  Int_t binlen = board->fTracesize12bit;    // number of sample bins (should be 16, 32, or 64) ??? -3
-
-
-
+  Int_t binlen = board->fTracesize12bit;    // number of sample bins (should be 16, 32, or 64)
   if (binlen > 64)
     GO4_SKIP_EVENT_MESSAGE("Transient_Event header error: bin length %d exceeds maximum 64", binlen);
-//
-
   /** taken from 2019 hitdetection asic unpacker  JAM23 :*/
   UShort_t val = 0;
   Int_t dixoffset = 0;    // actual sample data  begins in first 32bit word
@@ -1048,11 +875,9 @@ void TCtr16RawProc::FinalizeTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
 
   UChar_t chan = board->fCurrentTraceEvent->GetChannel();
   board->AddMessage(board->fCurrentTraceEvent, chan);
-
   Ctr16Dump("FinalizeTrace for binlen=%d - channel=%d, snapshotcount=%d\n", binlen, chan, disp->fSnapshotcount[chan]);
 
   // now display complete trace:
-
   TH1 *tracesnapshot = 0;
   TH2 *trace2d = 0;
   if (disp->fSnapshotcount[chan] < Ctr16_MAXSNAPSHOTS)
@@ -1062,7 +887,7 @@ void TCtr16RawProc::FinalizeTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
     trace2d = disp->hTraceSnapshot2d[chan];
   }
   if (chan < Ctr16_CHANNELS)
-    disp->hTrace[chan]->Reset(""); //avoid mixing of traces in same mbs event, only keep latest
+    disp->hTrace[chan]->Reset("");    //avoid mixing of traces in same mbs event, only keep latest
 
   for (Int_t bin = 0; bin < binlen; ++bin)
   {
@@ -1098,9 +923,9 @@ void TCtr16RawProc::FinalizeTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
     disp->hADCValues->Fill(val);
     Double_t corrval = CorrectedADCVal(val, disp);
     disp->hADCCValuesCorrected->Fill(corrval);
-  } // for bin
+  }    // for bin
   disp->fSnapshotcount[chan]++;
-  UpdateDeltaTimes(board, disp, board->fCurrentTraceEvent, chan); // delta t histograms are common with feature events
+  UpdateDeltaTimes(board, disp, board->fCurrentTraceEvent, chan);    // delta t histograms are common with feature events
 
   // reset aux data members:
   board->fCurrentTraceEvent = 0;    // do not delete, message is kept in vector!
@@ -1108,29 +933,188 @@ void TCtr16RawProc::FinalizeTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
   board->fTracesize12bit = 0;
   board->fTracesize32bit = 0;
   board->fToBeContinued = kFALSE;
-
 }
 
-
-
-
-void TCtr16RawProc::UpdateDeltaTimes(TCtr16Board* board, TCtr16BoardDisplay* disp, TCtr16MsgEvent* ev, UChar_t chan)
+void TCtr16RawProc::UpdateDeltaTimes(TCtr16Board *board, TCtr16BoardDisplay *disp, TCtr16MsgEvent *ev, UChar_t chan)
 {
   /** JAM23 from hitdetasic of 2019 - evaluate time difference between subsequent event messages*/
-    UInt_t lastepoch = board->fLastMessages[chan].GetEpoch();
-    UShort_t lasttimestamp = board->fLastMessages[chan].GetTimeStamp();
-    if (lastepoch != 0 && lasttimestamp != 0)
-    {
-      UInt_t deltaepoch = ev->GetEpoch() - lastepoch;
-      UShort_t deltatimestamp = ev->GetTimeStamp() - lasttimestamp;
-      //ULong_t deltaT= (deltaepoch<<12) | deltatimestamp;
-      // the above would require too large a histogram. We separate ts and epoch histograms:
-      disp->hDeltaTSMsg[chan]->Fill(deltatimestamp);
-      disp->hDeltaEPMsg[chan]->Fill(deltaepoch);
-      disp->hDeltaEPMsgFine[chan]->Fill(deltaepoch);
-    }
-    board->fLastMessages[chan] = *ev;    // remember us for next message
-    /** end 2019 time differences**/
+  UInt_t lastepoch = board->fLastMessages[chan].GetEpoch();
+  UShort_t lasttimestamp = board->fLastMessages[chan].GetTimeStamp();
+  if (lastepoch != 0 && lasttimestamp != 0)
+  {
+    UInt_t deltaepoch = ev->GetEpoch() - lastepoch;
+    UShort_t deltatimestamp = ev->GetTimeStamp() - lasttimestamp;
+    //ULong_t deltaT= (deltaepoch<<12) | deltatimestamp;
+    // the above would require too large a histogram. We separate ts and epoch histograms:
+    disp->hDeltaTSMsg[chan]->Fill(deltatimestamp);
+    disp->hDeltaEPMsg[chan]->Fill(deltaepoch);
+    disp->hDeltaEPMsgFine[chan]->Fill(deltaepoch);
+  }
+  board->fLastMessages[chan] = *ev;    // remember us for next message
+  /** end 2019 time differences**/
 }
 
+Int_t TCtr16RawProc::UnpackThresholdMessage(TCtr16Board *board, TCtr16BoardDisplay *disp)
+{
+  // use threshold messages instead of wishbone container:
+//
+//                    Byte Bit 7  6  5  4  3  2  1  0
+//                           | 0  1  0  1  0  0 | Blk|    Header mit Block Nummer
+//                           |11    ..              4|    Mean value
+//                           | 3        0|11        8|    Mean value |  FWHM
+//                           | 7                    0|    FWHM
+//                           |11                    4|    Threshold DAC
+//                           | 3        0|11        8|    Threshold DAC  | Tracking DAC
+//                           | 7                    0|    Tracking DAC
+//                           |11                    4|    Baseline DAC Ch 0
+//                           | 3        0|11        8|    Baseline DAC Ch 0  | Baseline DAC Ch 1
+//                           | 7                    0|    Baseline DAC Ch 1
+//                           |11                    4|    Baseline DAC Ch 2
+//                           | 3        0|11        8|    Baseline DAC Ch 2  | Baseline DAC Ch 3
+//                           | 7                    0|    Baseline DAC Ch 3
+//
+  Int_t status = 0;
+  UChar_t block = (fWorkData >> 10) & 0x3;    // fWorkData is still at begin of message header
+  UShort_t mean = (fWorkData >> 12) & 0xFFF;
+  UShort_t fwhm = fWorkData & 0xFFF;
+  Ctr16_NEXT_DATAWORD_RETURN
+  ;
+  UShort_t thres = (fWorkData >> 20) & 0xFFF;
+  UShort_t track = (fWorkData >> 8) & 0xFFF;
+  fWorkShift += 8;
+  if (fWorkShift == 32)
+  {
+    fWorkShift = 0;
+    fPdata--;
+  }
+  Ctr16_NEXT_DATAWORD_RETURN
+  ;
+  TCtr16MsgThreshold *msg[4];    // one frame contains info for 4 channels in block
+  UShort_t baseline[4];
+  baseline[0] = (fWorkData >> 20) & 0xFFF;
+  baseline[1] = (fWorkData >> 8) & 0xFFF;
+  baseline[2] = (fWorkData & 0xFF);
+  Ctr16_NEXT_DATAWORD_RETURN
+  ;
+  baseline[2] |= (fWorkData >> 24) & 0xF;
+  baseline[3] = (fWorkData) & 0xFFF;
+  for (Int_t c = 0; c < 4; ++c)
+  {
+    msg[c] = new TCtr16MsgThreshold(0);
+    msg[c]->SetBlock(block);
+    msg[c]->SetBlockChannel(c);
+    msg[c]->SetMean(mean);
+    msg[c]->SetFWHM(fwhm);
+    msg[c]->SetTracking(track);
+    msg[c]->SetThreshold(thres);
+    msg[c]->SetBaseline(baseline[c]);
+    Int_t fullchan = msg[c]->GetChannel();
+    board->AddMessage(msg[c], fullchan);
+    // histograms of threshold values for each channel
+    disp->hThresholdMean[fullchan]->Fill(mean);
+    disp->hThresholdTracking[fullchan]->Fill(track);
+    disp->hThresholdNoise[fullchan]->Fill(fwhm);
+    disp->hThresholdSetting[fullchan]->Fill(thres);
+    disp->hThresholdBaseline[fullchan]->Fill(baseline[c]);
+  }    // for
+  return status;
+}
 
+Int_t TCtr16RawProc::UnpackSlowControlMessage(TCtr16Board *board, TCtr16BoardDisplay *disp, TCtr16MsgWishbone *theMsg)
+{
+  Int_t status = 0;
+  // slow control message types do not have address fields.
+  // we embed the containing text and dump it for fun;
+  UChar_t letter;
+  for (Int_t shift = 16; shift >= 0; shift -= 8)
+  {
+    letter = (fWorkData >> shift) & 0xFF;
+    theMsg->AddData(letter);
+  }
+  Ctr16_NEXT_DATAWORD_RETURN
+  ;
+  while (fPdata - fPdatastartMsg < fMsize)
+  {
+
+    for (Int_t shift = 24; shift >= 0; shift -= 8)
+    {
+      letter = (fWorkData >> shift) & 0xFF;
+      theMsg->AddData(letter);
+    }
+    Ctr16_NEXT_DATAWORD_RETURN
+    ;
+  }
+  disp->lWishboneText->SetText(0.1, 0.9, theMsg->DumpMsg());
+  Ctr16Warn("CCC See Control message of type:%d\n %s", theMsg->GetControlMessageType(), theMsg->DumpMsg().Data());
+  return status;
+}
+
+Int_t TCtr16RawProc::UnpackWishboneMessage(TCtr16Board *board, TCtr16BoardDisplay *disp, TCtr16MsgWishbone *theMsg)
+{
+  Int_t status = 0;
+  // regular wishbone message:
+  Int_t header = fWorkData;
+  Short_t address = (header >> 8) & 0xFFFF;
+  theMsg->SetAddress(address);
+  // here optional rest of data: only if data follows is set!
+  if (theMsg->GetAckCode() == TCtr16MsgWishbone::ACK_Data)
+  {
+    UChar_t val = fWorkData && 0xFF;    // fWorkData is still at begin of message header
+    theMsg->AddData(val);
+    Ctr16_NEXT_DATAWORD_RETURN
+    ;
+    while (fPdata - fPdatastartMsg < fMsize)
+    {
+      for (Int_t shift = 24; shift >= 0; shift -= 8)
+      {
+        val = (fWorkData >> shift) & 0xFF;
+        theMsg->AddData(val);
+      }
+      Ctr16_NEXT_DATAWORD_RETURN
+      ;
+    }    // while
+  }
+  else
+  {
+    Ctr16_NEXT_DATAWORD_RETURN
+    ;
+  }
+  disp->hWishboneSource->Fill(theMsg->GetSource());
+  // TODO: histogram of wishbone addresses and data words?
+
+  return status;
+}
+
+Int_t TCtr16RawProc::UnpackFeature(TCtr16Board *board, TCtr16BoardDisplay *disp, UInt_t epoch)
+{
+  Int_t status = 0;
+  UChar_t fullchannel = ((fWorkData >> 26) & 0xF);
+  UChar_t row = ((fWorkData >> 24) & 0x3);
+  disp->hMemoryRow->Fill(row);
+  TCtr16MsgFeature *fmsg = new TCtr16MsgFeature(fullchannel);
+  fmsg->SetEpoch(epoch);
+  fmsg->SetRow(row);
+  UShort_t ts = (fWorkData >> 5) & 0xFFF;
+  fmsg->SetTimeStamp(ts);
+  UChar_t finetime = (fWorkData & 0x3F);
+  fmsg->SetFineTime(finetime);
+  Ctr16_NEXT_DATAWORD_RETURN
+  ;
+  UShort_t ampl = (fWorkData >> 16) & 0xFFFF;
+  fmsg->SetAmplitude(ampl);
+
+  Ctr16Warn("DFDFDF Data_Feature channel:%d ampl:%d ts:%d ftime:%d - pdata=0x%x , fWorkData=0x%x\n", fullchannel, ampl,
+      ts, finetime, *fPdata, fWorkData);
+
+  // feature histograms here:
+  disp->hFeatureAmplitude[fullchannel]->Fill(ampl);
+  disp->hFeatureFineTime[fullchannel]->Fill(finetime);
+  UpdateDeltaTimes(board, disp, fmsg, fullchannel);    // evaluate delta T between messages also here
+  board->AddMessage(fmsg, fullchannel);
+  SwitchDataAlignment();    // next message will begin in lower 16 bit part of this data word
+  Ctr16_NEXT_DATAWORD_RETURN
+  ;
+  // TODO: check if another feature event would fit into rest of vulom container
+  Ctr16Debug("DFDFDF restlen= %ld u32words \n", fMsize - (fPdata - fPdatastartMsg));
+  return status;
+}

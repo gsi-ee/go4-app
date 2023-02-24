@@ -17,19 +17,15 @@ class TGo4Fitter;
 #include "TCtr16RawEvent.h"
 #include "TCtr16Display.h"
 
-
-
-
 class TCtr16RawProc: public TGo4EventProcessor
 {
 
-
 public:
   TCtr16RawProc();
-  TCtr16RawProc(const char* name);
+  TCtr16RawProc(const char *name);
   virtual ~TCtr16RawProc();
 
-  Bool_t BuildEvent(TGo4EventElement* target);    // event processing function
+  Bool_t BuildEvent(TGo4EventElement *target);    // event processing function
 
 protected:
 
@@ -42,79 +38,95 @@ protected:
   /** recreate histograms using the given number of time slice*/
   void InitDisplay(Int_t timeslices, Int_t numsnapshots, Bool_t replace = kFALSE);
 
-
   /** get next data word from subevent payload.
    * Optionally align it to word boundaries.
    * Return values: 1: message exceeded, 2: subevent exceeded, 0:OK
    * */
-   Int_t NextDataWord();
+  Int_t NextDataWord();
 
   /** Change alignment of subevent payload words*/
   void SwitchDataAlignment();
 
+  /** Unpacker for data type frames**/
+  Int_t HandleDataFrame(TCtr16Board*, TCtr16BoardDisplay *disp);
 
+  /** Unpacker for data continuation type frames**/
+  Int_t HandleContinuationFrame(TCtr16Board*, TCtr16BoardDisplay *disp);
+
+  /** Unpacker for error type frames**/
+  Int_t HandleErrorFrame(TCtr16Board*, TCtr16BoardDisplay *disp);
+
+  /** Unpacker for wishbone type frames**/
+  Int_t HandleWishboneFrame(TCtr16Board *board, TCtr16BoardDisplay *disp);
 
   /** unpacker for transient data events which is used both in data frame and continuation frame*/
   Int_t UnpackTrace(TCtr16Board *board, TCtr16BoardDisplay *disp, UInt_t epoch);
 
-
   /* Get trace data from transient event message.*
    * Return values: 1: message exceeded, 2: subevent exceeded, 0:OK
    * */
-  Int_t ExtractTrace(TCtr16Board* board, TCtr16BoardDisplay* disp);
+  Int_t ExtractTrace(TCtr16Board *board, TCtr16BoardDisplay *disp);
 
   /* Scan through most recent trace data of board and build event message.
    * Also fill trace histograms and snapshots*/
-  void FinalizeTrace(TCtr16Board* board, TCtr16BoardDisplay* disp);
+  void FinalizeTrace(TCtr16Board *board, TCtr16BoardDisplay *disp);
+
+  /** unpacker for feature extracted data*/
+  Int_t UnpackFeature(TCtr16Board *board, TCtr16BoardDisplay *disp, UInt_t epoch);
+
+  /** unpacker for threshold messages*/
+  Int_t UnpackThresholdMessage(TCtr16Board *board, TCtr16BoardDisplay *disp);
+
+  /** unpacker for slow control messages, except for threshold type*/
+  Int_t UnpackSlowControlMessage(TCtr16Board *board, TCtr16BoardDisplay *disp, TCtr16MsgWishbone *theMsg);
+
+  /** unpacker for plain wishbone messages, except for slow control or threshold type*/
+  Int_t UnpackWishboneMessage(TCtr16Board *board, TCtr16BoardDisplay *disp, TCtr16MsgWishbone *theMsg);
 
   /** Evaluate time differences between current event ev and previous event of that channel*/
-  void UpdateDeltaTimes(TCtr16Board* board, TCtr16BoardDisplay* disp, TCtr16MsgEvent* ev, UChar_t chan);
+  void UpdateDeltaTimes(TCtr16Board *board, TCtr16BoardDisplay *disp, TCtr16MsgEvent *ev, UChar_t chan);
 
   /** calculate corrected adc value from raw entry, using correction vector histogram of display*/
-  Double_t CorrectedADCVal(Short_t raw,  TCtr16BoardDisplay* boardDisplay);
-
-
+  Double_t CorrectedADCVal(Short_t raw, TCtr16BoardDisplay *boardDisplay);
 
   /** subdisplays for each frotend board */
   std::vector<TCtr16BoardDisplay*> fBoards;
 
-
   /** parameter for runtime settings*/
-  TCtr16RawParam* fPar;
+  TCtr16RawParam *fPar;
 
   /** the current input subevent */
   TGo4MbsSubEvent *fPsubevt;
 
   /** reference to output data*/
-  TCtr16RawEvent* Ctr16RawEvent;  //!
+  TCtr16RawEvent *Ctr16RawEvent;    //!
 
 //  /** remember most recent message for delta T evaluation*/
   TCtr16MsgEvent fLastMessages[Ctr16_CHANNELS];
 
- /** unpacker working pointer*/
-  Int_t *fPdata; //!
+  /** unpacker working pointer*/
+  Int_t *fPdata;    //!
 
   /** begin of payload working pointer*/
-  Int_t* fPdatastart; //!
+  Int_t *fPdatastart;    //!
 
   /** length of subevent in 32bit words*/
-  Int_t fLwords; //!
+  Int_t fLwords;    //!
 
   /** begin of message working pointer*/
-  Int_t* fPdatastartMsg; //!
+  Int_t *fPdatastartMsg;    //!
 
   /** message size in 32bit words*/
-  Int_t fMsize; //!
+  Int_t fMsize;    //!
 
   /** Copy of current working data
    * For message alignment */
-  Int_t fWorkData; //!
+  Int_t fWorkData;    //!
 
   /** Required bitshift to align payload to 32bit*/
-  Int_t fWorkShift; //!
+  Int_t fWorkShift;    //!
 
-
-  ClassDef(TCtr16RawProc,1)
+ClassDef(TCtr16RawProc,1)
 };
 
 #endif //TUNPACKPROCESSOR_H

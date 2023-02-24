@@ -34,7 +34,7 @@ void TCtr16RawParam::InitBoardMapping()
   fBoardID[0] = 42;    // this might be a unique hardware id
 
   fNumSnapshots = 64;
-  fTraceLength = 8; //Ctr16_TRACEBINS;
+  fTraceLength = 16; //Ctr16_TRACEBINS;
   fDoCalibrate=kFALSE;
   fSlowMotion=kFALSE;
   fStopAtEvent=0;
@@ -66,13 +66,6 @@ Bool_t TCtr16RawParam::UpdateFrom(TGo4Parameter *pp)
   if (!TGo4Parameter::UpdateFrom(pp))
     return kFALSE;    // will automatically copy 2d arrays
   std::cout << "**** TCtr16RawParam::UpdateFrom ... " << std::endl;
-
-//  fNumSnapshots = from->fNumSnapshots;
-//  fTraceLength = from->fTraceLength;
-//  fDoCalibrate=from->fDoCalibrate;
-//  fSlowMotion=from->fSlowMotion;
-//  fStopAtEvent=from->fStopAtEvent;
-//  fVerbosity=from->fVerbosity;
 
   SetConfigBoards();
   std::cout<< std::endl; // flush Qt text stream by this
