@@ -335,8 +335,8 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
           Ctr16Warn("!!!!!!!!! Vulom container wrong bytecount header 0x%x - skipped!\n", vulombytecount);
 
           // JAM23-02-23 hunt for the bug
-//           fPar->fVerbosity=3;
-//           fPar->fSlowMotion=1;
+           //fPar->fVerbosity=3;
+           //fPar->fSlowMotion=1;
 
         }
       }    // while ((fPdata - fPdatastart) < Ctr16RawEvent->fDataCount)
@@ -547,18 +547,6 @@ Int_t TCtr16RawProc::HandleContinuationFrame(TCtr16Board *board, TCtr16BoardDisp
   if (!board->fToBeContinued)
   {
     Ctr16Warn("!!!! Unexpected continuation frame with header 0x%x! Skip message %ld \n", header, skipped_frames++);
-    //closer debugging from here JAM DEBUG
-//                        fPar->fVerbosity=3;
-//                        fPar->fSlowMotion=1;
-//                        Ctr16Warn("CCCCCC Dumping continuation frame:\n")
-//                        Int_t* cursor= fPdata;
-//                     while (cursor - fPdatastartMsg < fMsize)
-//                     {
-//                         Ctr16Warn("%p: 0x%x\t", cursor, *cursor);
-//                         cursor++;
-//                     }
-//                     Ctr16Warn("\n");
-    ///////////////////
     return 1;        // do not skip complete event, but just the current message:
   }
   if (board->fCurrentTraceEvent == 0)
@@ -577,19 +565,12 @@ Int_t TCtr16RawProc::HandleContinuationFrame(TCtr16Board *board, TCtr16BoardDisp
         board->fCurrentTraceEvent->GetEpoch(), skipped_frames++);
     return 1;    // do not skip complete event, but just the current message:
   }
-  Ctr16_NEXT_DATAWORD_RETURN
-  ;
+  Ctr16_NEXT_DATAWORD_RETURN;
   Ctr16_CALL_UNPACKER_RETURN(ExtractTrace(board, disp));
-
   // here try regular evaluation of addtional traces:
   while (fPdata - fPdatastartMsg < fMsize)
   {
     Ctr16_CALL_UNPACKER_RETURN(UnpackTrace(board, disp, epoch));
-    if (fPdata - fPdatastartMsg >= fMsize)
-    {
-      fPdata = fPdatastartMsg + fMsize;
-      // align to header of next frame, since after last UnpackTrace we are already further
-    }
   }
   return status;
 }
@@ -692,6 +673,13 @@ Int_t TCtr16RawProc::HandleWishboneFrame(TCtr16Board *board, TCtr16BoardDisplay 
     }    // whishbone response or slow control
     board->AddMessage(theMsg, 0);    // wishbone messages accounted for channel 0
   }    // threshold or other wishbone
+
+  if (fPdata - fPdatastartMsg >= fMsize)
+     {
+       fPdata = fPdatastartMsg + fMsize;
+       // align to header of next frame, since after last next dataworde we might be already further
+     }
+
   return status;
 }
 
@@ -754,11 +742,6 @@ Int_t TCtr16RawProc::UnpackTrace(TCtr16Board *board, TCtr16BoardDisplay *disp, U
   Ctr16_NEXT_DATAWORD_RETURN
   ;
   status = ExtractTrace(board, disp);
-  if (fPdata - fPdatastartMsg >= fMsize)
-  {
-    fPdata = fPdatastartMsg + fMsize;
-    // align to header of next frame, since after last ExtractTrace we might be already further
-  }
   return status;
 
 }
@@ -818,6 +801,11 @@ Int_t TCtr16RawProc::ExtractTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
     // we are ready inside the first data frame.
     FinalizeTrace(board, disp);
   }
+  if (fPdata - fPdatastartMsg >= fMsize)
+   {
+     fPdata = fPdatastartMsg + fMsize;
+     // align to header of next frame, since we might be already further
+   }
   return 0;
 }
 
