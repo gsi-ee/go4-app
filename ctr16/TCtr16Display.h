@@ -156,6 +156,20 @@ public:
      TH1* hErrorTimestamp;
 
 
+     /*Partitioning of ADC values for each memory cell*/
+    TH1* hADCValuesPerCell [Ctr16_BLOCKS] [Ctr16_CHANNELROWS][Ctr16_MEMORYCELLS];
+
+    /* Scaler for all memory cells that send ADC data*/
+    TH1* hMemoryCell;
+
+    /* Block row overview scaler for that send ADC data*/
+    TH2* hMemoryBlockRowMap;
+
+    /* row -cell overview scaler for that send ADC data*/
+    TH2* hMemoryRowCellMap[Ctr16_BLOCKS];
+
+
+
      /////////////////////////////
 
      Int_t GetDevId()

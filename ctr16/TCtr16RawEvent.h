@@ -43,6 +43,17 @@
 // range of threshold setup values
 #define Ctr16_THRESHOLD_RANGE 0xFFF
 
+
+// range of memory blocks
+#define Ctr16_BLOCKS 4
+
+// range of rows+channels per block
+#define Ctr16_CHANNELROWS 16
+
+// range of sub memorycells
+#define Ctr16_MEMORYCELLS 16
+
+
 /**
  * Base class for single "data message" inside data stream */
 class TCtr16Msg

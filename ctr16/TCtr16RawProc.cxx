@@ -222,8 +222,8 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
       {
         // do not put this into loggin queue for gui...
         printf(
-            "**** TCtr16RawProc: Mismatch with subevent len %d and data count 0x%8x - vulom status:0x%x seqnum:0x%x \n",
-            fLwords, Ctr16RawEvent->fDataCount, Ctr16RawEvent->fVULOMStatus, Ctr16RawEvent->fSequenceNumber);
+            "**** TCtr16RawProc: Mismatch with subevent len %d and data count 0x%8x - vulom status:0x%x seqnum:0x%x - eventnumber=%d \n",
+            fLwords, Ctr16RawEvent->fDataCount, Ctr16RawEvent->fVULOMStatus, Ctr16RawEvent->fSequenceNumber, source->GetCount());
 
 
 
@@ -915,9 +915,27 @@ void TCtr16RawProc::FinalizeTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
     disp->hADCValues->Fill(val);
     Double_t corrval = CorrectedADCVal(val, disp);
     disp->hADCCValuesCorrected->Fill(corrval);
+
+
+    // JAM 01-03-2023: ADC values in memory cell partitions:
+
+    Char_t block=board->fCurrentTraceEvent->GetBlock();
+    Char_t channelrow= (board->fCurrentTraceEvent->GetBlockChannel() << 2) | (board->fCurrentTraceEvent->GetRow() & 0x3);
+    Char_t cell=((board->fCurrentTraceEvent->GetTimeStamp() & 0xF) | (bin & 0xF)) % 16;
+    Short_t fullcell= ((block & 0x3) << 8) |((channelrow & 0xF) << 4) | (cell & 0xF);
+    disp->hADCValuesPerCell[block & 0x3][channelrow & 0xF][cell & 0xF]->Fill(val);
+    disp->hMemoryCell->Fill(fullcell);
+    disp->hMemoryBlockRowMap->Fill(block, channelrow,1);
+    disp->hMemoryRowCellMap[(Int_t) block]->Fill(channelrow,cell,1);
+
+
   }    // for bin
   disp->fSnapshotcount[chan]++;
   UpdateDeltaTimes(board, disp, board->fCurrentTraceEvent, chan);    // delta t histograms are common with feature events
+
+
+
+
 
   // reset aux data members:
   board->fCurrentTraceEvent = 0;    // do not delete, message is kept in vector!

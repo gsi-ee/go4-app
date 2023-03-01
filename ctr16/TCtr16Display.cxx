@@ -204,6 +204,65 @@ void TCtr16BoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Bool
 
   TGo4Analysis::Instance()->ProtectObjects("Calibration", "+C");    // protect calibration histograms against clear from GUI
 
+
+
+  obname.Form("Board%d/Wishbone/AckCode_%d", brd, brd);
+   obtitle.Form("Ctr16 Board %d Wishbone ack codes", brd);
+   hWishboneAck = MakeTH1('I', obname.Data(), obtitle.Data(), 4, 0, 4);
+   if (IsObjMade())
+   {
+     hWishboneAck->GetXaxis()->SetBinLabel(1 + TCtr16MsgWishbone::ACK_Acknowledge, "Acknowledged");
+     hWishboneAck->GetXaxis()->SetBinLabel(1 + TCtr16MsgWishbone::ACK_SlowControl, "Slow Control");
+     hWishboneAck->GetXaxis()->SetBinLabel(1 + TCtr16MsgWishbone::ACK_Error, "Access Error");
+     hWishboneAck->GetXaxis()->SetBinLabel(1 + TCtr16MsgWishbone::ACK_Data, "Data follows");
+   }
+
+   obname.Form("Board%d/Wishbone/Source_%d", brd, brd);
+   obtitle.Form("Ctr16 Board %d Wishbone source id", brd);
+   hWishboneSource = MakeTH1('I', obname.Data(), obtitle.Data(), 16, 0, 16);
+
+
+
+   obname.Form("Board%d/AnalogMemory/MemoryCells_%d", brd, brd);
+  obtitle.Form("Ctr16 Board %d  memory cell statistics (ADC readout)", brd);
+  Int_t cellbins = Ctr16_BLOCKS * Ctr16_CHANNELROWS * Ctr16_MEMORYCELLS;
+  hMemoryCell = MakeTH1('I', obname.Data(), obtitle.Data(), cellbins, 0, cellbins);
+
+  obname.Form("Board%d/AnalogMemory/BlockRowMap_%d", brd, brd);
+   obtitle.Form("Ctr16 Board %d block-row map statistics (ADC readout)", brd);
+  hMemoryBlockRowMap = MakeTH2('I', obname.Data(), obtitle.Data(), Ctr16_BLOCKS, 0, Ctr16_BLOCKS, Ctr16_CHANNELROWS, 0,Ctr16_CHANNELROWS,
+     "block number", "channelrow number", "counts");
+
+
+
+
+  for (Int_t block = 0; block < Ctr16_BLOCKS; ++block)
+  {
+    obname.Form("Board%d/AnalogMemory/Block%d/RowCellMap_%d_%d", brd, block, brd, block);
+       obtitle.Form("Ctr16 Board %d Block %d row-cell map statistics (ADC readout)", brd, block);
+    hMemoryRowCellMap[block]= MakeTH2('I', obname.Data(), obtitle.Data(), Ctr16_CHANNELROWS, 0, Ctr16_CHANNELROWS, Ctr16_MEMORYCELLS, 0, Ctr16_MEMORYCELLS,
+        "channelrow number","cell number", "counts");
+
+    for (Int_t row = 0; row < Ctr16_CHANNELROWS; ++row)
+    {
+
+
+
+      for (Int_t cell = 0; cell < Ctr16_MEMORYCELLS; ++cell)
+      {
+        obname.Form("Board%d/AnalogMemory/Block%d/Row%d/ADC_Values_%d_%d_%d_%d", brd, block, row, brd, block, row,
+            cell);
+        obtitle.Form("Ctr16 Board %d  ADC Values block:%d row:%d cell:%d", brd, block, row, cell);
+        hADCValuesPerCell[block][row][cell] = MakeTH1('I', obname.Data(), obtitle.Data(), 4096, adcmin, adcmax,
+            "ADC value", "counts");
+      }
+    }
+
+  }
+
+
+
+
   obname.Form("Board%d/FrameTypes_%d", brd, brd);
   obtitle.Form("Ctr16 Board %d Frame types", brd);
   hFrameTypes = MakeTH1('I', obname.Data(), obtitle.Data(), 4, 0, 4);
@@ -253,20 +312,9 @@ void TCtr16BoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Bool
   obtitle.Form("Ctr16 Board %d Chip ID number", brd);
   hChipId = MakeTH1('I', obname.Data(), obtitle.Data(), 256, 0, 256, "Chip ID");
 
-  obname.Form("Board%d/Wishbone/AckCode_%d", brd, brd);
-  obtitle.Form("Ctr16 Board %d Wishbone ack codes", brd);
-  hWishboneAck = MakeTH1('I', obname.Data(), obtitle.Data(), 4, 0, 4);
-  if (IsObjMade())
-  {
-    hWishboneAck->GetXaxis()->SetBinLabel(1 + TCtr16MsgWishbone::ACK_Acknowledge, "Acknowledged");
-    hWishboneAck->GetXaxis()->SetBinLabel(1 + TCtr16MsgWishbone::ACK_SlowControl, "Slow Control");
-    hWishboneAck->GetXaxis()->SetBinLabel(1 + TCtr16MsgWishbone::ACK_Error, "Access Error");
-    hWishboneAck->GetXaxis()->SetBinLabel(1 + TCtr16MsgWishbone::ACK_Data, "Data follows");
-  }
 
-  obname.Form("Board%d/Wishbone/Source_%d", brd, brd);
-  obtitle.Form("Ctr16 Board %d Wishbone source id", brd);
-  hWishboneSource = MakeTH1('I', obname.Data(), obtitle.Data(), 16, 0, 16);
+
+
 
   obname.Form("Board%d/ErrorCodes_%d", brd, brd);
   obtitle.Form("Ctr16 Board %d  Error code number", brd);
@@ -275,6 +323,11 @@ void TCtr16BoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Bool
   obname.Form("Board%d/ErrorTime_%d", brd, brd);
   obtitle.Form("Ctr16 Board %d  Error frame timstamps", brd);
   hErrorTimestamp = MakeTH1('I', obname.Data(), obtitle.Data(), 0xFFF, 0, 0xFFF);
+
+
+
+
+
 
   SetMakeWithAutosave(kTRUE);
 
