@@ -921,7 +921,7 @@ void TCtr16RawProc::FinalizeTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
 
     Char_t block=board->fCurrentTraceEvent->GetBlock();
     Char_t channelrow= (board->fCurrentTraceEvent->GetBlockChannel() << 2) | (board->fCurrentTraceEvent->GetRow() & 0x3);
-    Char_t cell=((board->fCurrentTraceEvent->GetTimeStamp() & 0xF) | (bin & 0xF)) % 16;
+    Char_t cell=((board->fCurrentTraceEvent->GetTimeStamp() & 0xF) + (bin & 0xF)) % 16;
     Short_t fullcell= ((block & 0x3) << 8) |((channelrow & 0xF) << 4) | (cell & 0xF);
     disp->hADCValuesPerCell[block & 0x3][channelrow & 0xF][cell & 0xF]->Fill(val);
     disp->hMemoryCell->Fill(fullcell);
@@ -962,6 +962,11 @@ void TCtr16RawProc::UpdateDeltaTimes(TCtr16Board *board, TCtr16BoardDisplay *dis
   }
   board->fLastMessages[chan] = *ev;    // remember us for next message
   /** end 2019 time differences**/
+
+  // also do statistics of current timestamps here:
+  disp->hEpochs[chan]->Fill(ev->GetEpoch());
+  disp->hTimestamps[chan]->Fill(ev->GetTimeStamp());
+
 }
 
 Int_t TCtr16RawProc::UnpackThresholdMessage(TCtr16Board *board, TCtr16BoardDisplay *disp)

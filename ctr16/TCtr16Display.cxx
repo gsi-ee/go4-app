@@ -134,32 +134,32 @@ void TCtr16BoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Bool
     hThresholdTracking[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), Ctr16_THRESHOLD_RANGE / 10, 0,
         Ctr16_THRESHOLD_RANGE, "tracking DAC set (bins)", "counts");
 
-    //
-    //                    Byte Bit 7  6  5  4  3  2  1  0
-    //                           | 0  1  0  1  0  0 | Blk|    Header mit Block Nummer
-    //                           |11    ..              4|    Mean value
-    //                           | 3        0|11        8|    Mean value |  FWHM
-    //                           | 7                    0|    FWHM
-    //                           |11                    4|    Threshold DAC
-    //                           | 3        0|11        8|    Threshold DAC  | Tracking DAC
-    //                           | 7                    0|    Tracking DAC
-    //                           |11                    4|    Baseline DAC Ch 0
-    //                           | 3        0|11        8|    Baseline DAC Ch 0  | Baseline DAC Ch 1
-    //                           | 7                    0|    Baseline DAC Ch 1
-    //                           |11                    4|    Baseline DAC Ch 2
-    //                           | 3        0|11        8|    Baseline DAC Ch 2  | Baseline DAC Ch 3
-    //                           | 7                    0|    Baseline DAC Ch 3
-    //
+
+
+
+
+    obname.Form("Board%d/Time/Stamps/Timestamps_%d_%d", brd, brd, ch);
+    obtitle.Form("Timestamp values Board %d Channel %d", brd, ch);
+    Int_t maxval = 0xFFF;
+    hTimestamps[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), maxval + 1, 0, maxval, "Timestamp (ticks)", "counts");
+
+    obname.Form("Board%d/Time/Epochs/Epochs_%d_%d", brd, brd, ch);
+    obtitle.Form("Epoch values Board %d Channel %d", brd, ch);
+    maxval = 0xFFFFFF;
+    int binsize = maxval / 1000;
+    hEpochs[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), binsize, 0, maxval, "Epochs (ticks) - rebinned",
+        "counts");
+
 
     obname.Form("Board%d/DeltaTime/Stamps/DeltaTSMsg_%d_%d", brd, brd, ch);
     obtitle.Form("Timestamp difference of subsequent messages Board %d Channel %d", brd, ch);
-    Int_t maxval = 0xFFF;
+    maxval = 0xFFF;
     hDeltaTSMsg[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), maxval + 1, 0, maxval, "#delta TS (ticks)", "counts");
 
     obname.Form("Board%d/DeltaTime/Epochs/DeltaEPMsg_%d_%d", brd, brd, ch);
     obtitle.Form("Epoch difference of subsequent messages Board %d Channel %d", brd, ch);
     maxval = 0x3FFFFF;
-    int binsize = maxval / 1000;
+    binsize = maxval / 1000;
     hDeltaEPMsg[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), binsize, 0, maxval, "#delta EP (epochs) - rebinned",
         "counts");
 

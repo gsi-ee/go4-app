@@ -105,6 +105,13 @@ public:
    /** check chipid for debug*/
    TH1* hChipId;
 
+
+   /** epoch statistic per channel*/
+   TH1 *hEpochs[Ctr16_CHANNELS];
+
+     /** timestamp statistic per channel*/
+   TH1 *hTimestamps[Ctr16_CHANNELS];
+
    /** timestamp difference of subsequent event messages*/
    TH1 *hDeltaTSMsg[Ctr16_CHANNELS];
 
@@ -113,6 +120,9 @@ public:
 
    /** epoch difference fine of subsequent event messages*/
    TH1 *hDeltaEPMsgFine[Ctr16_CHANNELS];
+
+
+
 
 
    /** statistics  of wishbone acknowledge codes*/
