@@ -1,4 +1,4 @@
-// written by macro saveparam.C at Wed Aug 28 10:03:11 2019
+// written by macro saveparam.C at Wed Aug 28 10:03:11 2019 JAM adjusted to new format 27-03-2023
 void set_Ctr16RawParam()
 {
 #ifndef __GO4ANAMACRO__
@@ -14,10 +14,7 @@ void set_Ctr16RawParam()
 
    TGo4Log::Info("Set parameter Ctr16RawParam from default macro");
 
-   param0->fBoardID[0] = 42;
-   param0->fBoardID[1] = -1;
-   param0->fBoardID[2] = -1;
-   param0->fBoardID[3] = -1;
+   param0->fBoardID[0][0] = 42;
    param0->fNumSnapshots = 64;
    param0->fTraceLength = 64;
    param0->fDoCalibrate = kFALSE;
