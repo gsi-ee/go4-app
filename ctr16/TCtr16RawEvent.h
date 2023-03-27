@@ -5,7 +5,7 @@
  * Raw event structures for readout of CTR16 chip
  * Jorn Adamczewski-Musch (JAM), GSI EEL
  *
- * v0.1 02-02-2023
+ * v0.6 27-03-2023
  *
  */
 
@@ -15,11 +15,24 @@
 #include <vector>
 #include "TString.h"
 
+
+// enable this define to use test readout with vulom. If disabled we assume GOSIP readout via kilom
+#define Ctr16_USE_VULOM 1
+
+
 // switches between interpretation of ADC values as signed if defined
 #define Ctr16_BOTHPOLARITY 1
 
 // maximum number of boards to investigate at once
 #define Ctr16_MAXBOARDS 4
+
+
+// / maximum number of sfp readout chains used
+#define Ctr16_MAXSFP 4
+
+//maximum number of boards at each chanin
+#define Ctr16_MAXDEVS 5
+
 
 // number of data channels per hit detection board
 #define Ctr16_CHANNELS 16

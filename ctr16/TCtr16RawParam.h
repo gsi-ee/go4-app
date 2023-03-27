@@ -5,8 +5,6 @@
 #include "TGo4Parameter.h"
 #include "TCtr16RawEvent.h"
 
-#define Ctr16_FILTERCOEFFS 5
-
 
 class TCtr16RawParam : public TGo4Parameter {
    public:
@@ -15,7 +13,8 @@ class TCtr16RawParam : public TGo4Parameter {
 
       virtual Bool_t UpdateFrom(TGo4Parameter *);
 
-      Int_t fBoardID[Ctr16_MAXBOARDS]; // mapping of board numbers to (slot?) indices
+
+      Int_t fBoardID[Ctr16_MAXSFP][Ctr16_MAXDEVS]; // mapping of board numbers to pexor chains
 
       Int_t fNumSnapshots; // number of trace snapshots per mbs event
       Int_t fTraceLength; // length of trace to visualize (16, 32, 64)

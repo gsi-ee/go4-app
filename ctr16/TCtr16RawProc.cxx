@@ -60,11 +60,13 @@ if((fPdata - fPsubevt->GetDataField()) >= fLwords ) \
 
 /*printf("############ fPdata offset 0x%x exceeds  subevent size :0x%x, skip message %ld\n", (unsigned int) (fPdata - fPsubevt->GetDataField()), fLwords, skipped_msgs++);\*/
 
-// for top level loop only:
+// for top level loop only, not used anymore JAM 27-03-23
+#if 0
 #define Ctr16_NEXT_DATAWORD \
 status=NextDataWord(); \
 if(status==1) {skipmessage=kTRUE;  fPdata = fPdatastartMsg + fMsize;  break;} \
 if(status>=2) goto end_of_event;
+#endif
 
 // for subfunctions:
 #define Ctr16_NEXT_DATAWORD_RETURN \
@@ -75,7 +77,7 @@ if(status!=0) return status;
 #define Ctr16_CALL_UNPACKER(X) \
 status=X;\
 if(status==1) {skipmessage=kTRUE;  fPdata = fPdatastartMsg + fMsize;  break;} \
-if(status>=2) goto end_of_event;
+if(status>=2) return kFALSE;
 
 // for subfunctions:
 #define Ctr16_CALL_UNPACKER_RETURN(X) \
@@ -84,7 +86,7 @@ if(status!=0) return status;
 
 //***********************************************************
 TCtr16RawProc::TCtr16RawProc() :
-    TGo4EventProcessor(), fPar(0), fPsubevt(0), Ctr16RawEvent(0), fPdata(0), fPdatastart(0), fLwords(0),
+    TGo4EventProcessor(), fPar(0),fMbsEvt(0), fPsubevt(0), Ctr16RawEvent(0), fPdata(0), fPdatastart(0), fLwords(0),
         fPdatastartMsg(0), fMsize(0), fWorkData(0), fWorkShift(0)
 {
 }
@@ -92,7 +94,7 @@ TCtr16RawProc::TCtr16RawProc() :
 //***********************************************************
 // this one is used in standard factory
 TCtr16RawProc::TCtr16RawProc(const char *name) :
-    TGo4EventProcessor(name), fPar(0), fPsubevt(0), Ctr16RawEvent(0), fPdata(0), fPdatastart(0), fLwords(0),
+    TGo4EventProcessor(name), fPar(0), fMbsEvt(0), fPsubevt(0), Ctr16RawEvent(0), fPdata(0), fPdatastart(0), fLwords(0),
         fPdatastartMsg(0), fMsize(0), fWorkData(0), fWorkShift(0)
 {
   skipped_events = 0;
@@ -155,15 +157,16 @@ void TCtr16RawProc::InitDisplay(int tracelength, Int_t numsnapshots, Bool_t repl
 Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
 {
 // called by framework from TCtr16RawEvent to fill it
+  //Int_t status = 0;
   Ctr16RawEvent = (TCtr16RawEvent*) target;
   Ctr16RawEvent->SetValid(kFALSE);    // not store
-  TGo4MbsEvent *source = (TGo4MbsEvent*) GetInputEvent();
-  if (source == 0)
+  fMbsEvt = (TGo4MbsEvent*) GetInputEvent();
+  if (fMbsEvt == 0)
   {
     cout << "AnlProc: no input event !" << endl;
     return kFALSE;
   }
-  UShort_t triggertype = source->GetTrigger();
+  UShort_t triggertype = fMbsEvt->GetTrigger();
 
   if (triggertype > 11)
   {
@@ -185,95 +188,389 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
 
   }
 
-  source->ResetIterator();
-  while ((fPsubevt = source->NextSubEvent()) != 0)
+  fMbsEvt->ResetIterator();
+  while ((fPsubevt = fMbsEvt->NextSubEvent()) != 0)
   {    // loop over subevents
     fPdata = fPsubevt->GetDataField();
     fLwords = fPsubevt->GetIntLen();
 
-    if ((unsigned) *fPdata == 0xbad00bad)
-    {
-      GO4_SKIP_EVENT_MESSAGE("**** TCtr16RawProc: Found BAD mbs event (marked 0x%x), skip it.", (*fPdata));
-    }
-    Bool_t skipmessage = kFALSE;
+#ifdef    Ctr16_USE_VULOM
+    if(!ProcessVulomSubevent()) goto end_of_event;
+#else
+    if(!ProcessGosipSubevent()) goto end_of_event;
+#endif
+  }    // while subevents
+
+  UpdateDisplays();    // we fill the raw displays immediately, but may do additional histogramming later
+  Ctr16RawEvent->SetValid(kTRUE);    // to store
+
+  end_of_event:
+
+  if (fPar->fSlowMotion || (fMbsEvt->GetCount() == fPar->fStopAtEvent))
+  {
+    Int_t evnum = fMbsEvt->GetCount();
+    fPar->fSlowMotion = kTRUE;
+    GO4_STOP_ANALYSIS_MESSAGE(
+        "Stopped for slow motion mode after MBS event count %d. Click green arrow for next event. please.", evnum);
+
+  }
+
+  return kTRUE;
+}
+
+
+
+  Bool_t TCtr16RawProc::ProcessVulomSubevent()
+  {
     Int_t status = 0;
-    // loop over single subevent data:ThresholdSetting5
+    Bool_t skipmessage = kFALSE;
     while (fPdata - fPsubevt->GetDataField() < fLwords)
-    {
-      // vulom status word:
-      Ctr16RawEvent->fVULOMStatus = *fPdata++;
-      // from get4++ JAM2020: need to check if status word has valid format here:
-      if (((Ctr16RawEvent->fVULOMStatus >> 12) & 0x3) != 0x3)
-      {
-        Ctr16Dump("VULOM: wrong vulom status word: 0x%x skip it.. \n", Ctr16RawEvent->fVULOMStatus);
+     {
 
-        continue;
-      }
-
-      //event trigger counter:
-      Ctr16RawEvent->fSequenceNumber = *fPdata++;
-      // data length
-      Ctr16RawEvent->fDataCount = *fPdata++;
-      //1 + *fPdata++; // from get4++ unpacker: payload is one more according to f_user_readout JAM 10-22
-      Ctr16Dump("VULOM: status: 0x%x counter: 0x%x length: 0x%x \n", Ctr16RawEvent->fVULOMStatus,
-          Ctr16RawEvent->fSequenceNumber, Ctr16RawEvent->fDataCount);
-
-      if (Ctr16RawEvent->fDataCount > (fLwords - 3))
-      {
-        // do not put this into loggin queue for gui...
-        printf(
-            "**** TCtr16RawProc: Mismatch with subevent len %d and data count 0x%8x - vulom status:0x%x seqnum:0x%x - eventnumber=%d \n",
-            fLwords, Ctr16RawEvent->fDataCount, Ctr16RawEvent->fVULOMStatus, Ctr16RawEvent->fSequenceNumber, source->GetCount());
-
-
-
-
-        GO4_SKIP_EVENT
-        ;
-        // avoid that we run optional second step on invalid raw event!
-      }
-
-      fPdatastart = fPdata;    // remember begin of asic payload data section
-      fPdata++;    // skip first  word?
-      fPdata++;    // skip another word with 0 bytecount flag?
-      // now fetch boardwise subcomponents for output data and histograming:
-      Int_t slix = 0;    // JAM here we later could evaluate a board identifier mapped to a slot/sfp number contained in subevent
-      UInt_t brdid = fPar->fBoardID[slix];    // get hardware identifier from "DAQ link index" number
-      TCtr16Board *theBoard = Ctr16RawEvent->GetBoard(brdid);
-      if (theBoard == 0)
-      {
-        GO4_SKIP_EVENT_MESSAGE("Configuration error: Board id %d does not exist as subevent, slot index:%d", brdid,
-            slix);
-
-        return kFALSE;
-      }
-      TCtr16BoardDisplay *boardDisplay = GetBoardDisplay(brdid);
-      if (boardDisplay == 0)
-      {
-        GO4_SKIP_EVENT_MESSAGE("Configuration error: Board id %d does not exist as histogram display set!", brdid);
-        return kFALSE;
-      }
-      boardDisplay->ResetDisplay();
-
-      // evaluate Ctr16ection ASIC messages in the payload:
-      //printf("EEEEEEEEEEE Event %d begins, data count= %d \n",source->GetCount(), Ctr16RawEvent->fDataCount);
-      while ((fPdata - fPdatastart) < Ctr16RawEvent->fDataCount)
-      {
-
-        // first vulom wrapper containing total message length:
-        Int_t vulombytecount = *fPdata++;
-
-        if (((vulombytecount >> 28) & 0xF) == 0x4)    // check if we are still on track with expected vulom header
+      if ((unsigned) *fPdata == 0xbad00bad)
         {
-          Int_t chipid = (vulombytecount >> 16) & 0xFF;
-          boardDisplay->hChipId->Fill(chipid);
-          fPdatastartMsg = fPdata;    // remember start of message for checking
-          fMsize = (vulombytecount & 0xFF) / sizeof(Int_t);    // message size in 32bit words (was & 0x3F)
-          if (((vulombytecount & 0xFF) % sizeof(Int_t)) != 0)
-            fMsize++;    // ?test this!
-          Ctr16Debug("VVVV Vulom container, header 0x%x with message size: %d \n", vulombytecount, fMsize);
-          fWorkData = *fPdata++;    //init work buffer as aligned
-          fWorkShift = 0;
+          GO4_SKIP_EVENT_MESSAGE("**** TCtr16RawProc: Found BAD mbs event (marked 0x%x), skip it.", (*fPdata));
+        }
+       // vulom status word:
+       Ctr16RawEvent->fVULOMStatus = *fPdata++;
+       // from get4++ JAM2020: need to check if status word has valid format here:
+       if (((Ctr16RawEvent->fVULOMStatus >> 12) & 0x3) != 0x3)
+       {
+         Ctr16Dump("VULOM: wrong vulom status word: 0x%x skip it.. \n", Ctr16RawEvent->fVULOMStatus);
+
+         continue;
+       }
+
+       //event trigger counter:
+       Ctr16RawEvent->fSequenceNumber = *fPdata++;
+       // data length
+       Ctr16RawEvent->fDataCount = *fPdata++;
+       //1 + *fPdata++; // from get4++ unpacker: payload is one more according to f_user_readout JAM 10-22
+       Ctr16Dump("VULOM: status: 0x%x counter: 0x%x length: 0x%x \n", Ctr16RawEvent->fVULOMStatus,
+           Ctr16RawEvent->fSequenceNumber, Ctr16RawEvent->fDataCount);
+
+       if (Ctr16RawEvent->fDataCount > (fLwords - 3))
+       {
+         // do not put this into loggin queue for gui...
+         printf(
+             "**** TCtr16RawProc: Mismatch with subevent len %d and data count 0x%8x - vulom status:0x%x seqnum:0x%x - eventnumber=%d \n",
+             fLwords, Ctr16RawEvent->fDataCount, Ctr16RawEvent->fVULOMStatus, Ctr16RawEvent->fSequenceNumber, fMbsEvt->GetCount());
+
+
+
+
+         GO4_SKIP_EVENT
+         ;
+         // avoid that we run optional second step on invalid raw event!
+       }
+
+       fPdatastart = fPdata;    // remember begin of asic payload data section
+       fPdata++;    // skip first  word?
+       fPdata++;    // skip another word with 0 bytecount flag?
+       // now fetch boardwise subcomponents for output data and histograming:
+       Int_t sfp = 0;    // JAM here we later could evaluate a board identifier mapped to a slot/sfp number contained in subevent
+       Int_t dev=0;
+       UInt_t brdid = fPar->fBoardID[sfp][dev];    // get hardware identifier from "DAQ link index" number
+       TCtr16Board *theBoard = Ctr16RawEvent->GetBoard(brdid);
+       if (theBoard == 0)
+       {
+         GO4_SKIP_EVENT_MESSAGE("Configuration error: Board id %d does not exist as subevent, sfp:%d dev:%d", brdid,
+             sfp,dev);
+
+         return kFALSE;
+       }
+       TCtr16BoardDisplay *boardDisplay = GetBoardDisplay(brdid);
+       if (boardDisplay == 0)
+       {
+         GO4_SKIP_EVENT_MESSAGE("Configuration error: Board id %d does not exist as histogram display set!", brdid);
+         return kFALSE;
+       }
+       boardDisplay->ResetDisplay();
+
+       // evaluate Ctr16ection ASIC messages in the payload:
+       //printf("EEEEEEEEEEE Event %d begins, data count= %d \n",fMbsEvt->GetCount(), Ctr16RawEvent->fDataCount);
+       while ((fPdata - fPdatastart) < Ctr16RawEvent->fDataCount)
+       {
+
+         // first vulom wrapper containing total message length:
+         Int_t vulombytecount = *fPdata++;
+
+         if (((vulombytecount >> 28) & 0xF) == 0x4)    // check if we are still on track with expected vulom header
+         {
+           Int_t chipid = (vulombytecount >> 16) & 0xFF;
+           boardDisplay->hChipId->Fill(chipid);
+           fPdatastartMsg = fPdata;    // remember start of message for checking
+           fMsize = (vulombytecount & 0xFF) / sizeof(Int_t);    // message size in 32bit words (was & 0x3F)
+           if (((vulombytecount & 0xFF) % sizeof(Int_t)) != 0)
+             fMsize++;    // ?test this!
+           Ctr16Debug("VVVV Vulom container, header 0x%x with message size: %d \n", vulombytecount, fMsize);
+           fWorkData = *fPdata++;    //init work buffer as aligned
+           fWorkShift = 0;
+           while ((fPdata - fPdatastartMsg) < fMsize)
+           {
+             //inside message loop, we use aligned data words:
+             // evaluate message type from header:
+             Int_t header = fWorkData;
+             // not we do not increment fPdata here, do this inside msg types
+             Int_t frametype = ((header >> 30) & 0x3);
+             boardDisplay->hFrameTypes->Fill(frametype);
+             //printf("MMMMMMMM message type %d \n",mtype);
+             switch (frametype)
+             {
+               case TCtr16Msg::Frame_Data:
+                 {
+                   Ctr16_CALL_UNPACKER(HandleDataFrame(theBoard, boardDisplay));
+                 }
+                 break;
+
+               case TCtr16Msg::Frame_Continuation:
+                 {
+                   Ctr16_CALL_UNPACKER(HandleContinuationFrame(theBoard, boardDisplay));
+                 }
+                 break;
+
+               case TCtr16Msg::Frame_Error:
+                 {
+                   Ctr16_CALL_UNPACKER(HandleErrorFrame(theBoard, boardDisplay));
+                 }
+                 break;
+
+               case TCtr16Msg::Frame_Wishbone:
+                 // wishbone response (error message)
+                 {
+                   Ctr16_CALL_UNPACKER(HandleWishboneFrame(theBoard, boardDisplay));
+                 }
+                 break;
+
+               default:
+                 //printf("############ found unknown message type 0x%x, skip event %ld\n", mtype, skipped_events++);
+                 //GO4_SKIP_EVENT
+                 fPdata = fPdatastartMsg + fMsize;    // do not skip complete event, but just the current message:
+                 break;
+             };    // switch
+
+             if (!skipmessage && (fPdata - fPdatastartMsg) < fMsize)
+             {
+               // never come here if messages are treated correctly!
+               Ctr16Warn("############  fPdata offset 0x%x has not yet reached message length 0x%x, correcting ,\n",
+                   (unsigned int ) (fPdata - fPdatastartMsg), fMsize);
+               fPdata = fPdatastartMsg + fMsize;
+             }
+
+             //printf("EEEEEEEE  end of message payload: fPdata offset 0x%x msglength 0x%x\n",
+             //             (unsigned int) (fPdata - fPdatastartMsg)end_of_event, fMsize);
+
+           }    //  while ((fPdata - fPdatastartMsg) < fMsize)
+         }    //if (((vulombytecount >> 28) & 0xF) == 0x4)
+         else
+         {
+           Ctr16Warn("!!!!!!!!! Vulom container wrong bytecount header 0x%x - skipped!\n", vulombytecount);
+
+           // JAM23-02-23 hunt for the bug
+            //fPar->fVerbosity=3;
+            //fPar->fSlowMotion=1;
+
+         }
+       }    // while ((fPdata - fPdatastart) < Ctr16RawEvent->fDataCount)
+     }    // while fPdata - fPsubevt->GetDataField() <fLwords
+    return kTRUE;
+  }
+
+Bool_t TCtr16RawProc::ProcessGosipSubevent()
+{
+  /////////////////// TODO JAM 27-03-2023
+  GO4_STOP_ANALYSIS_MESSAGE("**** TCtr16RawProc: ProcessGosipSubevent not yet implemented! Stopped.");
+  return kTRUE;
+  static int badcounter = 0;
+  ////////////////////////////////////////////////////////////////////////////////
+  /// Here begin regular kilom data from token readout: JAM skeleton taken from febex/poland
+  Int_t status = 0;
+  Bool_t skipmessage = kFALSE;
+  while (fPdata - fPsubevt->GetDataField() < fLwords)
+  {
+
+    if ((*fPdata & 0xffff0000) == 0xadd00000)    // we have padding word (initial data of sfp, skip it:)
+    {
+      Int_t dma_padd = (*fPdata & 0xff00) >> 8;
+      Int_t cnt(0);
+      while (cnt < dma_padd)
+      {
+        if ((*fPdata & 0xffff0000) != 0xadd00000)
+        {
+          //TGo4Log::Error("Wrong padding format - missing add0");
+          GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: Wrong padding format - missing add0");
+          // avoid that we run second step on invalid raw event!
+          //return kFALSE;
+        }
+        if (((*fPdata & 0xff00) >> 8) != dma_padd)
+        {
+          //TGo4Log::Error("Wrong padding format - 8-15 bits are not the same");
+          GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: Wrong padding format - 8-15 bits are not the same");
+          // avoid that we run second step on invalid raw event!
+          //return kFALSE;
+        }
+        if ((*fPdata & 0xff) != cnt)
+        {
+          //TGo4Log::Error("Wrong padding format - 0-7 bits not as expected");
+          GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: Wrong padding format - 0-7 bits not as expected");
+          // avoid that we run second step on invalid raw event!
+          //return kFALSE;
+        }
+        fPdata++;
+        cnt++;
+      }
+      continue;
+    }
+    else if ((unsigned) *fPdata == 0xbad00bad)
+    {
+
+      printf("############ found bad event %d  at MBS count  %d\n", badcounter,fMbsEvt->GetCount());
+      fMbsEvt->PrintEvent();
+      badcounter++;
+      GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: Found BAD mbs event (marked 0x%x), skip it.", (*fPdata));
+
+    }
+    else if ((*fPdata & 0xff) != 0x34)    // regular channel data
+    {
+      //GO4_STOP_ANALYSIS_MESSAGE("Wrong optic format - 0x34 are expected0-7 bits not as expected");
+      //TGo4Log::Error("Wrong optic format 0x%x - 0x34 are expected0-7 bits not as expected", (*fPdata & 0xff));
+      GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: Wrong optic format 0x%x - 0x34 are expected - 0-7 bits not as expected",
+          (*fPdata & 0xff));
+      // avoid that we run second step on invalid raw event!
+      //return kFALSE;
+    }
+
+    Int_t *fPdatastart = fPdata;    // remember begin of optic payload data section
+    // unsigned trig_type   = (*fPdata & 0xf00) >> 8;
+    unsigned sfp_id = (*fPdata & 0xf000) >> 12;
+    unsigned device_id = (*fPdata & 0xff0000) >> 16;
+    // unsigned channel_id  = (*fPdata & 0xff000000) >> 24;
+    fPdata++;    // ???ß
+
+    UInt_t opticlen = *fPdata++;
+    if (opticlen > fLwords * sizeof(Int_t))
+    {
+      //TGo4Log::Error("Mismatch with subevent len %d and optic len %d", fLwords * 4, opticlen);
+      GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: Mismatch with subevent len %d and optic len %d",
+          fLwords * sizeof(Int_t), opticlen);
+      // avoid that we run second step on invalid raw event!
+      //return kFALSE;
+    }
+
+    Ctr16RawEvent->fDataCount = opticlen / sizeof(Int_t);
+
+    //int eventcounter = *fPdata;
+    //event trigger counter:
+    Ctr16RawEvent->fSequenceNumber = *fPdata++;
+
+    //TGo4Log::Info("Internal Event number 0x%x", eventcounter);
+    // board id calculated from SFP and device id:
+    UInt_t brdid = fPar->fBoardID[sfp_id][device_id];
+    TCtr16Board *theBoard = Ctr16RawEvent->GetBoard(brdid);
+    if (theBoard == 0)
+    {
+      GO4_SKIP_EVENT_MESSAGE("Configuration error: Board id %d does not exist as subevent, sfp:%d dev:%d", brdid,
+          sfp_id, device_id);
+
+      return kFALSE;
+    }
+    TCtr16BoardDisplay *boardDisplay = GetBoardDisplay(brdid);
+    if (boardDisplay == 0)
+    {
+      GO4_SKIP_EVENT_MESSAGE("Configuration error: Board id %d does not exist as histogram display set!", brdid);
+      return kFALSE;
+    }
+    boardDisplay->ResetDisplay();
+
+    // TODO: here evaluate data contents
+
+
+
+    // process
+
+    while ((fPdata - fPdatastart) < Ctr16RawEvent->fDataCount)
+    {
+
+      // before scanning messages, find out containerlenght between leading and trailing headers (0xaf1 -> 0xbf1) - this is real "data count"?
+      Int_t contheader = *fPdata;
+      Int_t *contstart = fPdata;
+      Int_t contlen = 0;
+      if (((contheader >> 24) & 0xFF) == 0xaf)    // check for next container  header
+      {
+        //Int_t chipid = (vulombytecount >> 16) & 0xFF;
+        //boardDisplay->hChipId->Fill(chipid); // TODO: chip id in the data?
+        // since message header does not give us length, we look for the trail marker to find out size:
+        Int_t contcounter = contheader & 0xFFFFFF; // check counter + trigger + bufid
+        Char_t conttrigger= (contheader >> 20) & 0xF; // mbs trigger type
+        Char_t contbufid= (contheader >> 16) & 0xF; // gosip buffer id (0 or 1)
+        Int_t trailcounter = 0;
+        for (contlen = 0; contlen < Ctr16RawEvent->fDataCount; ++contlen)
+        {
+          Int_t conttrailer = *(fPdata + contlen);
+          if (((conttrailer >> 24) & 0xFF) == 0xbf)
+          {
+            trailcounter = conttrailer & 0xFFFFFF; // check counter + trigger + bufid
+            break;
+          }
+        }
+        if (contcounter != trailcounter)
+        {
+          Ctr16Warn(
+              "GGGG Gosip message container SKIPPED, header 0x%x with size: %d, MISMATCH leading evcounter:0x%x , trailing:0x%x\n",
+              contheader, contlen, contcounter, trailcounter);
+          fPdata += contlen;
+          continue;
+        }
+       ///////////////////////////////////// OK
+        // now loop over this container
+        // first evaluate the 3 container header words:
+        // contheader (siehe oben)
+        fPdata++;
+        // chipid(1 byte) | TS3 (24bit)
+        Int_t idheader=*fPdata++;
+        Int_t chipid =   (idheader >> 24) & 0xF;
+        boardDisplay->hChipId->Fill(chipid);
+        ULong_t timestamp_fpga = (idheader & 0xFFFFFFUL);
+        // TS2 (32bit) -  TS= 56bit FPGA timestamp, counts with 10 ns units since begin of readout
+        timestamp_fpga |= *fPdata++;
+
+        Ctr16Debug("GGGG Gosip message container, header 0x%x with size: %d, evcounter:0x%x trigger:%d bufid:%d chipid:%d fpgaTS:0x%lx\n", contheader, contlen,
+                      (contcounter & 0xFFFF), conttrigger, contbufid,chipid, timestamp_fpga);
+
+
+        ////////////////////////////
+        // find out length of next "message" between "separators" 0x0000017e -> msize  :
+        while ((fPdata - contstart) < contlen)
+        {
+          Int_t separator = *fPdata++;
+          if ((separator & 0xFFF) != 0x17E)
+          {
+            Ctr16Warn("GGGG no message separator 0x17E after GOSIP container header, instead 0x%x - try next\n",
+                separator);
+            continue;    // find first marker
+          }
+
+          // OK, now evaluate message length from next separator:
+
+          for (fMsize = 0; fMsize < contlen; ++fMsize)
+          {
+            Int_t nextsep = *(fPdata + fMsize);
+            if ((nextsep & 0xFFF) == 0x17E)
+              break;
+          }
+
+          Ctr16Debug("GGGG Gosip message container, separator 0x%x with message size: %d \n", separator, fMsize);
+          fPdatastartMsg = fPdata;    // payload after separator
+          //////////////////////
+          // the rest is almost same as for vulom, but frame data is initally not 32 bit aligned:
+          // 0x0000017e - 7e is "flag" from chip data  frame
+          // 0xFF73PPPP - FF - DAdr destination address from chip
+          //            - 73 - SAdr source addddress
+          //            - PPPP payload begin with frame header, e.g 80PP for error frame
+          //
+          fPdata++;    // for NextDataWord() below, forward to next but one word
+          fWorkShift = 16;    // begin frame handling after chip header
+          NextDataWord();
           while ((fPdata - fPdatastartMsg) < fMsize)
           {
             //inside message loop, we use aligned data words:
@@ -329,36 +626,21 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
             //             (unsigned int) (fPdata - fPdatastartMsg)end_of_event, fMsize);
 
           }    //  while ((fPdata - fPdatastartMsg) < fMsize)
-        }    //if (((vulombytecount >> 28) & 0xF) == 0x4)
-        else
-        {
-          Ctr16Warn("!!!!!!!!! Vulom container wrong bytecount header 0x%x - skipped!\n", vulombytecount);
 
-          // JAM23-02-23 hunt for the bug
-           //fPar->fVerbosity=3;
-           //fPar->fSlowMotion=1;
+        }    //    while ((fPdata - contstart) < contlen)
 
-        }
-      }    // while ((fPdata - fPdatastart) < Ctr16RawEvent->fDataCount)
-    }    // while fPdata - fPsubevt->GetDataField() <fLwords
-  }    // while subevents
+      }    // if (((contheader >> 20) & 0xFFF) == 0xaf1)
+      else
+      {
+        Ctr16Warn("!!!!!!!!! GOSIP buffer container wrong header 0x%x - skipped!\n", contheader);
+      }
+    }    // while ((fPdata - fPdatastart) < Ctr16RawEvent->fDataCount)
 
-  UpdateDisplays();    // we fill the raw displays immediately, but may do additional histogramming later
-  Ctr16RawEvent->SetValid(kTRUE);    // to store
+  }    // while(fPdata - fPsubevt->GetDataField() < fLwords)
 
-  end_of_event:
-
-  if (fPar->fSlowMotion || (source->GetCount() == fPar->fStopAtEvent))
-  {
-    Int_t evnum = source->GetCount();
-    fPar->fSlowMotion = kTRUE;
-    GO4_STOP_ANALYSIS_MESSAGE(
-        "Stopped for slow motion mode after MBS event count %d. Click green arrow for next event. please.", evnum);
-
-  }
-
-  return kTRUE;
 }
+
+
 
 Int_t TCtr16RawProc::NextDataWord()
 {

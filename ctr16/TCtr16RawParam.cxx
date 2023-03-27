@@ -26,12 +26,15 @@ TCtr16RawParam::TCtr16RawParam(const char* name) :
 void TCtr16RawParam::InitBoardMapping()
 {
   // init to non valid here:
-  for (int i = 0; i < Ctr16_MAXBOARDS; ++i)
+  for (int s = 0; s < Ctr16_MAXSFP; ++s)
   {
-    fBoardID[i] = -1;
+    for (int d = 0; d < Ctr16_MAXDEVS; ++d)
+    {
+      fBoardID[s][d] = -1;
+    }
   }
 
-  fBoardID[0] = 42;    // this might be a unique hardware id
+  fBoardID[0][0] = 42;    // this might be a unique hardware id
 
   fNumSnapshots = 64;
   fTraceLength = 16; //Ctr16_TRACEBINS;
@@ -44,13 +47,17 @@ void TCtr16RawParam::InitBoardMapping()
 Bool_t TCtr16RawParam::SetConfigBoards()
 {
   TCtr16RawEvent::fgConfigCtr16Boards.clear();
-  for (int i = 0; i < Ctr16_MAXBOARDS; ++i)
+  for (int s = 0; s < Ctr16_MAXSFP; ++s)
   {
-    Int_t bid = fBoardID[i];
-    if (bid < 0)
-      continue;
-    TCtr16RawEvent::fgConfigCtr16Boards.push_back(bid);
-    TGo4Log::Info("TCtr16RawParam::SetConfigBoards registers board unique id %u configured at index %d \n", bid, i);
+    for (int d = 0; d < Ctr16_MAXDEVS; ++d)
+    {
+      Int_t bid = fBoardID[s][d];
+      if (bid < 0)
+        continue;
+      TCtr16RawEvent::fgConfigCtr16Boards.push_back(bid);
+      TGo4Log::Info("TCtr16RawParam::SetConfigBoards registers board unique id %u configured for sfp:%d dev:%d \n", bid,
+          s, d);
+    }
   }
   return kTRUE;
 }

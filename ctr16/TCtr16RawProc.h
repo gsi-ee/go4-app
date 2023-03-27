@@ -29,6 +29,13 @@ public:
 
 protected:
 
+  /** handle subevent payload in case of VULOM readout */
+   Bool_t ProcessVulomSubevent();
+
+  /** handle subevent payload in case of GOSIP readout */
+    Bool_t ProcessGosipSubevent();
+
+
   /** Additional histogram filling here*/
   Bool_t UpdateDisplays();
 
@@ -94,6 +101,9 @@ protected:
 
   /** parameter for runtime settings*/
   TCtr16RawParam *fPar;
+
+  /* The current mbs input event*/
+  TGo4MbsEvent *fMbsEvt;
 
   /** the current input subevent */
   TGo4MbsSubEvent *fPsubevt;
