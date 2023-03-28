@@ -20,6 +20,12 @@
 #define Ctr16_USE_VULOM 1
 
 
+
+// if this is set, do not store complete events, but evaluate ADC histograms for memory cells into tree JAM 21.09.22
+#define Ctr16_DO_MEMORYSAMPLES 1
+
+
+
 // switches between interpretation of ADC values as signed if defined
 #define Ctr16_BOTHPOLARITY 1
 
@@ -575,7 +581,17 @@ public:
   /* vectors of hit detection messages within the mbs event, sorted for the event readout channels
    * note that wishbone messages are put into first channel 0
    * */
+
+#ifdef Ctr16_DO_MEMORYSAMPLES
+  std::vector<TCtr16Msg*> fMessages[Ctr16_CHANNELS];//!for memory sample mode, do not store this into tree
+#else
   std::vector<TCtr16Msg*> fMessages[Ctr16_CHANNELS];
+#endif
+
+
+
+
+
 
   /** Method called by the framework to clear the event element. */
   void Clear(Option_t *t = "");
@@ -611,7 +627,7 @@ public:
   UChar_t fTracesize32bit; //!
 
   /** true if trace data needs continuation frame to be completed*/
-  Bool_t fToBeContinued;
+  Bool_t fToBeContinued; //!
 
 
 
@@ -652,6 +668,44 @@ public:
 
   /** number of payload words in vulom buffer (u32)*/
   Int_t fDataCount;
+
+
+#ifdef Ctr16_DO_MEMORYSAMPLES
+
+  /** Full name of input file*/
+  TString fLmdFileName;
+
+  /* year number from filename */
+  Char_t fYear;
+
+  /* month  number from filename */
+  Char_t fMonth;
+
+  /* day  number from filename */
+  Char_t fDay;
+
+  /* 24h clock time  from filename */
+  Short_t fTime;
+
+  /** Clock freququency from filenam*/
+  Float_t fClockFreq;
+
+  /** 3 digit hex number info in filename */
+  Short_t fInfonumber;
+
+  /**Mean value of ADC histogram for block,row, cell indices*/
+  Double_t fADCMean[Ctr16_BLOCKS][Ctr16_CHANNELROWS][Ctr16_MEMORYCELLS];
+
+  /**StdDev value of ADC histogram for block,row, cell indices*/
+  Double_t fADCSigma[Ctr16_BLOCKS][Ctr16_CHANNELROWS][Ctr16_MEMORYCELLS];
+
+  /**Number of entries in ADC histogram for block,row, cell indices*/
+   Double_t fADCEntries[Ctr16_BLOCKS][Ctr16_CHANNELROWS][Ctr16_MEMORYCELLS];
+
+
+#endif
+
+
 
 ClassDef(TCtr16RawEvent,1)
 };

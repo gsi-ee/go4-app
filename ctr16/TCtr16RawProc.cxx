@@ -88,6 +88,9 @@ if(status!=0) return status;
 TCtr16RawProc::TCtr16RawProc() :
     TGo4EventProcessor(), fPar(0),fMbsEvt(0), fPsubevt(0), Ctr16RawEvent(0), fPdata(0), fPdatastart(0), fLwords(0),
         fPdatastartMsg(0), fMsize(0), fWorkData(0), fWorkShift(0)
+#ifdef Ctr16_DO_MEMORYSAMPLES
+        ,fEventCounter(0)
+#endif
 {
 }
 
@@ -96,6 +99,10 @@ TCtr16RawProc::TCtr16RawProc() :
 TCtr16RawProc::TCtr16RawProc(const char *name) :
     TGo4EventProcessor(name), fPar(0), fMbsEvt(0), fPsubevt(0), Ctr16RawEvent(0), fPdata(0), fPdatastart(0), fLwords(0),
         fPdatastartMsg(0), fMsize(0), fWorkData(0), fWorkShift(0)
+#ifdef Ctr16_DO_MEMORYSAMPLES
+        ,fEventCounter(0)
+#endif
+
 {
   skipped_events = 0;
   skipped_frames = 0;
@@ -188,6 +195,19 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
 
   }
 
+#ifdef Ctr16_DO_MEMORYSAMPLES
+    if(fPar->fMemorySampleBoard>0 &&  TGo4Analysis::Instance()->IsNewInputFile())
+    {
+      fEventCounter=0;
+      TGo4Analysis::Instance()->ClearObjects("Histograms");
+      printf ("NNNNNNNNNN Found new input file: clearing histograms and resetting the counter!!\n");
+    }
+    fEventCounter++; // local counter, independent of MBS header
+#endif
+
+
+
+
   fMbsEvt->ResetIterator();
   while ((fPsubevt = fMbsEvt->NextSubEvent()) != 0)
   {    // loop over subevents
@@ -202,8 +222,6 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
   }    // while subevents
 
   UpdateDisplays();    // we fill the raw displays immediately, but may do additional histogramming later
-  Ctr16RawEvent->SetValid(kTRUE);    // to store
-
   end_of_event:
 
   if (fPar->fSlowMotion || (fMbsEvt->GetCount() == fPar->fStopAtEvent))
@@ -749,6 +767,115 @@ Bool_t TCtr16RawProc::UpdateDisplays()
   }    // i board
 
   CalibrateWasOn = fPar->fDoCalibrate;
+
+
+#ifdef Ctr16_DO_MEMORYSAMPLES
+  // for labtest: write fine time histogram bins to tree when we have enough statistics
+  Ctr16RawEvent->SetValid(kFALSE);    // do not store by default
+  UInt_t brdid = fPar->fMemorySampleBoard;    // use defined board under test
+  if (brdid > 0)
+  {
+    TCtr16BoardDisplay* boardDisplay = GetBoardDisplay(brdid);
+    if (boardDisplay == 0)
+    {
+      GO4_SKIP_EVENT_MESSAGE(
+          "Configuration error in UpdateDisplays: Board id %d does not exist as histogram display set!", brdid);
+      return kFALSE;
+    }
+
+    if (fEventCounter == fPar->fMemorySampleStatsLimit)
+    {
+      // we reach the point to get the accuumlated samples:
+      TGo4MbsEvent* source = (TGo4MbsEvent*) GetInputEvent();
+
+      s_filhe* head = source->GetMbsSourceHeader();
+      if (head)
+      {
+        char *filename = head->filhe_file;
+        Ctr16RawEvent->fLmdFileName = filename;    //
+        TString(filename, head->filhe_file_l);
+        //We expect files of form BaselineTraces_23-03-28-1506_Clock162.0MHz_380.lmd
+        Int_t year=0, month=0, day=0, time=0, infonum=0;
+        Float_t clockfreq=0;
+
+        Int_t rev = sscanf(filename, "BaselineTraces_%d-%d-%d-%d_Clock%fMHz_%x", &year, &month, &day, &time, &clockfreq,
+            &infonum);
+        if (rev > 0)
+        {
+          // JAM 28-03-23: we copy local ints of scanf to more narrow variables for tree here:
+          Ctr16RawEvent->fYear= year & 0xFF;
+          Ctr16RawEvent->fMonth= month & 0xFF;
+          Ctr16RawEvent->fDay= day & 0xFF;
+          Ctr16RawEvent->fTime= time & 0xFFFF;
+          Ctr16RawEvent->fClockFreq=clockfreq;
+          Ctr16RawEvent->fInfonumber=infonum & 0xFFFF;
+
+          printf("Got From filename: %s :year:%d month:%d day:%d time:%d freq:%E MHz and id:0x%x \n", filename,
+              Ctr16RawEvent->fYear, Ctr16RawEvent->fMonth, Ctr16RawEvent->fDay,  Ctr16RawEvent->fTime,
+              Ctr16RawEvent->fClockFreq,  Ctr16RawEvent->fInfonumber);
+        }
+        else
+        {
+              printf("Error %d when scanning filename: %s", rev, filename);
+        } //BaselineTraces_
+      } // head
+      //Get4ppWarn
+      printf("UpDateDisplays: writing channel infos to output event after %d events, filename:%s\n", fEventCounter,
+          Ctr16RawEvent->fLmdFileName.Data());
+
+         // here evaluation of entries,  mean and sigma:
+
+
+        Double_t entries=0,mu=0, sigma=0;
+
+        for (int bl = 0; bl < Ctr16_BLOCKS; ++bl)
+         {
+           for (int row = 0; row < Ctr16_CHANNELROWS; ++row)
+           {
+             for (int cell = 0; cell < Ctr16_MEMORYCELLS; ++cell)
+             {
+               TH1* his=boardDisplay->hADCValuesPerCell[bl][row][cell];
+               if(his==0) continue; // skip not  used
+               entries=his->GetEntries();
+               mu=his->GetMean();
+               sigma=his->GetStdDev(); // TODO: maybe define range with go4 condition here?
+               Ctr16RawEvent->fADCMean[bl][row][cell]=mu;
+               Ctr16RawEvent->fADCSigma[bl][row][cell]=sigma;
+               Ctr16RawEvent->fADCEntries[bl][row][cell]=entries;
+             }
+           }
+         }
+
+      // set output event valid for tree storage
+      Ctr16RawEvent->SetValid(kTRUE);
+    }
+    else if (fEventCounter > fPar->fMemorySampleStatsLimit)
+    {
+      // after sample was stored, just skip all other events in file
+      Ctr16RawEvent->SetValid(kFALSE);
+      if((fEventCounter%500 ==0))printf("SSSS ignoring event %d from %s ...\n", fEventCounter, Ctr16RawEvent->fLmdFileName.Data());
+       //GO4_SKIP_EVENT;
+      // JAM DEBUG
+//      fEventCounter=0;
+//      TGo4Analysis::Instance()->ClearObjects("Histograms");
+//      printf ("RRRR DEBUG: clearing histograms and resetting the counter!!\n");
+    }
+    else
+    {
+      // if not yet at sampling point, do not store
+      Ctr16RawEvent->SetValid(kFALSE);
+    }
+  }    // boardid
+
+#else
+  Ctr16RawEvent->SetValid(kTRUE);    // everything to store for regular mode
+#endif
+
+
+
+
+
+
 
   return kTRUE;
 }

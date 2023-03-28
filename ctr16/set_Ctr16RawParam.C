@@ -19,4 +19,6 @@ void set_Ctr16RawParam()
    param0->fTraceLength = 64;
    param0->fDoCalibrate = kFALSE;
 
+   param0->fMemorySampleStatsLimit =2000;
+
 }

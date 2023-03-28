@@ -56,11 +56,20 @@ std::vector<UInt_t> TCtr16RawEvent::fgConfigCtr16Boards;
 
 TCtr16RawEvent::TCtr16RawEvent() :
     TGo4CompositeEvent(), fSequenceNumber(-1), fVULOMStatus(0), fDataCount(0)
+#ifdef Ctr16_DO_MEMORYSAMPLES
+  ,fYear(0),fMonth(0), fDay(0), fTime(0), fClockFreq(0.0),fInfonumber(0)
+#endif
+
+
 {
 }
 //***********************************************************
 TCtr16RawEvent::TCtr16RawEvent(const char* name, Short_t id) :
     TGo4CompositeEvent(name, name, id), fSequenceNumber(-1), fVULOMStatus(0), fDataCount(0)
+#ifdef Ctr16_DO_MEMORYSAMPLES
+  ,fYear(0),fMonth(0), fDay(0), fTime(0), fClockFreq(0.0),fInfonumber(0)
+#endif
+
 {
   TGo4Log::Info("TCtr16RawEvent: Create instance %s with composite id %d", name, id);
   TString modname;
@@ -99,4 +108,29 @@ void TCtr16RawEvent::Clear(Option_t *t)
   fSequenceNumber = -1;
   fVULOMStatus = 0;
   fDataCount = 0;
+
+#ifdef Ctr16_DO_MEMORYSAMPLES
+  // clear memory sample elements here
+  SetValid(kFALSE);
+  //fLmdFileName="nofile"; // we keep most recent filename
+  fYear=0;
+  fMonth=0;
+  fDay=0;
+  fTime=0;
+  fClockFreq = 0;
+  fInfonumber = 0;
+  for (int i = 0; i < Ctr16_BLOCKS; ++i)
+  {
+    for (int j = 0; j < Ctr16_CHANNELROWS; ++j)
+    {
+      for (int k = 0; k < Ctr16_MEMORYCELLS; ++k)
+      {
+        fADCMean[i][j][k] = 0;
+        fADCSigma[i][j][k] = 0;
+        fADCEntries[i][j][k] = 0;
+      }
+    }
+  }
+#endif
+
 }
