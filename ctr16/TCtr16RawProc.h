@@ -136,6 +136,13 @@ protected:
   /** Required bitshift to align payload to 32bit*/
   Int_t fWorkShift;    //!
 
+
+#ifdef Ctr16_DO_MEMORYSAMPLES
+/* local event counter for writing out ADC memory decision (simple approach)*/
+  Int_t fEventCounter; //!
+#endif
+
+
 ClassDef(TCtr16RawProc,1)
 };
 

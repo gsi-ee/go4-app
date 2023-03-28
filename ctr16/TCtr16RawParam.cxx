@@ -42,6 +42,13 @@ void TCtr16RawParam::InitBoardMapping()
   fSlowMotion=kFALSE;
   fStopAtEvent=0;
   fVerbosity=0;
+
+#ifdef Ctr16_DO_MEMORYSAMPLES
+ fMemorySampleBoard=42; // id of board for adc memory sample evaluation
+ fMemorySampleStatsLimit=1000; // number of event threshold for writing memory cells ADC values
+#endif
+
+
 }
 
 Bool_t TCtr16RawParam::SetConfigBoards()
