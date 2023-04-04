@@ -397,8 +397,8 @@ Bool_t TCtr16RawProc::BuildEvent(TGo4EventElement *target)
 Bool_t TCtr16RawProc::ProcessGosipSubevent()
 {
   /////////////////// TODO JAM 27-03-2023
-  GO4_STOP_ANALYSIS_MESSAGE("**** TCtr16RawProc: ProcessGosipSubevent not yet implemented! Stopped.");
-  return kTRUE;
+  //GO4_STOP_ANALYSIS_MESSAGE("**** TCtr16RawProc: ProcessGosipSubevent not yet implemented! Stopped.");
+  //return kTRUE;
   static int badcounter = 0;
   ////////////////////////////////////////////////////////////////////////////////
   /// Here begin regular kilom data from token readout: JAM skeleton taken from febex/poland
@@ -458,12 +458,12 @@ Bool_t TCtr16RawProc::ProcessGosipSubevent()
       //return kFALSE;
     }
 
-    Int_t *fPdatastart = fPdata;    // remember begin of optic payload data section
+    fPdatastart = fPdata;    // remember begin of optic payload data section
     // unsigned trig_type   = (*fPdata & 0xf00) >> 8;
     unsigned sfp_id = (*fPdata & 0xf000) >> 12;
     unsigned device_id = (*fPdata & 0xff0000) >> 16;
     // unsigned channel_id  = (*fPdata & 0xff000000) >> 24;
-    fPdata++;    // ???ß
+     fPdata++;
 
     UInt_t opticlen = *fPdata++;
     if (opticlen > fLwords * sizeof(Int_t))
@@ -479,7 +479,7 @@ Bool_t TCtr16RawProc::ProcessGosipSubevent()
 
     //int eventcounter = *fPdata;
     //event trigger counter:
-    Ctr16RawEvent->fSequenceNumber = *fPdata++;
+    //Ctr16RawEvent->fSequenceNumber = *fPdata++;  // JAM3-04-2023 not in data!
 
     //TGo4Log::Info("Internal Event number 0x%x", eventcounter);
     // board id calculated from SFP and device id:
@@ -518,25 +518,34 @@ Bool_t TCtr16RawProc::ProcessGosipSubevent()
         //Int_t chipid = (vulombytecount >> 16) & 0xFF;
         //boardDisplay->hChipId->Fill(chipid); // TODO: chip id in the data?
         // since message header does not give us length, we look for the trail marker to find out size:
-        Int_t contcounter = contheader & 0xFFFFFF; // check counter + trigger + bufid
+        Int_t contcounter = contheader & 0xFFFF; // check counter + trigger + bufid
         Char_t conttrigger= (contheader >> 20) & 0xF; // mbs trigger type
         Char_t contbufid= (contheader >> 16) & 0xF; // gosip buffer id (0 or 1)
         Int_t trailcounter = 0;
+        Char_t trailtrigger=0;
+        Char_t trailbufid=0;
         for (contlen = 0; contlen < Ctr16RawEvent->fDataCount; ++contlen)
         {
           Int_t conttrailer = *(fPdata + contlen);
           if (((conttrailer >> 24) & 0xFF) == 0xbf)
           {
-            trailcounter = conttrailer & 0xFFFFFF; // check counter + trigger + bufid
-            break;
-          }
+            trailcounter = conttrailer & 0xFFFF; // check counter + trigger + bufid
+            trailtrigger = (conttrailer >> 20) & 0xF;
+            trailbufid= (conttrailer >> 16) & 0xF;
+
+            if ((contcounter == trailcounter) && (conttrigger==trailtrigger) && (contbufid==trailbufid))
+            {
+              Ctr16Debug("GGGG Gosip message container found correct trailer 0x%x after header 0x%x at size: %d\n", conttrailer, contheader, contlen);
+              break;
+            }
+            }
         }
-        if (contcounter != trailcounter)
+        if (contlen >= Ctr16RawEvent->fDataCount)
         {
           Ctr16Warn(
-              "GGGG Gosip message container SKIPPED, header 0x%x with size: %d, MISMATCH leading evcounter:0x%x , trailing:0x%x\n",
-              contheader, contlen, contcounter, trailcounter);
-          fPdata += contlen;
+              "GGGG Gosip message container: can not find trailer for header 0x%x after size: %d - skip message \n",
+              contheader, contlen);
+          fPdata += contlen; // will end gosip container loop
           continue;
         }
        ///////////////////////////////////// OK
@@ -561,23 +570,31 @@ Bool_t TCtr16RawProc::ProcessGosipSubevent()
         while ((fPdata - contstart) < contlen)
         {
           Int_t separator = *fPdata++;
-          if ((separator & 0xFFF) != 0x17E)
+          if ((separator & 0xFFFFFFFF) != 0x17E)
           {
-            Ctr16Warn("GGGG no message separator 0x17E after GOSIP container header, instead 0x%x - try next\n",
+            Ctr16Debug("GGGG no message separator 0x17E after GOSIP container header, instead 0x%x - try next\n",
                 separator);
             continue;    // find first marker
           }
 
           // OK, now evaluate message length from next separator:
 
-          for (fMsize = 0; fMsize < contlen; ++fMsize)
+          for (fMsize = 0; fPdata + fMsize - contstart < contlen; ++fMsize)
           {
             Int_t nextsep = *(fPdata + fMsize);
-            if ((nextsep & 0xFFF) == 0x17E)
+            if ((nextsep & 0xFFFFFFFF) == 0x17E)
               break;
           }
+          if(fPdata + fMsize - contstart >=contlen)
+          {
+            Ctr16Debug("GGGG no trailing separator 0x17E at %d words after the first 0x%x, exceeding kilom container! skip \n",
+                          fMsize, separator);
 
-          Ctr16Debug("GGGG Gosip message container, separator 0x%x with message size: %d \n", separator, fMsize);
+            fPdata+=contlen; // ends inner loop, try for next container if any in this gosip payload
+            continue;
+          }
+
+          Ctr16Dump("GGGG Gosip message container, separator 0x%x with message size: %d \n", separator, fMsize);
           fPdatastartMsg = fPdata;    // payload after separator
           //////////////////////
           // the rest is almost same as for vulom, but frame data is initally not 32 bit aligned:
@@ -651,11 +668,13 @@ Bool_t TCtr16RawProc::ProcessGosipSubevent()
       else
       {
         Ctr16Warn("!!!!!!!!! GOSIP buffer container wrong header 0x%x - skipped!\n", contheader);
+        fPdata++;
       }
     }    // while ((fPdata - fPdatastart) < Ctr16RawEvent->fDataCount)
 
   }    // while(fPdata - fPsubevt->GetDataField() < fLwords)
 
+ return kTRUE;
 }
 
 

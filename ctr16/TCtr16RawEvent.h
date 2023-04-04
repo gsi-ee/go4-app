@@ -17,12 +17,12 @@
 
 
 // enable this define to use test readout with vulom. If disabled we assume GOSIP readout via kilom
-#define Ctr16_USE_VULOM 1
+//#define Ctr16_USE_VULOM 1
 
 
 
 // if this is set, do not store complete events, but evaluate ADC histograms for memory cells into tree JAM 21.09.22
-#define Ctr16_DO_MEMORYSAMPLES 1
+//#define Ctr16_DO_MEMORYSAMPLES 1
 
 
 
