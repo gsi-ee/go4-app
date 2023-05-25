@@ -607,16 +607,22 @@ Bool_t TCtr16RawProc::ProcessGosipSubevent()
           //
           fPdata++;    // for NextDataWord() below, forward to next but one word
           fWorkShift = 16;    // begin frame handling after chip header
-          NextDataWord();
+          Bool_t first=kTRUE;
           while ((fPdata - fPdatastartMsg) < fMsize)
           {
+
             //inside message loop, we use aligned data words:
+            if(first) {
+              NextDataWord(); // need to call this here, otherwise will skip all short frames
+              first=kFALSE;
+            }
             // evaluate message type from header:
             Int_t header = fWorkData;
             // not we do not increment fPdata here, do this inside msg types
             Int_t frametype = ((header >> 30) & 0x3);
             boardDisplay->hFrameTypes->Fill(frametype);
             //printf("MMMMMMMM message type %d \n",mtype);
+            //Ctr16Dump("GGGG Gosip message container has frame type: %d \n", frametype);
             switch (frametype)
             {
               case TCtr16Msg::Frame_Data:
@@ -645,8 +651,7 @@ Bool_t TCtr16RawProc::ProcessGosipSubevent()
                 break;
 
               default:
-                //printf("############ found unknown message type 0x%x, skip event %ld\n", mtype, skipped_events++);
-                //GO4_SKIP_EVENT
+                Ctr16Warn("GGGG Gosip message container found unknown frame  type %d \n", frametype);
                 fPdata = fPdatastartMsg + fMsize;    // do not skip complete event, but just the current message:
                 break;
             };    // switch
@@ -1013,7 +1018,7 @@ Int_t TCtr16RawProc::HandleErrorFrame(TCtr16Board*, TCtr16BoardDisplay *disp)
   Int_t header = fWorkData;
   UInt_t epoch = header & 0xFFFFFF;
   //Ctr16Dump("HandleErrorFrame starts: fWorkData:0x%x fWorkShift:%d *pdata:0x%x\n", fWorkData, fWorkShift, *fPdata);
-  Int_t endpoint=fMsize;
+  Int_t endpoint=fMsize+1;
   while (fPdata - fPdatastartMsg < endpoint)
   {
     //Ctr16Dump("HandleErrorFrame before Ctr16_NEXT_DATAWORD_RETURN: fWorkData:0x%x fWorkShift:%d *pdata:0x%x endpoint:%d\n", fWorkData, fWorkShift, *fPdata, endpoint);
@@ -1033,6 +1038,11 @@ Int_t TCtr16RawProc::HandleErrorFrame(TCtr16Board*, TCtr16BoardDisplay *disp)
       fPdata -= 1;    // rewind one word instead of shifting beyond word boundaries
     }
     endpoint = (fWorkShift ? fMsize+1 : fMsize); // JAM 25-05-23: account workshift, otherwise we might skip last message
+    if(fWorkShift && (fPdata - fPdatastartMsg >=endpoint))
+    {
+      fPdata -= 1; // for last iteration might to have rewind JAM 25-05-23
+      break;
+    }
   }
   return status;
 }
