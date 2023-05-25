@@ -542,7 +542,7 @@ Bool_t TCtr16RawProc::ProcessGosipSubevent()
         }
         if (contlen >= Ctr16RawEvent->fDataCount)
         {
-          Ctr16Warn(
+          Ctr16Dump(
               "GGGG Gosip message container: can not find trailer for header 0x%x after size: %d - skip message \n",
               contheader, contlen);
           fPdata += contlen; // will end gosip container loop
@@ -593,6 +593,8 @@ Bool_t TCtr16RawProc::ProcessGosipSubevent()
             fPdata+=contlen; // ends inner loop, try for next container if any in this gosip payload
             continue;
           }
+
+          fMsize--; // JAM 25-05-2023: ignore trailing CRC word before next separator!
 
           Ctr16Dump("GGGG Gosip message container, separator 0x%x with message size: %d \n", separator, fMsize);
           fPdatastartMsg = fPdata;    // payload after separator
@@ -662,6 +664,7 @@ Bool_t TCtr16RawProc::ProcessGosipSubevent()
 
           }    //  while ((fPdata - fPdatastartMsg) < fMsize)
 
+          fPdata++;  // JAM 25-05-2023: we have ignored trailing CRC word before next separator at fMsize, so skip it now.
         }    //    while ((fPdata - contstart) < contlen)
 
       }    // if (((contheader >> 20) & 0xFFF) == 0xaf1)
@@ -696,9 +699,10 @@ Int_t TCtr16RawProc::NextDataWord()
     fWorkData = (*(fPdata - 1) << (32 - fWorkShift));
     fWorkData |= (*fPdata >> fWorkShift) & mask;
     fPdata++;
-    Ctr16EVENTLASTMSG_CHECK_PDATA;
-    Ctr16RAW_CHECK_PDATA;
-    Ctr16MSG_CHECK_PDATA;
+// JAM 23-05-2023: do not check here, we might need to process still next wordata!
+//    Ctr16EVENTLASTMSG_CHECK_PDATA;
+//    Ctr16RAW_CHECK_PDATA;
+//    Ctr16MSG_CHECK_PDATA;
   }
 
   // fWorkShift defines the n lower bits of the current subevent word that are used for next data word d
@@ -1008,8 +1012,11 @@ Int_t TCtr16RawProc::HandleErrorFrame(TCtr16Board*, TCtr16BoardDisplay *disp)
   Int_t status = 0;
   Int_t header = fWorkData;
   UInt_t epoch = header & 0xFFFFFF;
-  while (fPdata - fPdatastartMsg < fMsize)
+  //Ctr16Dump("HandleErrorFrame starts: fWorkData:0x%x fWorkShift:%d *pdata:0x%x\n", fWorkData, fWorkShift, *fPdata);
+  Int_t endpoint=fMsize;
+  while (fPdata - fPdatastartMsg < endpoint)
   {
+    //Ctr16Dump("HandleErrorFrame before Ctr16_NEXT_DATAWORD_RETURN: fWorkData:0x%x fWorkShift:%d *pdata:0x%x endpoint:%d\n", fWorkData, fWorkShift, *fPdata, endpoint);
     Ctr16_NEXT_DATAWORD_RETURN
     ;
     UChar_t code = (fWorkData >> 24) & 0xFF;
@@ -1025,6 +1032,7 @@ Int_t TCtr16RawProc::HandleErrorFrame(TCtr16Board*, TCtr16BoardDisplay *disp)
       fWorkShift = 0;
       fPdata -= 1;    // rewind one word instead of shifting beyond word boundaries
     }
+    endpoint = (fWorkShift ? fMsize+1 : fMsize); // JAM 25-05-23: account workshift, otherwise we might skip last message
   }
   return status;
 }
