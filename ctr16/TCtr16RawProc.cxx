@@ -447,13 +447,17 @@ Bool_t TCtr16RawProc::ProcessGosipSubevent()
       badcounter++;
       GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: Found BAD mbs event (marked 0x%x), skip it.", (*fPdata));
 
+
     }
     else if ((*fPdata & 0xff) != 0x34)    // regular channel data
     {
       //GO4_STOP_ANALYSIS_MESSAGE("Wrong optic format - 0x34 are expected0-7 bits not as expected");
       //TGo4Log::Error("Wrong optic format 0x%x - 0x34 are expected0-7 bits not as expected", (*fPdata & 0xff));
-      GO4_SKIP_EVENT_MESSAGE("**** TQFWRawProc: Wrong optic format 0x%x - 0x34 are expected - 0-7 bits not as expected",
+      //GO4_SKIP_EVENT_MESSAGE
+      Ctr16Warn("**** TQFWRawProc: Wrong optic format 0x%x - 0x34 are expected - 0-7 bits not as expected",
           (*fPdata & 0xff));
+      GO4_SKIP_EVENT;
+
       // avoid that we run second step on invalid raw event!
       //return kFALSE;
     }

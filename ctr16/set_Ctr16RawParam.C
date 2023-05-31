@@ -14,7 +14,7 @@ void set_Ctr16RawParam()
 
    TGo4Log::Info("Set parameter Ctr16RawParam from default macro");
 
-   //param0->fBoardID[0][0] = 42;
+   param0->fBoardID[0][0] = -1;
    param0->fBoardID[1][0] = 55;
    param0->fNumSnapshots = 64;
    param0->fTraceLength = 64;
