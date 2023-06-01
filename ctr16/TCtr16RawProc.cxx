@@ -1200,11 +1200,13 @@ Int_t TCtr16RawProc::ExtractTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
 {
   Int_t status = 0;
   Int_t payloadwords = board->fTracesize32bit - board->fTracedataIndex;
-  if (fMsize - (fPdata - fPdatastartMsg) + 1 < payloadwords)
+  Int_t restlen = fMsize - (fPdata - fPdatastartMsg)  +1;
+  if(fWorkShift) restlen++;;// JAM 01-06-23: account workshift, otherwise we might expect continuation falsly
+  if (restlen <payloadwords)
   {
-    Ctr16Debug("ExtractTrace sees rest of buffer %ld too short for desired payload %d, expect continuation! \n",
-        fMsize - (fPdata - fPdatastartMsg) - 1, payloadwords);
-    payloadwords = fMsize - (fPdata - fPdatastartMsg) + 1;
+    Ctr16Debug("ExtractTrace sees rest of buffer %d too short for desired payload %d, expect continuation! \n",
+        restlen , payloadwords);
+    payloadwords=restlen;
     board->fToBeContinued = kTRUE;
   }
   else
@@ -1234,12 +1236,14 @@ Int_t TCtr16RawProc::ExtractTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
       "ExtractTrace has copied %d payloadwords, fTracedataIndex=%d, pdata=%p, *pData=0x%x, fWorkData=0x%x , fWorkShift=%d, fToBeContinued=%d\n",
       payloadwords, board->fTracedataIndex, fPdata, *fPdata, fWorkData, fWorkShift, board->fToBeContinued);
 
+/// JAM 01-jun-2023: this shift alignment will induce errors for next trace if several are within one frame!
   // here align again for next trace:
-  Int_t usedwords = board->fTracesize32bit - 1;
-  if (usedwords == 0)
-    usedwords = 1;
-  fWorkShift = (32 - (board->fTracesize12bit * 12) % (usedwords * 32));    // JAM 24-03-23: quite redundant, since or 12bit traces always fit into 32 bit words
-  Ctr16Debug("ExtractTrace after shift alignment, pdata=%p, *pData=0x%x, fWorkData=0x%x , fWorkShift=%d\n", fPdata,
+//  Int_t usedwords = board->fTracesize32bit - 1;
+//  if (usedwords == 0)
+//    usedwords = 1;
+//  fWorkShift = (32 - (board->fTracesize12bit * 12) % (usedwords * 32));    // JAM 24-03-23: quite redundant, since or 12bit traces always fit into 32 bit words
+  /////////////////////////////////////////////////////////////////////////
+  Ctr16Debug("ExtractTrace after NO shift alignment, pdata=%p, *pData=0x%x, fWorkData=0x%x , fWorkShift=%d\n", fPdata,
       *fPdata, fWorkData, fWorkShift);
   if (board->fToBeContinued)
   {
