@@ -1022,7 +1022,11 @@ Int_t TCtr16RawProc::HandleErrorFrame(TCtr16Board*, TCtr16BoardDisplay *disp)
   Int_t header = fWorkData;
   UInt_t epoch = header & 0xFFFFFF;
   //Ctr16Dump("HandleErrorFrame starts: fWorkData:0x%x fWorkShift:%d *pdata:0x%x\n", fWorkData, fWorkShift, *fPdata);
+#ifdef Ctr16_USE_VULOM
+  Int_t endpoint=fMsize; // no crc trailer here
+#else
   Int_t endpoint=fMsize+1;
+#endif
   while (fPdata - fPdatastartMsg < endpoint)
   {
     //Ctr16Dump("HandleErrorFrame before Ctr16_NEXT_DATAWORD_RETURN: fWorkData:0x%x fWorkShift:%d *pdata:0x%x endpoint:%d\n", fWorkData, fWorkShift, *fPdata, endpoint);
@@ -1041,13 +1045,17 @@ Int_t TCtr16RawProc::HandleErrorFrame(TCtr16Board*, TCtr16BoardDisplay *disp)
       fWorkShift = 0;
       fPdata -= 1;    // rewind one word instead of shifting beyond word boundaries
     }
+#ifndef Ctr16_USE_VULOM
     endpoint = (fWorkShift ? fMsize+1 : fMsize); // JAM 25-05-23: account workshift, otherwise we might skip last message
+
     if(fWorkShift && (fPdata - fPdatastartMsg >=endpoint))
     {
       fPdata -= 1; // for last iteration might to have rewind JAM 25-05-23
       break;
     }
+#endif
   }
+
   return status;
 }
 
