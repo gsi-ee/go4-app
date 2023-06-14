@@ -337,7 +337,7 @@ void TCtr16BoardDisplay::ResetDisplay()
 {
   for (Int_t ch = 0; ch < Ctr16_CHANNELS; ++ch)
   {
-    hTrace[ch]->Reset();
+    //hTrace[ch]->Reset(); // JAM 14-jun2023: always keep last traces, even for new mbs events
     for (Int_t i = 0; i < Ctr16_MAXSNAPSHOTS; ++i)
     {
       if (hTraceSnapshots[ch][i])
