@@ -154,8 +154,16 @@ public:
    /** Feature extracted amplitudes for each channel*/
    TH1 *hFeatureAmplitude[Ctr16_CHANNELS];
 
-   /** Feature extracted fine times for each channel*/
+
+   /** Feature extracted amplitudes for each channel, scaled with CSA value*/
+   TH1 *hFeatureAmplitudeScaled[Ctr16_CHANNELS];
+
+      /** Feature extracted fine times for each channel*/
    TH1 *hFeatureFineTime[Ctr16_CHANNELS];
+
+
+   /** CSA amplification factor per channel*/
+   TH1 *hCsaAmp[Ctr16_CHANNELS];
 
 
 

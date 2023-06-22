@@ -4,6 +4,13 @@
 
 //************************************************************************//
 
+
+Float_t TCtr16MsgEvent::fgCSAFactor[8] = Ctr16_CSAFACTORS;
+
+//{ 1.0, 4.7, 12.0, 42.0, 157, -1, -1, -1};
+
+
+
 TCtr16Board::TCtr16Board() :
     TGo4EventElement(), fCurrentTraceEvent(0), fTracedataIndex(0), fTracesize12bit(0), fTracesize32bit (0),
     fToBeContinued(kFALSE), fUniqueId(0)

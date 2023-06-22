@@ -104,6 +104,12 @@ void TCtr16BoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Bool
     hFeatureAmplitude[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), Ctr16_FEATURE_AMPRAMGE / 10, 0,
         Ctr16_FEATURE_AMPRAMGE, "amplitude (bins)", "counts");
 
+    obname.Form("Board%d/Features/AmplitudesScaled/AmplitudeScaled_%d_%d", brd, brd, ch);
+    obtitle.Form("Ctr16 Board %d Channel %d Extracted amplitude, CSA scaled", brd, ch);
+    hFeatureAmplitudeScaled[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), Ctr16_FEATURE_AMPRAMGE / 10, 0,
+            Ctr16_FEATURE_AMPRAMGE *Ctr16_CSAMAXFACTOR , "scaled amplitude", "counts");
+
+
     obname.Form("Board%d/Features/FineTimes/FineTime_%d_%d", brd, brd, ch);
     obtitle.Form("Ctr16 Board %d Channel %d Extracted fine time", brd, ch);
     hFeatureFineTime[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), Ctr16_FEATURE_FINETIMERANGE, 0,
@@ -167,6 +173,14 @@ void TCtr16BoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Bool
     obtitle.Form("Epoch difference of subsequent messages Board %d Channel %d (fine)", brd, ch);
     maxval = 0x3FFF;
     hDeltaEPMsgFine[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), maxval, 0, maxval, "#delta EP - fine", "counts");
+
+
+
+
+    obname.Form("Board%d/CSA/CSA_Amplification_%d_%d", brd, brd, ch);
+    obtitle.Form("CSA amplification factor Board %d Channel %d (fine)", brd, ch);
+    maxval = 0x7;
+    hCsaAmp[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), maxval, 0, maxval, "amp value", "counts");
 
   }            // for ch
 

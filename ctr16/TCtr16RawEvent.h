@@ -73,6 +73,22 @@
 #define Ctr16_MEMORYCELLS 16
 
 
+//  000               X   0.350 pF     1
+//  001            X  X   1.655 pF     4.7
+//  010         X  X  X   4.246 pF    12
+//  011      X  X  X  X  14.611 pF    42
+//  100   X  X  X  X  X  55.071 pF   157
+// csa coefficients for amplification:
+#define Ctr16_CSAFACTORS { 1.0, 4.7, 12.0, 42.0, 157, -1, -1, 115.0}
+// last value for fix simul setup with 40.46 pF JAM
+
+/** define range of CSA amplification */
+#define Ctr16_CSAMAXFACTOR 160
+
+
+
+
+
 /**
  * Base class for single "data message" inside data stream */
 class TCtr16Msg
@@ -279,16 +295,22 @@ class TCtr16MsgThreshold: public TCtr16MsgData
 
 
 
-
-
 /**
  * Message class for (chip event-) triggered data  */
 class TCtr16MsgEvent: public TCtr16MsgData
 {
 
 public:
+
+
+
+  /** csa coefficients for amplification */
+  static Float_t fgCSAFactor[8];
+
+
+
   TCtr16MsgEvent(UChar_t ch=0) :
-    TCtr16MsgData(ch), fEpoch(0), fTimeStamp(0), fRow(0)
+    TCtr16MsgData(ch), fEpoch(0), fTimeStamp(0), fRow(0),fCsa(0)
   {
   }
   virtual ~TCtr16MsgEvent()
@@ -328,6 +350,22 @@ public:
       return fRow;
     }
 
+    void SetCsa(UChar_t csa)
+      {
+        fCsa = (csa & 0x3);
+      }
+    UChar_t GetCsa()
+      {
+        return fCsa;
+      }
+
+    Float_t GetCsaFactor()
+    {
+      Float_t val=TCtr16MsgEvent::fgCSAFactor[fCsa];
+      return val;
+    }
+
+
 protected:
 
 
@@ -340,7 +378,14 @@ protected:
   /** Memory row index of data*/
   UChar_t fRow;
 
+  /** CSA feedback configuration value (amplification)*/
+  UChar_t fCsa;
+
 };
+
+
+
+
 
 
 /**

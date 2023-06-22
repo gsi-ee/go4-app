@@ -1166,8 +1166,10 @@ Int_t TCtr16RawProc::UnpackTrace(TCtr16Board *board, TCtr16BoardDisplay *disp, U
   TCtr16MsgTransient *tmsg = board->fCurrentTraceEvent;
   tmsg->SetEpoch(epoch);
   tmsg->SetRow(row);
-  UShort_t ts = fWorkData & 0xFFF;
+  UShort_t ts = (fWorkData >> 4) & 0xFFF;
+  UChar_t csa= fWorkData & 0x7;
   tmsg->SetTimeStamp(ts);
+  tmsg->SetCsa(csa);
   board->fTracesize12bit = ((fWorkData >> 16) & 0xFF);
   // here check if we have a valid tracelenght:
   if ((board->fTracesize12bit != 16) && (board->fTracesize12bit != 32) && (board->fTracesize12bit != 64))
@@ -1196,7 +1198,7 @@ Int_t TCtr16RawProc::UnpackTrace(TCtr16Board *board, TCtr16BoardDisplay *disp, U
     GO4_SKIP_EVENT
   }
   disp->hDatawords->Fill(board->fTracesize12bit);
-  disp->hChannels->Fill(fullchannel);
+  //disp->hChannels->Fill(fullchannel);
   Ctr16_NEXT_DATAWORD_RETURN
   ;
   status = ExtractTrace(board, disp);
@@ -1395,8 +1397,8 @@ void TCtr16RawProc::FinalizeTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
   disp->fSnapshotcount[chan]++;
   UpdateDeltaTimes(board, disp, board->fCurrentTraceEvent, chan);    // delta t histograms are common with feature events
 
-
-
+  disp->hChannels->Fill(chan); // 22-06-23 account channel no sooner than trace is complete
+  disp->hCsaAmp[chan]->Fill(board->fCurrentTraceEvent->GetCsa());
 
 
   // reset aux data members:
@@ -1568,11 +1570,14 @@ Int_t TCtr16RawProc::UnpackFeature(TCtr16Board *board, TCtr16BoardDisplay *disp,
   UChar_t fullchannel = ((fWorkData >> 26) & 0xF);
   UChar_t row = ((fWorkData >> 24) & 0x3);
   disp->hMemoryRow->Fill(row);
+  disp->hChannels->Fill(fullchannel);
   TCtr16MsgFeature *fmsg = new TCtr16MsgFeature(fullchannel);
   fmsg->SetEpoch(epoch);
   fmsg->SetRow(row);
+  UChar_t csa = (fWorkData >> 21) & 0x7; // 22-jun-23 JAM
   UShort_t ts = (fWorkData >> 5) & 0xFFF;
   fmsg->SetTimeStamp(ts);
+  fmsg->SetCsa(csa);
   UChar_t finetime = (fWorkData & 0x3F);
   fmsg->SetFineTime(finetime);
   Ctr16_NEXT_DATAWORD_RETURN
@@ -1580,13 +1585,17 @@ Int_t TCtr16RawProc::UnpackFeature(TCtr16Board *board, TCtr16BoardDisplay *disp,
   UShort_t ampl = (fWorkData >> 16) & 0xFFFF;
   fmsg->SetAmplitude(ampl);
 
-  Ctr16Warn("DFDFDF Data_Feature channel:%d ampl:%d ts:%d ftime:%d - pdata=0x%x , fWorkData=0x%x\n", fullchannel, ampl,
+  Ctr16Warn("DFDFDF Data_Feature channel:%d csa:%d ampl:%d ts:%d ftime:%d - pdata=0x%x , fWorkData=0x%x\n", fullchannel, (int) csa, ampl,
       ts, finetime, *fPdata, fWorkData);
 
   // feature histograms here:
   disp->hFeatureAmplitude[fullchannel]->Fill(ampl);
+  disp->hFeatureAmplitudeScaled[fullchannel]->Fill(ampl* fmsg->GetCsaFactor());
   disp->hFeatureFineTime[fullchannel]->Fill(finetime);
   UpdateDeltaTimes(board, disp, fmsg, fullchannel);    // evaluate delta T between messages also here
+
+  disp->hCsaAmp[fullchannel]->Fill(csa); // monitor csa factor
+
   board->AddMessage(fmsg, fullchannel);
   SwitchDataAlignment();    // next message will begin in lower 16 bit part of this data word
   Ctr16_NEXT_DATAWORD_RETURN

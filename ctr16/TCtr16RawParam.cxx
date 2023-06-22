@@ -40,7 +40,7 @@ void TCtr16RawParam::InitBoardMapping()
   fTraceLength = 16; //Ctr16_TRACEBINS;
   fDoCalibrate=kFALSE;
   fSlowMotion=kFALSE;
-  fStopAtEvent=0;
+  fStopAtEvent=-1;
   fVerbosity=0;
 
 #ifdef Ctr16_DO_MEMORYSAMPLES
