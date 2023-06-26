@@ -1575,7 +1575,7 @@ Int_t TCtr16RawProc::UnpackFeature(TCtr16Board *board, TCtr16BoardDisplay *disp,
   fmsg->SetEpoch(epoch);
   fmsg->SetRow(row);
   UChar_t csa = (fWorkData >> 21) & 0x7; // 22-jun-23 JAM
-  UShort_t ts = (fWorkData >> 5) & 0xFFF;
+  UShort_t ts = (fWorkData >> 4) & 0xFFF;
   fmsg->SetTimeStamp(ts);
   fmsg->SetCsa(csa);
   UChar_t finetime = (fWorkData & 0x3F);
