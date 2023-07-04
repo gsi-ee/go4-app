@@ -219,6 +219,15 @@ void TCtr16BoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Bool
   TGo4Analysis::Instance()->ProtectObjects("Calibration", "+C");    // protect calibration histograms against clear from GUI
 
 
+  for (Int_t ch = 0; ch < Ctr16_CHANNELS; ++ch)
+   {
+     obname.Form("Board%d/ADC/Channels/ADC_val_%d_%d", brd, brd, ch);
+     obtitle.Form("Ctr16 Board %d Channel %d Accummulated ADC values", brd, ch);
+     hADCPerChan[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), 4096, adcmin, adcmax, "ADC value", "counts");
+
+   }
+
+
 
   obname.Form("Board%d/Wishbone/AckCode_%d", brd, brd);
    obtitle.Form("Ctr16 Board %d Wishbone ack codes", brd);

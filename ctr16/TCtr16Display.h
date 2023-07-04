@@ -83,6 +83,8 @@ public:
    /** Histogram of all ADC values after correction*/
    TH1 *hADCCValuesCorrected;
 
+   /** Histogram of all ADC values for each channel*/
+   TH1 *hADCPerChan[Ctr16_CHANNELS];
    /** statistics of frame types*/
    TH1* hFrameTypes;
 

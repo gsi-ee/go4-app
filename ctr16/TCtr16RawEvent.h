@@ -17,7 +17,7 @@
 
 
 // enable this define to use test readout with vulom. If disabled we assume GOSIP readout via kilom
-#define Ctr16_USE_VULOM 1
+//#define Ctr16_USE_VULOM 1
 
 
 

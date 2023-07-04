@@ -1380,6 +1380,8 @@ void TCtr16RawProc::FinalizeTrace(TCtr16Board *board, TCtr16BoardDisplay *disp)
     Double_t corrval = CorrectedADCVal(val, disp);
     disp->hADCCValuesCorrected->Fill(corrval);
 
+    // JAM 04-07-2023: ADC values per channel
+    disp->hADCPerChan[chan]->Fill(val);
 
     // JAM 01-03-2023: ADC values in memory cell partitions:
 
