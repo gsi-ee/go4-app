@@ -13,6 +13,8 @@ class TCtr16RawParam;
 
 #include "TLatex.h"
 
+#include "TGo4RollingGraph.h"
+
 #define Ctr16_MAXSNAPSHOTS 64
 
 
@@ -34,7 +36,8 @@ public:
  hADCValues(0), hADCDeltaMeanValues (0), hADCNonLinDiff(0), hADCNonLinInt(0), hADCCorrection(0), hADCCValuesCorrected(0),
  hFrameTypes(0), hMsgTypes(0), hDataTypes(0), hChannels(0), hDatawords(0), hMemoryRow(0),
  hChipId(0), hWishboneAck(0), hWishboneSource(0), lWishboneText(0),
- hErrorcodes(0), hErrorTimestamp(0), fDisplayId(0)
+ hErrorcodes(0), hErrorTimestamp(0),  hMemoryCell(0),hMemoryBlockRowMap(0),
+ fDisplayId(0)
   {
     ;
   }
@@ -140,20 +143,32 @@ public:
    TH1 *hThresholdBaseline[Ctr16_CHANNELS];
 
    /** Noise width from threshold scans for each channel*/
-   TH1 *hThresholdNoise[Ctr16_CHANNELS];
+   TH1 *hThresholdNoise[Ctr16_BLOCKS];
 
    /** Set ADC threshold value from threshold scans for each channel*/
-   TH1 *hThresholdSetting[Ctr16_CHANNELS];
+   TH1 *hThresholdSetting[Ctr16_BLOCKS];
 
    /** Mean value from threshold scans for each channel*/
-   TH1 * hThresholdMean[Ctr16_CHANNELS];
+   TH1 * hThresholdMean[Ctr16_BLOCKS];
 
    /** Set ADC trackkingvalue from threshold scans for each channel*/
-   TH1 * hThresholdTracking[Ctr16_CHANNELS];
+   TH1 * hThresholdTracking[Ctr16_BLOCKS];
 
+#ifdef   Ctr16_USE_ROLLINGGRAPH
+   /** Noise width from threshold scans for each channel, trending*/
+     TGo4RollingGraph *fTrendThresholdNoise[Ctr16_BLOCKS];
 
+     /** Set ADC threshold value from threshold scans for each channel, trending*/
+     TGo4RollingGraph* fTrendThresholdSetting[Ctr16_BLOCKS];
 
-   /** Feature extracted amplitudes for each channel*/
+     /** Mean value from threshold scans for each channe, trendingl*/
+     TGo4RollingGraph* fTrendThresholdMean[Ctr16_BLOCKS];
+
+     /** Set ADC trackkingvalue from threshold scans for each channe, trendingl*/
+     TGo4RollingGraph* fTrendThresholdTracking[Ctr16_BLOCKS];
+#endif
+
+     /** Feature extracted amplitudes for each channel*/
    TH1 *hFeatureAmplitude[Ctr16_CHANNELS];
 
 

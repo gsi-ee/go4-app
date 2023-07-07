@@ -75,6 +75,10 @@ void TCtr16BoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Bool
   TString binlabel;
   Int_t brd = fDisplayId;
 
+
+
+
+
   for (Int_t ch = 0; ch < Ctr16_CHANNELS; ++ch)
   {
     obname.Form("Board%d/Traces/Last/Trace_%d_%d_Last", brd, brd, ch);
@@ -115,31 +119,35 @@ void TCtr16BoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Bool
     hFeatureFineTime[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), Ctr16_FEATURE_FINETIMERANGE, 0,
         Ctr16_FEATURE_FINETIMERANGE, "fine time (bins)", "counts");
 
+    //////////////////////////////
+
     obname.Form("Board%d/Threshold/Baseline/ThreshBaseline_%d_%d", brd, brd, ch);
     obtitle.Form("Ctr16 Board %d Channel %d Threshold scan DAC baseline", brd, ch);
     hThresholdBaseline[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), Ctr16_THRESHOLD_RANGE / 10, 0,
         Ctr16_THRESHOLD_RANGE, "DAC baseline (bins)", "counts");
 
-    obname.Form("Board%d/Threshold/Mean/ThreshMean_%d_%d", brd, brd, ch);
-    obtitle.Form("Ctr16 Board %d Channel %d Threshold scan mean value", brd, ch);
-    hThresholdMean[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), Ctr16_THRESHOLD_RANGE / 10, 0,
-        Ctr16_THRESHOLD_RANGE, "scanned mean baseline (bins)", "counts");
 
-    obname.Form("Board%d/Threshold/Noise/ThreshFWHM_%d_%d", brd, brd, ch);
-    obtitle.Form("Ctr16 Board %d Channel %d Threshold scan noise (FWHM)", brd, ch);
-    hThresholdNoise[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), Ctr16_THRESHOLD_RANGE / 10, 0,
-        Ctr16_THRESHOLD_RANGE, "scanne noise width FWHM (bins)", "counts");
-
-    obname.Form("Board%d/Threshold/Threshold/ThreshDAC_%d_%d", brd, brd, ch);
-    obtitle.Form("Ctr16 Board %d Channel %d Threshold DAC value", brd, ch);
-    hThresholdSetting[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), Ctr16_THRESHOLD_RANGE / 10, 0,
-        Ctr16_THRESHOLD_RANGE, "threshold DAC set (bins)", "counts");
-
-    obname.Form("Board%d/Threshold/Tracking/TrackingDAC_%d_%d", brd, brd, ch);
-    obtitle.Form("Ctr16 Board %d Channel %d Tracking DAC value", brd, ch);
-    hThresholdTracking[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), Ctr16_THRESHOLD_RANGE / 10, 0,
-        Ctr16_THRESHOLD_RANGE, "tracking DAC set (bins)", "counts");
-
+    // below only blockwise
+//    obname.Form("Board%d/Threshold/Mean/ThreshMean_%d_%d", brd, brd, ch);
+//    obtitle.Form("Ctr16 Board %d Channel %d Threshold scan mean value", brd, ch);
+//    hThresholdMean[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), Ctr16_THRESHOLD_RANGE / 10, 0,
+//        Ctr16_THRESHOLD_RANGE, "scanned mean baseline (bins)", "counts");
+//
+//    obname.Form("Board%d/Threshold/Noise/ThreshFWHM_%d_%d", brd, brd, ch);
+//    obtitle.Form("Ctr16 Board %d Channel %d Threshold scan noise (FWHM)", brd, ch);
+//    hThresholdNoise[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), Ctr16_THRESHOLD_RANGE / 10, 0,
+//        Ctr16_THRESHOLD_RANGE, "scanne noise width FWHM (bins)", "counts");
+//
+//    obname.Form("Board%d/Threshold/Trigger/ThreshTrigger_%d_%d", brd, brd, ch);
+//    obtitle.Form("Ctr16 Board %d Channel %d Trigger Threshold value", brd, ch);
+//    hThresholdSetting[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), Ctr16_THRESHOLD_RANGE / 10, 0,
+//        Ctr16_THRESHOLD_RANGE, "trigger threshold set (bins)", "counts");
+//
+//    obname.Form("Board%d/Threshold/Tracking/ThresholdTracking_%d_%d", brd, brd, ch);
+//    obtitle.Form("Ctr16 Board %d Channel %d Baseline Tracking value", brd, ch);
+//    hThresholdTracking[ch] = MakeTH1('I', obname.Data(), obtitle.Data(), Ctr16_THRESHOLD_RANGE / 10, 0,
+//        Ctr16_THRESHOLD_RANGE, "tracking DAC set (bins)", "counts");
+//////
 
 
 
@@ -280,6 +288,54 @@ void TCtr16BoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Bool
             "ADC value", "counts");
       }
     }
+
+
+
+
+
+     obname.Form("Board%d/Threshold/Mean/ThreshMean_%d_%d", brd, brd, block);
+       obtitle.Form("Ctr16 Board %d Block %d Threshold scan mean value", brd, block);
+       hThresholdMean[block] = MakeTH1('I', obname.Data(), obtitle.Data(), Ctr16_THRESHOLD_RANGE / 10, 0,
+           Ctr16_THRESHOLD_RANGE, "scanned mean baseline (bins)", "counts");
+
+       obname.Form("Board%d/Threshold/Noise/ThreshFWHM_%d_%d", brd, brd, block);
+       obtitle.Form("Ctr16 Board %d Block %d Threshold scan noise (FWHM)", brd, block);
+       hThresholdNoise[block] = MakeTH1('I', obname.Data(), obtitle.Data(), Ctr16_THRESHOLD_RANGE / 10, 0,
+           Ctr16_THRESHOLD_RANGE, "scanne noise width FWHM (bins)", "counts");
+
+       obname.Form("Board%d/Threshold/Trigger/ThreshTrigger_%d_%d", brd, brd, block);
+       obtitle.Form("Ctr16 Board %d Block %d Trigger Threshold value", brd, block);
+       hThresholdSetting[block] = MakeTH1('I', obname.Data(), obtitle.Data(), Ctr16_THRESHOLD_RANGE / 10, 0,
+           Ctr16_THRESHOLD_RANGE, "trigger threshold set (bins)", "counts");
+
+       obname.Form("Board%d/Threshold/Tracking/ThresholdTracking_%d_%d", brd, brd, block);
+       obtitle.Form("Ctr16 Board %d Block %d Baseline Tracking value", brd, block);
+       hThresholdTracking[block] = MakeTH1('I', obname.Data(), obtitle.Data(), Ctr16_THRESHOLD_RANGE / 10, 0,
+           Ctr16_THRESHOLD_RANGE, "tracking DAC set (bins)", "counts");
+
+#ifdef   Ctr16_USE_ROLLINGGRAPH
+         obname.Form("Board%d/Threshold/Mean/TrendThreshMean_%d_%d", brd, brd, block);
+         obtitle.Form("Ctr16 Board %d Block %d Threshold scan mean value", brd, block);
+         fTrendThresholdMean[block] =  MakeRollingGraph(obname.Data(), obtitle.Data(), 100, 1);
+
+         obname.Form("Board%d/Threshold/Noise/TrendThreshFWHM_%d_%d", brd, brd, block);
+         obtitle.Form("Ctr16 Board %d Block %d Threshold scan noise (FWHM)", brd, block);
+         fTrendThresholdNoise[block] =  MakeRollingGraph(obname.Data(), obtitle.Data(), 100, 1);
+
+
+
+
+           obname.Form("Board%d/Threshold/Trigger/TrendThreshTrigger_%d_%d", brd, brd, block);
+           obtitle.Form("Ctr16 Board %d Block %d Trigger Threshold value", brd, block);
+           fTrendThresholdSetting[block] =  MakeRollingGraph(obname.Data(), obtitle.Data(), 100, 1);
+
+           obname.Form("Board%d/Threshold/Tracking/TrendThresholdTracking_%d_%d", brd, brd, block);
+           obtitle.Form("Ctr16 Board %d Block %d Baseline Tracking value", brd, block);
+           fTrendThresholdTracking[block] =  MakeRollingGraph(obname.Data(), obtitle.Data(), 100, 1);
+
+#endif
+
+
 
   }
 

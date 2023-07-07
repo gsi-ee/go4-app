@@ -17,9 +17,10 @@
 
 
 // enable this define to use test readout with vulom. If disabled we assume GOSIP readout via kilom
-//#define Ctr16_USE_VULOM 1
+#define Ctr16_USE_VULOM 1
 
-
+// test if go4 rolling graph have any impact on memory?
+#define Ctr16_USE_ROLLINGGRAPH 1
 
 // if this is set, do not store complete events, but evaluate ADC histograms for memory cells into tree JAM 21.09.22
 //#define Ctr16_DO_MEMORYSAMPLES 1
@@ -502,8 +503,9 @@ public:
 
   enum ControlType
    {
-    Ctrl_None = 0x49, Ctrl_Init = 0x50, Ctrl_Start = 0x54, Ctrl_Threshold = 0x53
+    Ctrl_None = 0x49, Ctrl_Init = 0x50, Ctrl_Start = 0x54, Ctrl_Threshold = 0x58
      // JAM23: note that Threshold control messages are kept in a separate class independent of wishbone message
+     // 6-july-2023: Ctrl_Threshold id is changed
    };
 
 
