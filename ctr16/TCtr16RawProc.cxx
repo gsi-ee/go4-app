@@ -1064,7 +1064,8 @@ Int_t TCtr16RawProc::HandleWishboneFrame(TCtr16Board *board, TCtr16BoardDisplay 
   Int_t status = 0;
   Int_t header = fWorkData;
   UChar_t wishhead = (header >> 24) & 0xFF;
-  UChar_t ctrlhead = (header >> 16) & 0xFF;
+  //UChar_t ctrlhead = (header >> 16) & 0xFF;
+  UChar_t ctrlhead = wishhead; // JAM 10-07-23: type is already defined by wishhbone header
   //printf("MSG_WishboneEvent header=0x%x\n",wishhead);
 
   Ctr16Dump("WFWF Handle Wishbone Frame sees wishhead:0x%x ctrlhead:0x%x - pdata=0x%x , fWorkData=0x%x ,workshift:%d\n",(int) wishhead, (int) ctrlhead,
@@ -1087,11 +1088,11 @@ Int_t TCtr16RawProc::HandleWishboneFrame(TCtr16Board *board, TCtr16BoardDisplay 
           isThresholdMessage = kTRUE;
           disp->hMsgTypes->Fill(TCtr16Msg::Message_Threshold);
         }
-    else if ((ctype & TCtr16MsgWishbone::Ctrl_Start)==TCtr16MsgWishbone::Ctrl_Start)
+    else if (ctype == TCtr16MsgWishbone::Ctrl_Start)
     {
       disp->hMsgTypes->Fill(TCtr16Msg::Message_Start);
     }
-      else if ((ctype & TCtr16MsgWishbone::Ctrl_Init)==TCtr16MsgWishbone::Ctrl_Init)
+      else if (ctype == TCtr16MsgWishbone::Ctrl_Init)
     {
       disp->hMsgTypes->Fill(TCtr16Msg::Message_Init);
     }
@@ -1461,28 +1462,32 @@ Int_t TCtr16RawProc::UnpackThresholdMessage(TCtr16Board *board, TCtr16BoardDispl
 //                           | 7                    0|    Baseline DAC Ch 3
 //
   Int_t status = 0;
-  UChar_t block = (fWorkData >> 16) & 0x3;    // fWorkData is still at begin of message header
-  UShort_t mean = (fWorkData >> 4) & 0xFFF;
-  UShort_t fwhm = (fWorkData & 0xF) <<8;
+  UChar_t block = (fWorkData >> 24) & 0x3;    // fWorkData is still at begin of message header
+  UShort_t mean = (fWorkData >> 12) & 0xFFF;
+  UShort_t fwhm = fWorkData & 0xFFF;
   Ctr16_NEXT_DATAWORD_RETURN
-  fwhm |= (fWorkData >> 24) & 0xFF;
-
-   UShort_t thres = (fWorkData >> 12) & 0xFFF;
-   UShort_t track = (fWorkData) & 0xFFF;
-   Ctr16_NEXT_DATAWORD_RETURN
-  TCtr16MsgThreshold *msg[4];    // one frame contains info for 4 channels in block
+  UShort_t thres = (fWorkData >> 20) & 0xFFF;
+  UShort_t track = (fWorkData >> 8) & 0xFFF;
   UShort_t baseline[4];
-  baseline[0] = (fWorkData >> 20) & 0xFFF;
-  baseline[1] = (fWorkData >> 8) & 0xFFF;
-  baseline[2] = (fWorkData & 0xFF);
+  baseline[0] = (fWorkData & 0xFF) << 4;
+
   Ctr16_NEXT_DATAWORD_RETURN
-  ;
-  baseline[2] |= (fWorkData >> 28) & 0xF;
-  baseline[3] = (fWorkData >> 16) & 0xFFF;
+  baseline[0] |= (fWorkData >> 28) & 0xF;
+  baseline[1] = (fWorkData >> 16) & 0xFFF;
+  baseline[2] = (fWorkData >> 4) & 0xFFF;
+  baseline[3] = (fWorkData & 0xF) << 8;
 
+  Ctr16_NEXT_DATAWORD_RETURN
+  baseline[3] |= (fWorkData >> 24) & 0xFF;
 
+  fWorkShift += 24; // align for next message
+    if (fWorkShift == 32)
+    {
+      fWorkShift = 0;
+      fPdata--;
+    }
 
-
+  TCtr16MsgThreshold *msg[4];    // one frame contains info for 4 channels in block
   for (Int_t c = 0; c < 4; ++c)
   {
     msg[c] = new TCtr16MsgThreshold(0);
@@ -1516,8 +1521,6 @@ Int_t TCtr16RawProc::UnpackThresholdMessage(TCtr16Board *board, TCtr16BoardDispl
   Ctr16Dump("TRTR Threshold message block:%d mean:%d track:%d noise:%d thrset:%d - pdata=0x%x , fWorkData=0x%x\n",block, (int) mean,
       (int) track,(int)fwhm, (int) thres, *fPdata, fWorkData);
 
-
-  SwitchDataAlignment();    // next message will begin in lower 16 bit part of this data word
   Ctr16_NEXT_DATAWORD_RETURN
   return status;
 }

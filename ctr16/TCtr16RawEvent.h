@@ -503,7 +503,7 @@ public:
 
   enum ControlType
    {
-    Ctrl_None = 0x49, Ctrl_Init = 0x50, Ctrl_Start = 0x54, Ctrl_Threshold = 0x58
+    Ctrl_None = 0x49, Ctrl_Init = 0x50, Ctrl_Start = 0x51, Ctrl_Threshold = 0x58
      // JAM23: note that Threshold control messages are kept in a separate class independent of wishbone message
      // 6-july-2023: Ctrl_Threshold id is changed
    };

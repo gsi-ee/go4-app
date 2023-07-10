@@ -316,22 +316,22 @@ void TCtr16BoardDisplay::InitDisplay(Int_t tracelength, Int_t numsnapshots, Bool
 #ifdef   Ctr16_USE_ROLLINGGRAPH
          obname.Form("Board%d/Threshold/Mean/TrendThreshMean_%d_%d", brd, brd, block);
          obtitle.Form("Ctr16 Board %d Block %d Threshold scan mean value", brd, block);
-         fTrendThresholdMean[block] =  MakeRollingGraph(obname.Data(), obtitle.Data(), 100, 1);
+         fTrendThresholdMean[block] =  MakeRollingGraph(obname.Data(), obtitle.Data(), 200, 1);
 
          obname.Form("Board%d/Threshold/Noise/TrendThreshFWHM_%d_%d", brd, brd, block);
          obtitle.Form("Ctr16 Board %d Block %d Threshold scan noise (FWHM)", brd, block);
-         fTrendThresholdNoise[block] =  MakeRollingGraph(obname.Data(), obtitle.Data(), 100, 1);
+         fTrendThresholdNoise[block] =  MakeRollingGraph(obname.Data(), obtitle.Data(), 200, 1);
 
 
 
 
            obname.Form("Board%d/Threshold/Trigger/TrendThreshTrigger_%d_%d", brd, brd, block);
            obtitle.Form("Ctr16 Board %d Block %d Trigger Threshold value", brd, block);
-           fTrendThresholdSetting[block] =  MakeRollingGraph(obname.Data(), obtitle.Data(), 100, 1);
+           fTrendThresholdSetting[block] =  MakeRollingGraph(obname.Data(), obtitle.Data(), 200, 1);
 
            obname.Form("Board%d/Threshold/Tracking/TrendThresholdTracking_%d_%d", brd, brd, block);
            obtitle.Form("Ctr16 Board %d Block %d Baseline Tracking value", brd, block);
-           fTrendThresholdTracking[block] =  MakeRollingGraph(obname.Data(), obtitle.Data(), 100, 1);
+           fTrendThresholdTracking[block] =  MakeRollingGraph(obname.Data(), obtitle.Data(), 200, 1);
 
 #endif
 
