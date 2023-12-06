@@ -28,7 +28,7 @@
 #define TUNPACKPROCESSOR_H
 
 //#define WR_TIME_STAMP     1   // white rabbit time stamp is head of data
-#define USE_MBS_PARAM     1   // 
+//#define USE_MBS_PARAM     1   //  JAM 2023: this was enabled for old files
 
 // enable this to also see the old baseline plots of 2020 beamtime
 //#define USE_OLD_CSA_BASELINES 1
@@ -54,12 +54,17 @@
  #define MAX_TRACE_SIZE    8000   // in samples 
  #define MAX_TRAPEZ_N_AVG  1000   // in samples
 #else 
- #define     TRACE_SIZE    1024   // in samples 
+ #define     TRACE_SIZE    1000   // in samples 1024
  #define     TRAPEZ_N_AVG    64   // in samples
  // nr of slaves on SFP 0    1  2  3
  //                     |    |  |  |
- #define NR_SLAVES    { 0,   9, 0, 0} 
- #define ADC_TYPE     { 0, 0xffff, 0, 0} // 12 bit: 0, 14 bit: 1
+ //#define NR_SLAVES    { 0,   9, 0, 0} 
+ //#define ADC_TYPE     { 0, 0xffff, 0, 0} // 12 bit: 0, 14 bit: 1
+ // JAM 2023: above old setup, below for 2023 tests
+ #define NR_SLAVES    {   1,      0, 0, 0} 
+ #define ADC_TYPE     { 0xffff, 0xffff, 0xffff, 0xffff} // 12 bit: 0, 14 bit: 1
+ 
+ 
                                          // bit 0 fuer slave module 0 
                                          // bit n fuer slave module n (max n = 31)
 #endif

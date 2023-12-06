@@ -416,9 +416,9 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
         l_spec_head = *pl_tmp++;
         if ( (l_spec_head & 0xff000000) != 0xaf000000)
         {  
-          printf ("ERROR>> E,t summary: wrong header is 0x%x, must be: 0x%x\n",
-                                                 (l_spec_head & 0xff000000)>>24, 0xaf);              
-          goto bad_event;
+          //printf ("ERROR>> E,t summary: wrong header is 0x%x, must be: 0x%x\n",
+          //                                       (l_spec_head & 0xff000000)>>24, 0xaf);              
+          //goto bad_event;
           //sleep (1); 
         }
         ll_trg_time  = (Long64_t)*pl_tmp++;
@@ -541,9 +541,9 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
         l_spec_trail = *pl_tmp++;
         if ( (l_spec_trail & 0xff000000) != 0xbf000000)
         {  
-          printf ("ERROR>> E,t summary: wrong header is 0x%x, must be: 0x%x\n",
-                                                 (l_spec_trail & 0xff000000)>>24, 0xbf);              
-          goto bad_event;
+          //printf ("ERROR>> E,t summary: wrong header is 0x%x, must be: 0x%x\n",
+          //                                       (l_spec_trail & 0xff000000)>>24, 0xbf);              
+          //goto bad_event;
           //sleep (1); 
         }
       }
@@ -558,8 +558,8 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
         //printf ("trace header \n");
         if ( ((l_trace_head & 0xff000000) >> 24) != 0xaa)
         {
-          printf ("ERROR>> trace header id is not 0xaa \n");
-          goto bad_event; 
+          //printf ("ERROR>> trace header id is not 0xaa \n");
+          //goto bad_event; 
         }
 
         l_fpga_filt_on_off = (l_trace_head & 0x80000) >> 19;
@@ -732,9 +732,9 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
         l_trace_trail = *pl_tmp++;
         if ( ((l_trace_trail & 0xff000000) >> 24) != 0xbb)
         {
-          printf ("ERROR>> trace trailer id is not 0xbb, ");
-          printf ("SFP: %d, FEB: %d, CHA: %d \n", l_sfp_id, l_feb_id, l_cha_id); 
-          goto bad_event; 
+          //printf ("ERROR>> trace trailer id is not 0xbb, ");
+          //printf ("SFP: %d, FEB: %d, CHA: %d \n", l_sfp_id, l_feb_id, l_cha_id); 
+          //goto bad_event; 
         }
       }
     }
