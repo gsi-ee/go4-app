@@ -21,12 +21,15 @@ using namespace std;
 //***********************************************************
 TGemCSAMapParam::TGemCSAMapParam() : TGo4Parameter("Parameter")
 {
-
+  fSlowMotion=kFALSE;
 }
 //***********************************************************
 TGemCSAMapParam::TGemCSAMapParam(const char* name) : TGo4Parameter(name)
 {
 
+  fSlowMotion=kFALSE;
+
+#ifdef   USE_CSA_MAPPING
   for (Int_t dev = 0; dev < CSA_MAXCHAMBERS; ++dev)
    {
      for (Int_t wire = 0; wire < CSA_MAXWIRES; ++wire)
@@ -37,9 +40,17 @@ TGemCSAMapParam::TGemCSAMapParam(const char* name) : TGo4Parameter(name)
      }
 
    }
+#endif
 
+#ifdef   USE_AWAGS_BEAMMONITOR
+  for (Int_t el = 0; el < AWAGS_NUM_ELECTRODES; ++el)
+  {
+      fBeamMonitorSFP[el]=-1;
+      fBeamMonitorSlave[el]=-1;
+      fBeamMonitorChannel[el]=-1;
+  }
+#endif
   InitCSAMapping();
-  // TODO: put here default mapping
 
 
 }
@@ -52,7 +63,31 @@ TGemCSAMapParam::~TGemCSAMapParam()
 
 void TGemCSAMapParam::InitCSAMapping()
 {
+#ifdef   USE_AWAGS_BEAMMONITOR
+  // JAM 7-12-2023: setup for beam position charge electrods:
 
+  // x left side:
+  fBeamMonitorSFP[0]=0;
+  fBeamMonitorSlave[0]=0;
+  fBeamMonitorChannel[0]=12;
+
+  // x right side:
+  fBeamMonitorSFP[1]=0;
+  fBeamMonitorSlave[1]=0;
+  fBeamMonitorChannel[1]=4;
+
+
+  // y lower side:
+   fBeamMonitorSFP[2]=0;
+   fBeamMonitorSlave[2]=0;
+   fBeamMonitorChannel[2]=8;
+
+   // y upper side:
+   fBeamMonitorSFP[3]=0;
+   fBeamMonitorSlave[3]=0;
+   fBeamMonitorChannel[3]=0;
+#endif
+#ifdef   USE_CSA_MAPPING
   // some fake mapping to see something JAM 10-12-2019
 //  for (Int_t dev = 0; dev < CSA_MAXCHAMBERS; ++dev)
 //   {
@@ -324,7 +359,7 @@ void TGemCSAMapParam::InitCSAMapping()
   fSFP[0][253] = 1; fSlave[0][253] = 6; fChannel[0][253] = 7;
   fSFP[0][254] = 1; fSlave[0][254] = 4; fChannel[0][254] = 15;
   fSFP[0][255] = 1; fSlave[0][255] = 5; fChannel[0][255] = 7;
-
+#endif
 }
 
 //-----------------------------------------------------------
@@ -340,6 +375,8 @@ Bool_t TGemCSAMapParam::UpdateFrom(TGo4Parameter *pp){
     TGemCSAMapParam * from;
     from = (TGemCSAMapParam *) pp;
 
+    fSlowMotion=from->fSlowMotion;
+#ifdef   USE_CSA_MAPPING
     for (Int_t dev = 0; dev < CSA_MAXCHAMBERS; ++dev)
        {
          for (Int_t wire = 0; wire < CSA_MAXWIRES; ++wire)
@@ -350,7 +387,15 @@ Bool_t TGemCSAMapParam::UpdateFrom(TGo4Parameter *pp){
          }
 
        }
-
+#endif
+#ifdef   USE_AWAGS_BEAMMONITOR
+    for (Int_t el = 0; el < AWAGS_NUM_ELECTRODES; ++el)
+     {
+         fBeamMonitorSFP[el]=from->fBeamMonitorSFP[el];
+         fBeamMonitorSlave[el]=from->fBeamMonitorSlave[el];
+         fBeamMonitorChannel[el]=from->fBeamMonitorChannel[el];
+     }
+#endif
 
   }
      else

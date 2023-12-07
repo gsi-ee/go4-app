@@ -23,9 +23,12 @@ void TGemCSABasicEvent::Clear(Option_t *t)
       {
         fTrace[i][j][k].clear();
         fTraceBLR[i][j][k].clear();
-        ;
         fTraceFPGA[i][j][k].clear();
-        ;
+
+
+        fSignal[i][j][k]=-1;
+        fBackground[i][j][k]=-1;
+
       }
     }
   }

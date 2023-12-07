@@ -9,6 +9,10 @@
 class TGemCSAMapParam;
 class TGemCSAMapEvent;
 
+
+
+
+
 class TGemCSAMapProc: public TGo4EventProcessor
 {
 public:
@@ -41,6 +45,12 @@ public:
   TH1* hWireProfileBLR_Sum[CSA_MAXCHAMBERS];
   TH1* hWireProfileFPGA_Sum[CSA_MAXCHAMBERS];
 
+
+  TH2* hBeamPosition; // beam position from charge electrodes, current trace
+  TH2* hBeamPositionAcc; // beam position from charge electrodes, accumulated
+  TH1* hBeamXAcc; // accumulated X positions of beam
+  TH1* hBeamYAcc; // accumulated Y positions of beam
+  TH1* hBeamIntensityAcc; // accumulated beam intensity = sum of all electrodes |signals-background|
 
   TGemCSAMapParam *fParam;
 

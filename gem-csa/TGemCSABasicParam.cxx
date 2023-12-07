@@ -23,14 +23,14 @@ TGemCSABasicParam::TGemCSABasicParam() : TGo4Parameter("Parameter")
 {
   fDoBaselineFits=kFALSE;
   fMapTraces=kFALSE;
-  fSlowMotion=kFALSE;
+
 }
 //***********************************************************
 TGemCSABasicParam::TGemCSABasicParam(const char* name) : TGo4Parameter(name)
 {
   fDoBaselineFits=kFALSE;
   fMapTraces=kFALSE;
-  fSlowMotion=kFALSE;
+
 }
 //***********************************************************
 TGemCSABasicParam::~TGemCSABasicParam()

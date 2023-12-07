@@ -72,10 +72,17 @@
 
 // these are the default limits of the background (BASE) and signal regions for height evaluations
 // JAM2021 - may be adjusted by conditions later
-#define CSA_BASE_START    500
-#define CSA_BASE_SIZE    100
-#define CSA_SIGNAL_START 600
-#define CSA_SIGNAL_SIZE   200
+//#define CSA_BASE_START    500
+//#define CSA_BASE_SIZE    100
+//#define CSA_SIGNAL_START 600
+//#define CSA_SIGNAL_SIZE   200
+
+// new for awags beamtime 11/2023:
+#define CSA_BASE_START    300
+#define CSA_BASE_SIZE    300
+#define CSA_SIGNAL_START 800
+#define CSA_SIGNAL_SIZE   150
+
 
 #define RON  "\x1B[7m"
 #define RES  "\x1B[0m"

@@ -28,7 +28,7 @@ class TGemCSABasicParam : public TGo4Parameter {
 
        Bool_t fDoBaselineFits; // if true, polynomial fit is done for traces within the region
        Bool_t fMapTraces; // if true, full traces are mapped to the output event
-       Bool_t fSlowMotion; // if true than only process one MBS event and stop.
+      // Bool_t fSlowMotion; // if true than only process one MBS event and stop. TODO: move to second step!
 
    ClassDef(TGemCSABasicParam,1)
 };

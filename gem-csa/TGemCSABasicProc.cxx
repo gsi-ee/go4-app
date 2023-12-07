@@ -829,6 +829,14 @@ if(outevent==0)  GO4_STOP_ANALYSIS_MESSAGE(
            h_signal_minus_background [l_i][l_j][l_k]->Fill(sigminusback);
 
 
+           if(fParam->fMapTraces)
+           {
+              // JAM6-12-2023: TODO here treat beam position display from configured channels
+              // pass average region hiehgs on to second step dedicated for any mappping
+               outevent->fSignal[l_i][l_j][l_k]=ave_sig;
+               outevent->fBackground[l_i][l_j][l_k]=ave_back;
+           }
+
 
            }
        }
@@ -1129,12 +1137,12 @@ bad_event:
   } 
  } // while subevents
 
-
-  if (fParam->fSlowMotion)
-     {
-         Int_t evnum=fInput->GetCount();
-         GO4_STOP_ANALYSIS_MESSAGE("Stopped for slow motion mode after MBS event count %d. Click green arrow for next event. please.", evnum);
-     }
+// moved to second step JAM 12/23
+//  if (fParam->fSlowMotion)
+//     {
+//         Int_t evnum=fInput->GetCount();
+//         GO4_STOP_ANALYSIS_MESSAGE("Stopped for slow motion mode after MBS event count %d. Click green arrow for next event. please.", evnum);
+//     }
 
   return kTRUE;
 }

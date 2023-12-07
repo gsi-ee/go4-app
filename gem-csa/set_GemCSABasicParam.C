@@ -15,7 +15,6 @@ void set_GemCSABasicParam()
    TGo4Log::Info("Set parameter GemCSABasicParam as saved at Fri Sep 10 17:56:31 2021");
 
    param0->fDoBaselineFits = kFALSE;
-   param0->fMapTraces = kFALSE;
-   param0->fSlowMotion = kFALSE;
+   param0->fMapTraces = kTRUE;
 
 }

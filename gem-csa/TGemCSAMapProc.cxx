@@ -36,6 +36,9 @@ TGemCSAMapProc::TGemCSAMapProc(const char* name) :
    TString obname;
    TString obtitle;
    //TString foldername;
+
+#ifdef   USE_CSA_MAPPING
+
    Int_t tracelength=CSA_TRACE_SIZE; // TODO: dynamically get trace size from first step?
   for (Int_t dev = 0; dev < CSA_MAXCHAMBERS; ++dev)
   {
@@ -113,6 +116,32 @@ TGemCSAMapProc::TGemCSAMapProc(const char* name) :
 
   }    // devs
 
+#endif
+
+#ifdef USE_AWAGS_BEAMMONITOR
+
+
+  obname.Form("Beam/BeamPositionMapTrace");
+  obtitle.Form("Beam centroid from last trace");
+  hBeamPosition=MakeTH2('I', obname.Data(), obtitle.Data(), AWAGS_BEAMPOS_BINS, -AWAGS_BEAMPOS_RANGE, AWAGS_BEAMPOS_RANGE, AWAGS_BEAMPOS_BINS,  -AWAGS_BEAMPOS_RANGE, AWAGS_BEAMPOS_RANGE,"X (rel.)", "Y (rel.)");
+
+  obname.Form("Beam/BeamPositionMapAcc");
+  obtitle.Form("Beam centroids accumulated");
+  hBeamPositionAcc=MakeTH2('I', obname.Data(), obtitle.Data(), AWAGS_BEAMPOS_BINS, -AWAGS_BEAMPOS_RANGE, AWAGS_BEAMPOS_RANGE, AWAGS_BEAMPOS_BINS,  -AWAGS_BEAMPOS_RANGE, AWAGS_BEAMPOS_RANGE,"X (rel.)", "Y (rel.)");
+
+  obname.Form("Beam/BeamPositionX");
+  obtitle.Form("Beam positions X accumulated");
+  hBeamXAcc=MakeTH1('I', obname.Data(), obtitle.Data(), AWAGS_BEAMPOS_BINS_FINE, -AWAGS_BEAMPOS_RANGE, AWAGS_BEAMPOS_RANGE, "X (rel.)");
+
+  obname.Form("Beam/BeamPositionY");
+  obtitle.Form("Beam positions X accumulated");
+  hBeamYAcc=MakeTH1('I', obname.Data(), obtitle.Data(), AWAGS_BEAMPOS_BINS_FINE, -AWAGS_BEAMPOS_RANGE, AWAGS_BEAMPOS_RANGE, "Y (rel.)");
+
+  obname.Form("Beam/BeamIntensity");
+  obtitle.Form("Beam Intensity accumulated");
+  hBeamIntensityAcc=MakeTH1('I', obname.Data(), obtitle.Data(), 1000, 0, 8000, "Electrode sum beam intensity (a.u.)");
+#endif
+
 
 }
 //-----------------------------------------------------------
@@ -136,10 +165,8 @@ Bool_t TGemCSAMapProc::BuildEvent(TGo4EventElement* dest)
 	  return isValid; // must be same is for SetValid
    }
    isValid=kTRUE;
-
-// TODO: fill mapped traces using the mapping here
-
-
+#ifdef   USE_CSA_MAPPING
+// fill mapped traces using the mapping here:
    for (Int_t dev = 0; dev < CSA_MAXCHAMBERS; ++dev)
       {
         for (Int_t wire = 0; wire < CSA_MAXWIRES; ++wire)
@@ -189,16 +216,96 @@ Bool_t TGemCSAMapProc::BuildEvent(TGo4EventElement* dest)
         }
 
       }
+#endif
 
 
+#ifdef USE_AWAGS_BEAMMONITOR
+/////////////////////////////////////////////////////////////
+   // JAM 7-Dec-2023 here evaluate beam position from pickup electrodes:
 
+   Int_t xlowSFP=fParam->fBeamMonitorSFP[0];
+   Int_t xlowSlave=fParam->fBeamMonitorSlave[0];
+   Int_t xlowChan=fParam->fBeamMonitorChannel[0];
+   Int_t xhiSFP=fParam->fBeamMonitorSFP[1];
+   Int_t xhiSlave=fParam->fBeamMonitorSlave[1];
+   Int_t xhiChan=fParam->fBeamMonitorChannel[1];
+   Int_t ylowSFP=fParam->fBeamMonitorSFP[2];
+   Int_t ylowSlave=fParam->fBeamMonitorSlave[2];
+   Int_t ylowChan=fParam->fBeamMonitorChannel[2];
+   Int_t yhiSFP=fParam->fBeamMonitorSFP[3];
+   Int_t yhiSlave=fParam->fBeamMonitorSlave[3];
+   Int_t yhiChan=fParam->fBeamMonitorChannel[3];
+
+   if(xlowSFP <0 || xlowSFP>MAX_SFP || xlowSlave <0 || xlowSlave>MAX_SLAVE || xlowChan < 0 ||  xlowChan> N_CHA)
+   {
+     GO4_STOP_ANALYSIS_MESSAGE("Configuration error of beam position electrode x low indices! (%d,%d,%d) - stopped. Check Map parameter! ", xlowSFP, xlowSlave, xlowChan);
+   }
+   if(xhiSFP <0 || xhiSFP>MAX_SFP || xhiSlave <0 || xhiSlave>MAX_SLAVE || xhiChan < 0 ||  xhiChan> N_CHA)
+    {
+        GO4_STOP_ANALYSIS_MESSAGE("Configuration error of beam position electrode x hi indices! (%d,%d,%d) - stopped. Check Map parameter! ", xhiSFP, xhiSlave, xhiChan);
+    }
+   if(ylowSFP <0 || ylowSFP>MAX_SFP || ylowSlave <0 || ylowSlave>MAX_SLAVE || ylowChan < 0 ||  ylowChan> N_CHA)
+     {
+       GO4_STOP_ANALYSIS_MESSAGE("Configuration error of beam position electrode y low indices! (%d,%d,%d) - stopped. Check Map parameter! ", ylowSFP, ylowSlave, ylowChan);
+     }
+   if(yhiSFP <0 || yhiSFP>MAX_SFP || yhiSlave <0 || yhiSlave>MAX_SLAVE || yhiChan < 0 ||  yhiChan> N_CHA)
+      {
+     GO4_STOP_ANALYSIS_MESSAGE("Configuration error of beam position electrode y hi indices! (%d,%d,%d) - stopped. Check Map parameter! ", yhiSFP, yhiSlave, yhiChan);
+      }
+
+   Double_t SigXlow=inp_evt->fSignal[xlowSFP][xlowSlave][xlowChan];
+   Double_t SigXhi=inp_evt->fSignal[xhiSFP][xhiSlave][xhiChan];
+   Double_t SigYlow=inp_evt->fSignal[ylowSFP][ylowSlave][ylowChan];
+   Double_t SigYhi=inp_evt->fSignal[yhiSFP][yhiSlave][yhiChan];
+   Double_t BackXlow=inp_evt->fBackground[xlowSFP][xlowSlave][xlowChan];
+   Double_t BackXhi=inp_evt->fBackground[xhiSFP][xhiSlave][xhiChan];
+   Double_t BackYlow=inp_evt->fBackground[ylowSFP][ylowSlave][ylowChan];
+   Double_t BackYhi=inp_evt->fBackground[yhiSFP][yhiSlave][yhiChan];
+
+
+   Double_t SigMinusBackXlow=TMath::Abs(SigXlow - BackXlow);
+   Double_t SigMinusBackXhi=TMath::Abs(SigXhi - BackXhi);
+   Double_t SigMinusBackYlow=TMath::Abs(SigYlow - BackYlow);
+   Double_t SigMinusBackYhi=TMath::Abs(SigYhi - BackYhi);
+
+   // use sum of opposite signals for intensity normalisation:
+   Double_t Xintensity=SigMinusBackXlow+SigMinusBackXhi;
+   Double_t Yintensity=SigMinusBackYlow+SigMinusBackYhi;
+
+   Double_t xlownorm=SigMinusBackXlow/Xintensity; // between 0 and 1
+   //Double_t xhiwnorm=SigMinusBackXhi/Xintensity; // redundant
+   Double_t ylownorm=SigMinusBackYlow/Yintensity;
+   //Double_t yhiwnorm=SigMinusBackYhi/Yintensity;; // redundant
+
+   Double_t xpos= 2*AWAGS_BEAMPOS_RANGE*xlownorm -AWAGS_BEAMPOS_RANGE ;// 0 is in centre of plot, border scaled to AWAGS_BEAMPOS_RANGE
+   Double_t ypos= 2*AWAGS_BEAMPOS_RANGE*ylownorm -AWAGS_BEAMPOS_RANGE ;// 0 is in centre of plot, border scaled to AWAGS_BEAMPOS_RANGE
+
+   hBeamPosition->Fill(xpos,ypos);
+   hBeamPositionAcc->Fill(xpos,ypos);
+   hBeamXAcc->Fill(xpos);
+   hBeamYAcc->Fill(ypos);
+   hBeamIntensityAcc->Fill(Xintensity + Yintensity);
+
+#endif
    out_evt->SetValid(isValid);
+
+   if (fParam->fSlowMotion)
+        {
+            Int_t evnum = -1;
+               TGo4MbsEvent* mbsevent = dynamic_cast<TGo4MbsEvent*>(GetInputEvent("Basic"));
+               if (mbsevent)
+                 evnum = mbsevent->GetCount();
+            GO4_STOP_ANALYSIS_MESSAGE("Stopped for slow motion mode after MBS event count %d. Click green arrow for next event. please.", evnum);
+        }
+
    return isValid;
 }
 
 
 void TGemCSAMapProc::ResetTraces()
 {
+
+#ifdef   USE_CSA_MAPPING
   for (Int_t dev = 0; dev < CSA_MAXCHAMBERS; ++dev)
        {
          for (Int_t wire = 0; wire < CSA_MAXWIRES; ++wire)
@@ -217,4 +324,11 @@ void TGemCSAMapProc::ResetTraces()
          hWireProfileBLR[dev]->Reset("");
          hWireProfileFPGA[dev]->Reset("");
        }
+
+#endif
+
+#ifdef USE_AWAGS_BEAMMONITOR
+  hBeamPosition->Reset("");
+#endif
+
 }
